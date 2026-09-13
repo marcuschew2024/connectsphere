@@ -1,0 +1,6 @@
+Flask==3.1.0
+flask-cors==5.0.0
+python-dotenv==1.0.1
+supabase==2.11.0
+pytest==8.3.4
+ruff==0.9.2

@@ -1,0 +1,30 @@
+# Dependencies
+node_modules/
+
+# Next.js
+.next/
+out/
+next-env.d.ts
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.pytest_cache/
+.ruff_cache/
+
+# Environment
+.env
+.env.local
+.env*.local
+
+# Playwright
+playwright-report/
+test-results/
+/frontend/blob-report/
+/frontend/playwright/.cache/
+
+# OS / editor
+.DS_Store
+*.log
