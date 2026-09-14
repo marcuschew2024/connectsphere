@@ -98,5 +98,5 @@ GitHub Actions runs two jobs on every push and pull request (see `.github/workfl
 
 ## Project links
 
-- Jira board: _TODO: add link_
-- Confluence space: _TODO: add link_
+- Jira board: https://spm-g6t4.atlassian.net/jira/software/projects/SCRUM/boards/1
+- Confluence space (ConnectSphere): https://spm-g6t4.atlassian.net/wiki/spaces/CS
