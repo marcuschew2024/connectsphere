@@ -3,7 +3,7 @@ import "./globals.css";
 
 export const metadata: Metadata = {
   title: "ConnectSphere",
-  description: "Role-based team collaboration platform",
+  description: "Event lifecycle management platform: request, coordination, venue and equipment booking, and attendee registration.",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
