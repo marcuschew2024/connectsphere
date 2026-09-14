@@ -3,11 +3,11 @@
 import { useEffect, useState } from "react";
 
 const ROLES = [
-  "System Administrator",
-  "HR Manager",
-  "Team Manager",
-  "Staff",
-  "Guest",
+  "Event Organiser",
+  "Coordinator",
+  "Venue Staff",
+  "Technical Support",
+  "Attendee",
 ];
 
 type ApiStatus = "checking" | "ok" | "unreachable";
@@ -53,7 +53,8 @@ export default function Home() {
       <div className="flex flex-col items-center gap-3 text-center">
         <h1 className="text-5xl font-bold tracking-tight">ConnectSphere</h1>
         <p className="max-w-xl text-slate-400">
-          A role-based team collaboration platform. Walking-skeleton scaffold.
+          An event lifecycle management platform: request, coordination,
+          venue and equipment booking, and attendee registration. Walking-skeleton scaffold.
         </p>
       </div>
 

@@ -1,6 +1,6 @@
 # ConnectSphere
 
-ConnectSphere is a role-based team collaboration platform built as a student Scrum project.
+ConnectSphere is an event lifecycle management web app built as a student Scrum project: from an organiser raising an event request, through coordinator review and venue/equipment booking, to attendee registration and confirmation, with role-appropriate access throughout.
 
 ## Architecture
 
@@ -10,7 +10,7 @@ A mono-repo with two deployable parts:
 - `api/` - Python Flask REST API.
 - Data and authentication are provided by Supabase (Postgres + Auth), accessed via environment variables. Supabase is not run locally.
 
-The five application roles are: System Administrator, HR Manager, Team Manager, Staff, and Guest.
+The five roles are: Event Organiser, Coordinator, Venue Staff, Technical Support, and Attendee.
 
 ## Prerequisites
 
