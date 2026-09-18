@@ -19,12 +19,12 @@ if TYPE_CHECKING:
 def get_supabase_client() -> Client | None:
     """Return a cached Supabase client, or ``None`` if not configured.
 
-    Reads ``SUPABASE_URL`` and ``SUPABASE_KEY`` from the environment. Absence of
-    either variable is a supported state during Sprint 1 (seeded-users stub),
-    so this returns ``None`` instead of raising.
+    Reads ``SUPABASE_URL`` and the backend ``SUPABASE_SECRET_KEY``. Falls back
+    to ``SUPABASE_KEY`` for existing setups using a legacy service_role key.
+    Missing credentials are supported, so this returns ``None`` in that case.
     """
     url = os.environ.get("SUPABASE_URL")
-    key = os.environ.get("SUPABASE_KEY")
+    key = os.environ.get("SUPABASE_SECRET_KEY") or os.environ.get("SUPABASE_KEY")
 
     if not url or not key:
         return None
@@ -37,4 +37,5 @@ def get_supabase_client() -> Client | None:
 
 def is_supabase_configured() -> bool:
     """Return whether Supabase credentials are present in the environment."""
-    return bool(os.environ.get("SUPABASE_URL") and os.environ.get("SUPABASE_KEY"))
+    key = os.environ.get("SUPABASE_SECRET_KEY") or os.environ.get("SUPABASE_KEY")
+    return bool(os.environ.get("SUPABASE_URL") and key)
