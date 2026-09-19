@@ -1,12 +1,14 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { API_URL } from "@/lib/api";
+import DevRoleSwitcher from "./dev-role-switcher";
 
 const ROLES = [
-  "Event Organiser",
+  "Organiser",
   "Coordinator",
   "Venue Staff",
-  "Technical Support",
+  "Tech Support",
   "Attendee",
 ];
 
@@ -16,10 +18,9 @@ export default function Home() {
   const [apiStatus, setApiStatus] = useState<ApiStatus>("checking");
 
   useEffect(() => {
-    const apiUrl = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:5000";
     const controller = new AbortController();
 
-    fetch(`${apiUrl}/health`, { signal: controller.signal })
+    fetch(`${API_URL}/health`, { signal: controller.signal })
       .then((res) => {
         if (!res.ok) throw new Error(`status ${res.status}`);
         return res.json();
@@ -73,6 +74,8 @@ export default function Home() {
           ))}
         </ul>
       </section>
+
+      {process.env.NODE_ENV === "development" && <DevRoleSwitcher />}
 
       <div className="flex items-center gap-2 rounded-full border border-slate-800 bg-slate-900 px-4 py-2 text-sm">
         <span className={`h-2.5 w-2.5 rounded-full ${statusColor}`} />
