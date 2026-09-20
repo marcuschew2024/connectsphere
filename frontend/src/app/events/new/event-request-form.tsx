@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useState, type FormEvent } from "react";
 import { ApiError, apiRequest } from "@/lib/api";
 import type { EventRecord } from "@/lib/events";
@@ -95,6 +96,9 @@ export default function EventRequestForm({ canCreate }: { canCreate: boolean }) 
           <div><dt className="text-slate-400">Reference</dt><dd className="break-all font-mono">{saved.id}</dd></div>
           <div><dt className="text-slate-400">Saved at</dt><dd>{new Date(saved.created_at).toLocaleString()}</dd></div>
         </dl>
+        <Link href={`/events/${saved.id}`} className="inline-flex rounded bg-sky-300 px-4 py-2 font-semibold text-slate-950">
+          View event status
+        </Link>
         <button type="button" disabled={!canCreate} onClick={() => setSaved(null)}
           className="rounded bg-sky-300 px-4 py-2 font-semibold text-slate-950 disabled:cursor-not-allowed disabled:opacity-40">
           Create another request
