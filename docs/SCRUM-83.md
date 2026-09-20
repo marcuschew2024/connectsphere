@@ -7,7 +7,7 @@ and test the app before real login exists. There is no admin role.
 
 Open your **development** Supabase project, open **SQL Editor**, and run the
 whole contents of [`supabase/seed_users.sql`](../supabase/seed_users.sql).
-**This is the only SQL file everyone needs to run.** It creates the table if
+**This is the only SQL file needed for user setup.** It creates the table if
 missing, upgrades the original UUID IDs to numbers if needed, and seeds the five
 demo users with IDs 1-5. It is safe to rerun. The final query should return five users.
 
@@ -147,13 +147,15 @@ When a teammate adds event creation, the relevant part should look like this:
 from app.acting_user import require_acting_user
 
 user = require_acting_user()  # Rejects the request if nobody is selected.
-# When inserting the event, set created_by to user["id"].
-# Do not get created_by from the submitted JSON.
+# When inserting the event, set organiser_id to user["id"].
+# Do not get organiser_id from the submitted JSON.
 ```
 
-There are currently no event or booking handlers to update. This ticket provides
-identity and attribution; role-specific permissions belong in the relevant
-feature handlers. A selected role does not automatically enforce permissions.
+SCRUM-14 now uses this helper in `api/app/events.py` and checks that the acting
+user is an Organiser before saving an event. Run `supabase/create_events.sql`
+after user setup; see [the SCRUM-14 guide](SCRUM-14.md). This ticket provides
+identity and attribution; role-specific permissions belong in each feature
+handler. A selected role does not automatically enforce permissions.
 When real login is implemented, replace the identity lookup in `acting_user.py`
 and remove the development routes and dropdown.
 

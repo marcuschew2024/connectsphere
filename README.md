@@ -17,17 +17,27 @@ The five roles are: Organiser, Coordinator, Venue Staff, Tech Support, and Atten
 Run [`supabase/seed_users.sql`](supabase/seed_users.sql) in your development
 Supabase SQL Editor to create and seed the five demo users. It is safe to rerun.
 The same file also upgrades the original UUID users to IDs 1-5 automatically.
-There is only one SQL file to run, whether your database is empty or already set up.
+This one user-setup script works whether the user table is empty or already set up.
 Follow the [setup and explanation](docs/SCRUM-83.md) to enable the passwordless
 development switcher, test action attribution, and understand the code.
 The switcher is disabled by default and outside development.
+
+## Event requests (SCRUM-14)
+
+After the user setup, run [`supabase/create_events.sql`](supabase/create_events.sql)
+in the Supabase SQL Editor. This creates the events table without deleting existing
+users or events. Both SQL scripts are safe to rerun on their supported schemas.
+
+Open **http://localhost:3000/events/new**, select **Demo Organiser**, and create a
+draft or submit a completed event request. See the [code walkthrough, API contract,
+team integration notes and test instructions](docs/SCRUM-14.md).
 
 ## Prerequisites
 
 - Node.js 22
 - Python 3.12
 - git
-- A Supabase project (for later sprints; the current scaffold runs without it)
+- A Supabase project for demo users and event persistence (the health check works without it)
 
 ## Environment setup
 
@@ -47,7 +57,7 @@ The role switcher accesses Supabase through Flask; it needs no frontend Supabase
 API variables:
 
 - `SUPABASE_URL`
-- `SUPABASE_SECRET_KEY` - backend-only `sb_secret_...` key for the seeded users table
+- `SUPABASE_SECRET_KEY` - backend-only `sb_secret_...` key for database access
 - `SUPABASE_KEY` - optional fallback for an existing legacy `service_role` key
 - `APP_ENV` - defaults to `production`; use `development` locally
 - `DEV_ROLE_SWITCHER_ENABLED` - defaults to `false`; set `true` to opt in locally
@@ -88,6 +98,7 @@ Frontend end-to-end tests (Playwright):
 ```bash
 cd frontend
 npx playwright install --with-deps chromium   # first run only
+npm run build
 npm run test:e2e
 ```
 
