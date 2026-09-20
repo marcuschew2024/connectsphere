@@ -2,7 +2,8 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { API_URL } from "@/lib/api";
+import { useRouter } from "next/navigation";
+import { API_URL, apiRequest } from "@/lib/api";
 import { useActingRole } from "@/lib/use-acting-role";
 import DevRoleSwitcher from "./dev-role-switcher";
 
@@ -17,8 +18,15 @@ const ROLES = [
 type ApiStatus = "checking" | "ok" | "unreachable";
 
 export default function Home() {
+  const router = useRouter();
   const [apiStatus, setApiStatus] = useState<ApiStatus>("checking");
   const [actingRole, updateRole] = useActingRole();
+
+  async function handleLogout() {
+    await apiRequest("/auth/logout", { method: "POST" }).catch(() => {});
+    updateRole(null);
+    router.push("/login");
+  }
 
   useEffect(() => {
     const controller = new AbortController();
@@ -100,6 +108,16 @@ export default function Home() {
         <span className={`h-2.5 w-2.5 rounded-full ${statusColor}`} />
         <span>API: {statusLabel}</span>
       </div>
+
+      {actingRole && (
+        <button
+          type="button"
+          onClick={handleLogout}
+          className="text-sm text-slate-400 underline hover:text-white"
+        >
+          Sign out
+        </button>
+      )}
     </main>
   );
 }
