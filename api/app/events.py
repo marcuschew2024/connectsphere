@@ -14,10 +14,10 @@ from .event_repository import (
     get_events_for_user,
     get_status_history,
     insert_event,
-    is_event_participant,
     update_event_status,
 )
 from .event_validation import TEXT_LIMITS, validate_event
+from .rbac import public_event_view, require_related_user, require_role
 
 events = Blueprint("events", __name__, url_prefix="/events")
 
@@ -40,8 +40,7 @@ def create_event():
         raise Forbidden("Request must come from the configured frontend origin.")
 
     user = require_acting_user()
-    if user["role"] != "Organiser":
-        raise Forbidden("Only Organisers can create event requests.")
+    require_role(user, "Organiser", action="create_event")
 
     data = request.get_json(silent=True)
     if not isinstance(data, dict):
@@ -79,6 +78,8 @@ def list_events():
     event_list = get_events_for_user(user["id"])
     for event in event_list:
         event["status"] = canonical_event_status(event.get("status"))
+    if user["role"] == "Attendee":
+        event_list = [public_event_view(event) for event in event_list]
     return jsonify({"events": event_list}), 200
 
 
@@ -93,11 +94,11 @@ def get_event(event_id):
     if event is None:
         raise NotFound("Event not found.")
 
-    related_users = {event.get("organiser_id"), event.get("coordinator_id")}
-    if user["id"] not in related_users and not is_event_participant(event_id, user["id"]):
-        raise Forbidden("You are not a related user for this event.")
+    require_related_user(user, event, action="view_event")
 
     event["status"] = canonical_event_status(event.get("status"))
+    if user["role"] == "Attendee":
+        event = public_event_view(event)
     return jsonify({"event": event}), 200
 
 
@@ -111,9 +112,7 @@ def get_event_history(event_id):
     if event is None:
         raise NotFound("Event not found.")
 
-    related_users = {event.get("organiser_id"), event.get("coordinator_id")}
-    if user["id"] not in related_users and not is_event_participant(event_id, user["id"]):
-        raise Forbidden("You are not a related user for this event.")
+    require_related_user(user, event, action="view_event_history")
 
     return jsonify({"history": get_status_history(event_id)}), 200
 
@@ -128,9 +127,7 @@ def change_event_status(event_id):
     if event is None:
         raise NotFound("Event not found.")
 
-    related_users = {event.get("organiser_id"), event.get("coordinator_id")}
-    if user["id"] not in related_users and not is_event_participant(event_id, user["id"]):
-        raise Forbidden("You are not a related user for this event.")
+    require_related_user(user, event, action="change_status")
 
     data = request.get_json(silent=True)
     if not isinstance(data, dict) or set(data) != {"status"}:
