@@ -7,14 +7,6 @@ import { API_URL, apiRequest } from "@/lib/api";
 import { useActingRole } from "@/lib/use-acting-role";
 import DevRoleSwitcher from "./dev-role-switcher";
 
-const ROLES = [
-  "Organiser",
-  "Coordinator",
-  "Venue Staff",
-  "Tech Support",
-  "Attendee",
-];
-
 type ApiStatus = "checking" | "ok" | "unreachable";
 
 export default function Home() {
@@ -70,39 +62,36 @@ export default function Home() {
         </p>
       </div>
 
-      <section className="w-full max-w-md">
-        <h2 className="mb-3 text-sm font-semibold uppercase tracking-wider text-slate-500">
-          Roles
+      {/* Role-aware workspace: each role sees only the actions available to it this sprint
+          (SCRUM-89 / TC-US1.2-01). Roles without features yet get an honest empty state
+          rather than a placeholder for something that doesn't exist. */}
+      <section className="w-full max-w-md space-y-4 text-center">
+        <h2 className="text-sm font-semibold uppercase tracking-wider text-slate-500">
+          {actingRole ? `You’re in ${actingRole} view` : "Your workspace"}
         </h2>
-        <ul className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-          {ROLES.map((role) => (
-            <li
-              key={role}
-              className="rounded-lg border border-slate-800 bg-slate-900 px-4 py-3 text-sm"
-            >
-              {role}
-            </li>
-          ))}
-        </ul>
-      </section>
 
-      {process.env.NODE_ENV === "development" && <DevRoleSwitcher onRoleChange={updateRole} />}
-
-      <div className="space-y-2 text-center">
-        {actingRole === "Organiser" ? (
+        {actingRole === "Organiser" && (
           <Link href="/events/new" className="inline-block rounded bg-sky-300 px-5 py-3 font-semibold text-slate-950">
             Create an event request
           </Link>
-        ) : (
-          <button type="button" disabled aria-describedby="create-event-help"
-            className="cursor-not-allowed rounded bg-sky-300 px-5 py-3 font-semibold text-slate-950 opacity-40">
-            Create an event request
-          </button>
         )}
-        {actingRole !== "Organiser" && (
-          <p id="create-event-help" className="text-sm text-slate-400">Only Organisers can create event requests.</p>
+
+        {actingRole && actingRole !== "Organiser" && (
+          <p className="text-sm text-slate-400">
+            No actions are available for the {actingRole} role yet — {actingRole} tools arrive in a later sprint.
+          </p>
         )}
-      </div>
+
+        {!actingRole && (
+          <p className="text-sm text-slate-400">
+            {process.env.NODE_ENV === "development"
+              ? "Select a role below to see what it can do."
+              : "Sign in to access your workspace."}
+          </p>
+        )}
+      </section>
+
+      {process.env.NODE_ENV === "development" && <DevRoleSwitcher onRoleChange={updateRole} />}
 
       <div className="flex items-center gap-2 rounded-full border border-slate-800 bg-slate-900 px-4 py-2 text-sm">
         <span className={`h-2.5 w-2.5 rounded-full ${statusColor}`} />
