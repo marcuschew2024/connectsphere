@@ -533,7 +533,9 @@ def test_event_participant_can_view_event_history(app, event_database):
         "organiser_id": 1,
         "coordinator_id": None,
     })
-    event_database[1].participants.append({"event_id": event_id, "user_id": 4, "role": "Tech Support"})
+    event_database[1].participants.append(
+        {"event_id": event_id, "user_id": 4, "role": "Tech Support"}
+    )
 
     response = client.get(f"/events/{event_id}/history", headers=ORIGIN)
 

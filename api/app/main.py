@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import os
+from datetime import timedelta
 
 from dotenv import load_dotenv
 from flask import Flask, jsonify
@@ -10,6 +11,7 @@ from flask_cors import CORS
 from werkzeug.exceptions import HTTPException
 
 from .acting_user import dev_switcher_enabled, get_acting_user
+from .auth import auth, get_authenticated_user
 from .dev_auth import dev_auth
 from .events import events
 
@@ -34,12 +36,15 @@ def create_app(config: dict | None = None) -> Flask:
         SESSION_COOKIE_NAME="connectsphere_session",
         SESSION_COOKIE_HTTPONLY=True,
         SESSION_COOKIE_SAMESITE="Lax",
+        # Sessions expire after 30 minutes of inactivity.
+        PERMANENT_SESSION_LIFETIME=timedelta(minutes=30),
     )
 
     if config:
         app.config.update(config)
 
     app.register_blueprint(events)
+    app.register_blueprint(auth)
 
     # Allow the frontend origin. Defaults to the local Next.js dev server.
     CORS(
@@ -61,12 +66,19 @@ def create_app(config: dict | None = None) -> Flask:
 
     @app.get("/session")
     def current_session():
-        """Let the UI read the current identity; this cannot select or change a user."""
-        try:
-            response = jsonify({"user": get_acting_user()})
-        except HTTPException as error:
-            response = jsonify({"error": error.description})
-            response.status_code = error.code
+        """Return current identity: real auth session, dev switcher, or null."""
+        # In production: only real auth sessions are valid.
+        # In development: real auth takes priority; fall back to dev switcher.
+        user = get_authenticated_user()
+        if user is None and dev_switcher_enabled():
+            try:
+                user = get_acting_user()
+            except HTTPException as error:
+                response = jsonify({"error": error.description})
+                response.status_code = error.code
+                response.headers["Cache-Control"] = "no-store"
+                return response
+        response = jsonify({"user": user})
         response.headers["Cache-Control"] = "no-store"
         return response
 

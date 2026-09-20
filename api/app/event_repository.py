@@ -134,7 +134,9 @@ def is_event_participant(event_id: str, user_id: int) -> bool:
         ) from error
 
 
-def add_status_history(event_id: str, old_status: str | None, new_status: str, user_id: int) -> None:
+def add_status_history(
+    event_id: str, old_status: str | None, new_status: str, user_id: int
+) -> None:
     """Append one immutable status transition record."""
     try:
         client = get_supabase_client()
