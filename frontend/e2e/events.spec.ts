@@ -16,8 +16,12 @@ for (const role of ["Coordinator", "Venue Staff", "Tech Support", "Attendee", nu
       user: role ? { id: 2, display_name: "Demo user", role } : null,
     } }));
     await page.goto("/");
-    await expect(page.getByRole("button", { name: "Create an event request" })).toBeDisabled();
+    // SCRUM-21: non-Organisers get no create action at all (previously a disabled button).
     await expect(page.getByRole("link", { name: "Create an event request" })).toHaveCount(0);
+    await expect(page.getByRole("button", { name: "Create an event request" })).toHaveCount(0);
+    await expect(page.getByRole("heading", {
+      name: role ? `You’re in ${role} view` : "Your workspace",
+    })).toBeVisible();
     await page.goto("/events/new");
     await expect(page.locator("form")).toBeHidden();
     await expect(page.getByRole("button", { name: "Submit request" })).toHaveCount(0);
@@ -28,7 +32,7 @@ for (const role of ["Coordinator", "Venue Staff", "Tech Support", "Attendee", nu
   });
 }
 
-test("creation stays disabled while the session loads or cannot be checked", async ({ page }) => {
+test("creation stays unavailable while the session loads or cannot be checked", async ({ page }) => {
   let release!: () => void;
   const pending = new Promise<void>((resolve) => { release = resolve; });
   await page.route("**/session", async (route) => {
@@ -36,11 +40,14 @@ test("creation stays disabled while the session loads or cannot be checked", asy
     await route.fulfill({ status: 503, json: { error: "Database unavailable." } });
   });
   await page.goto("/");
-  await expect(page.getByRole("button", { name: "Create an event request" })).toBeDisabled();
+  // SCRUM-21: creation is simply absent (not a disabled button) until a session resolves to Organiser.
+  await expect(page.getByRole("link", { name: "Create an event request" })).toHaveCount(0);
+  await expect(page.getByRole("button", { name: "Create an event request" })).toHaveCount(0);
   const failed = page.waitForResponse((response) => response.url().endsWith("/session"));
   release();
   await failed;
-  await expect(page.getByRole("button", { name: "Create an event request" })).toBeDisabled();
+  await expect(page.getByRole("link", { name: "Create an event request" })).toHaveCount(0);
+  await expect(page.getByRole("button", { name: "Create an event request" })).toHaveCount(0);
 });
 
 async function fillRequiredFields(page: Page) {

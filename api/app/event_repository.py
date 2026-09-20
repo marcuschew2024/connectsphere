@@ -228,3 +228,43 @@ def update_event_status(event_id: str, status: str, user_id: int) -> dict:
         raise ServiceUnavailable(
             "Could not update the event status. Contact the team before retrying."
         ) from error
+
+
+def update_event_fields(event_id: str, fields: dict) -> dict:
+    """Update editable content fields on an event and refresh updated_at."""
+    try:
+        client = get_supabase_client()
+        if client is None:
+            raise ServiceUnavailable("The database is not configured. Contact the team.")
+
+        payload = {**fields, "updated_at": datetime.now(UTC).isoformat()}
+        result = client.table("events").update(payload).eq("id", event_id).execute()
+        if not result.data:
+            raise ServiceUnavailable("The database did not confirm the edit.")
+        return result.data[0]
+    except ServiceUnavailable:
+        raise
+    except Exception as error:
+        raise ServiceUnavailable(
+            "Could not save the event edit. Contact the team before retrying."
+        ) from error
+
+
+def log_event_edit(
+    event_id: str, editor_id: int, changed_fields: list[str], importance: str
+) -> None:
+    """Append one immutable edit-audit record (who edited, which fields, importance)."""
+    try:
+        client = get_supabase_client()
+        if client is None:
+            raise ServiceUnavailable("The database is not configured. Contact the team.")
+        client.table("event_edit_log").insert({
+            "event_id": event_id,
+            "editor_id": editor_id,
+            "changed_fields": changed_fields,
+            "importance": importance,
+        }).execute()
+    except ServiceUnavailable:
+        raise
+    except Exception as error:
+        raise ServiceUnavailable("Could not save the edit audit record.") from error
