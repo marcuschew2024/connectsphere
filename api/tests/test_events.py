@@ -16,29 +16,119 @@ from .conftest import ORIGIN, select_user
 @pytest.fixture(autouse=True)
 def event_database(monkeypatch):
     rows = []
+    participants = []
+    history = []
     client = MagicMock()
 
     def table(name):
-        assert name == "events"
+        assert name in {"events", "event_participants", "event_status_history"}
         query = MagicMock()
+        filters = {}
+        operation = "select"
+        pending_insert = None
+        pending_update = None
+        pending_upsert = None
+        related_user_id = None
 
-        def insert(fields):
-            def execute():
+        def equals(column, value):
+            filters[column] = value
+            return query
+
+        def execute():
+            if operation == "insert":
+                if name == "event_status_history":
+                    history_row = {
+                        **pending_insert,
+                        "id": len(history) + 1,
+                        "changed_at": datetime.now(UTC).isoformat(),
+                    }
+                    history.append(history_row)
+                    return SimpleNamespace(data=[history_row])
                 now = datetime.now(UTC).isoformat()
                 row = {
-                    **fields, "id": str(uuid4()), "coordinator_id": None,
+                    **pending_insert, "id": str(uuid4()), "coordinator_id": None,
                     "created_at": now, "updated_at": now,
                 }
                 rows.append(row)
                 return SimpleNamespace(data=[row])
 
-            query.execute.side_effect = execute
+            if operation == "update":
+                matching = [
+                    row for row in rows
+                    if all(row.get(key) == value for key, value in filters.items())
+                ]
+                for row in matching:
+                    row.update(pending_update)
+                return SimpleNamespace(data=matching)
+
+            if operation == "upsert":
+                participants[:] = [
+                    row for row in participants
+                    if (row["event_id"], row["user_id"])
+                    != (pending_upsert["event_id"], pending_upsert["user_id"])
+                ]
+                participants.append(pending_upsert)
+                return SimpleNamespace(data=[pending_upsert])
+
+            if name == "event_participants":
+                return SimpleNamespace(data=[
+                    row for row in participants
+                    if all(row.get(key) == value for key, value in filters.items())
+                ])
+
+            if name == "event_status_history":
+                return SimpleNamespace(data=[
+                    row for row in history
+                    if all(row.get(key) == value for key, value in filters.items())
+                ])
+
+            return SimpleNamespace(data=[
+                row for row in rows
+                if (
+                    all(row.get(key) == value for key, value in filters.items())
+                    and (
+                        related_user_id is None
+                        or row.get("organiser_id") == related_user_id
+                        or row.get("coordinator_id") == related_user_id
+                    )
+                )
+            ])
+
+        def insert(fields):
+            nonlocal operation, pending_insert
+            operation = "insert"
+            pending_insert = fields
+            return query
+
+        def update(fields):
+            nonlocal operation, pending_update
+            operation = "update"
+            pending_update = fields
+            return query
+
+        def upsert(fields):
+            nonlocal operation, pending_upsert
+            operation = "upsert"
+            pending_upsert = fields
+            return query
+
+        def related_users(expression):
+            nonlocal related_user_id
+            related_user_id = int(expression.split("eq.")[1].split(",")[0])
             return query
 
         query.insert.side_effect = insert
+        query.update.side_effect = update
+        query.upsert.side_effect = upsert
+        query.select.return_value = query
+        query.eq.side_effect = equals
+        query.or_.side_effect = related_users
+        query.order.return_value = query
+        query.execute.side_effect = execute
         return query
 
     client.table.side_effect = table
+    client.participants = participants
     monkeypatch.setattr("app.event_repository.get_supabase_client", lambda: client)
     return rows, client
 
@@ -246,3 +336,226 @@ def test_unconfigured_database_returns_json_error(organiser, details, monkeypatc
     response = organiser.post("/events", json=details, headers=ORIGIN)
     assert response.status_code == 503
     assert response.is_json
+
+
+def test_event_status_submitted_is_shown_as_planning(app, event_database):
+    client = app.test_client()
+    select_user(client, 1)
+
+    event_id = "11111111-1111-1111-1111-111111111111"
+    event_database[0].append({
+        "id": event_id,
+        "title": "Workshop",
+        "status": "Submitted",
+        "organiser_id": 1,
+        "coordinator_id": 2,
+        "created_at": datetime.now(UTC).isoformat(),
+        "updated_at": datetime.now(UTC).isoformat(),
+    })
+
+    response = client.get(f"/events/{event_id}", headers=ORIGIN)
+    assert response.status_code == 200
+    assert response.json["event"]["status"] == "Planning"
+
+
+def test_related_user_can_list_event_requests(app, event_database):
+    client = app.test_client()
+    select_user(client, 1)
+    event_database[0].extend([
+        {
+            "id": "88888888-8888-8888-8888-888888888888",
+            "title": "Organised event",
+            "status": "Submitted",
+            "organiser_id": 1,
+            "coordinator_id": None,
+        },
+        {
+            "id": "99999999-9999-9999-9999-999999999999",
+            "title": "Unrelated event",
+            "status": "Confirmed",
+            "organiser_id": 3,
+            "coordinator_id": 2,
+        },
+    ])
+
+    response = client.get("/events", headers=ORIGIN)
+
+    assert response.status_code == 200
+    assert [event["id"] for event in response.json["events"]] == [
+        "88888888-8888-8888-8888-888888888888"
+    ]
+    assert response.json["events"][0]["status"] == "Planning"
+
+
+def test_event_status_approved_is_shown_as_planning(app, event_database):
+    client = app.test_client()
+    select_user(client, 1)
+
+    event_id = "22222222-2222-2222-2222-222222222222"
+    event_database[0].append({
+        "id": event_id,
+        "title": "Workshop",
+        "status": "Approved",
+        "organiser_id": 1,
+        "coordinator_id": 2,
+        "created_at": datetime.now(UTC).isoformat(),
+        "updated_at": datetime.now(UTC).isoformat(),
+    })
+
+    response = client.get(f"/events/{event_id}", headers=ORIGIN)
+    assert response.status_code == 200
+    assert response.json["event"]["status"] == "Planning"
+
+
+def test_event_status_confirmed_is_visible(app, event_database):
+    client = app.test_client()
+    select_user(client, 1)
+
+    event_id = "33333333-3333-3333-3333-333333333333"
+    event_database[0].append({
+        "id": event_id,
+        "title": "Workshop",
+        "status": "Confirmed",
+        "organiser_id": 1,
+        "coordinator_id": 2,
+        "created_at": datetime.now(UTC).isoformat(),
+        "updated_at": datetime.now(UTC).isoformat(),
+    })
+
+    response = client.get(f"/events/{event_id}", headers=ORIGIN)
+    assert response.status_code == 200
+    assert response.json["event"]["status"] == "Confirmed"
+
+
+@pytest.mark.parametrize("state", ["Completed", "Rejected", "Cancelled"])
+def test_terminal_statuses_are_not_rewritten(app, event_database, state):
+    client = app.test_client()
+    select_user(client, 1)
+
+    event_id = f"44444444-4444-4444-4444-{state[:8].rjust(12, '0')}"
+    event_database[0].append({
+        "id": event_id,
+        "title": "Workshop",
+        "status": state,
+        "organiser_id": 1,
+        "coordinator_id": 2,
+        "created_at": datetime.now(UTC).isoformat(),
+        "updated_at": datetime.now(UTC).isoformat(),
+    })
+
+    response = client.get(f"/events/{event_id}", headers=ORIGIN)
+    assert response.status_code == 200
+    assert response.json["event"]["status"] == state
+
+
+def test_unrelated_user_cannot_view_event_status(app, event_database):
+    client = app.test_client()
+    select_user(client, 3)
+
+    event_id = "55555555-5555-5555-5555-555555555555"
+    event_database[0].append({
+        "id": event_id,
+        "title": "Workshop",
+        "status": "Confirmed",
+        "organiser_id": 1,
+        "coordinator_id": 2,
+        "created_at": datetime.now(UTC).isoformat(),
+        "updated_at": datetime.now(UTC).isoformat(),
+    })
+
+    response = client.get(f"/events/{event_id}", headers=ORIGIN)
+    assert response.status_code == 403
+
+
+def test_related_user_can_update_status_and_actor_metadata(app, event_database):
+    client = app.test_client()
+    select_user(client, 1)
+    event_id = "66666666-6666-6666-6666-666666666666"
+    event_database[0].append({
+        "id": event_id,
+        "title": "Workshop",
+        "status": "Submitted",
+        "organiser_id": 1,
+        "coordinator_id": 2,
+        "created_at": datetime.now(UTC).isoformat(),
+        "updated_at": datetime.now(UTC).isoformat(),
+    })
+
+    response = client.patch(
+        f"/events/{event_id}/status",
+        json={"status": "Confirmed"},
+        headers=ORIGIN,
+    )
+
+    assert response.status_code == 200
+    assert response.json["event"]["status"] == "Confirmed"
+    assert response.json["event"]["last_status_changed_by"] == 1
+    assert response.json["event"]["last_status_changed_at"]
+
+
+def test_status_history_is_available_to_related_user(app, event_database):
+    client = app.test_client()
+    select_user(client, 1)
+    event_id = "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa"
+    event_database[0].append({
+        "id": event_id,
+        "title": "Workshop",
+        "status": "Submitted",
+        "organiser_id": 1,
+        "coordinator_id": 2,
+    })
+
+    update = client.patch(
+        f"/events/{event_id}/status",
+        json={"status": "Confirmed"},
+        headers=ORIGIN,
+    )
+    history = client.get(f"/events/{event_id}/history", headers=ORIGIN)
+
+    assert update.status_code == 200
+    assert history.status_code == 200
+    assert len(history.json["history"]) == 1
+    assert history.json["history"][0]["event_id"] == event_id
+    assert history.json["history"][0]["old_status"] == "Submitted"
+    assert history.json["history"][0]["new_status"] == "Confirmed"
+    assert history.json["history"][0]["changed_by"] == 1
+    assert history.json["history"][0]["changed_at"]
+
+
+def test_event_participant_can_view_event_history(app, event_database):
+    client = app.test_client()
+    select_user(client, 4)
+    event_id = "bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb"
+    event_database[0].append({
+        "id": event_id,
+        "title": "Workshop",
+        "status": "Confirmed",
+        "organiser_id": 1,
+        "coordinator_id": None,
+    })
+    event_database[1].participants.append({"event_id": event_id, "user_id": 4, "role": "Tech Support"})
+
+    response = client.get(f"/events/{event_id}/history", headers=ORIGIN)
+
+    assert response.status_code == 200
+
+
+def test_status_update_rejects_invalid_status(app, event_database):
+    client = app.test_client()
+    select_user(client, 1)
+    event_id = "77777777-7777-7777-7777-777777777777"
+    event_database[0].append({
+        "id": event_id,
+        "title": "Workshop",
+        "status": "Submitted",
+        "organiser_id": 1,
+        "coordinator_id": 2,
+    })
+
+    response = client.patch(
+        f"/events/{event_id}/status",
+        json={"status": "Not a status"},
+        headers=ORIGIN,
+    )
+
+    assert response.status_code == 400
