@@ -3,10 +3,20 @@
 from datetime import UTC, datetime
 
 from flask import Blueprint, current_app, jsonify, request
-from werkzeug.exceptions import BadRequest, Forbidden, HTTPException
+from werkzeug.exceptions import BadRequest, Forbidden, HTTPException, NotFound
 
 from .acting_user import require_acting_user
-from .event_repository import insert_event
+from .event_repository import (
+    add_event_participant,
+    add_status_history,
+    canonical_event_status,
+    get_event_by_id,
+    get_events_for_user,
+    get_status_history,
+    insert_event,
+    is_event_participant,
+    update_event_status,
+)
 from .event_validation import TEXT_LIMITS, validate_event
 
 events = Blueprint("events", __name__, url_prefix="/events")
@@ -52,5 +62,90 @@ def create_event():
     fields["organiser_id"] = user["id"]
     fields["status"] = "Submitted" if action == "submit" else "Draft"
     fields["submitted_at"] = datetime.now(UTC).isoformat() if action == "submit" else None
+    fields["last_status_changed_by"] = user["id"]
+    fields["last_status_changed_at"] = datetime.now(UTC).isoformat()
     saved = insert_event(fields)
+    add_event_participant(saved["id"], user["id"], "Organiser")
+    add_status_history(saved["id"], None, fields["status"], user["id"])
     return jsonify({"event": saved}), 201
+
+
+@events.get("")
+def list_events():
+    if request.headers.get("Origin") != current_app.config["FRONTEND_ORIGIN"]:
+        raise Forbidden("Request must come from the configured frontend origin.")
+
+    user = require_acting_user()
+    event_list = get_events_for_user(user["id"])
+    for event in event_list:
+        event["status"] = canonical_event_status(event.get("status"))
+    return jsonify({"events": event_list}), 200
+
+
+@events.get("/<event_id>")
+def get_event(event_id):
+    if request.headers.get("Origin") != current_app.config["FRONTEND_ORIGIN"]:
+        raise Forbidden("Request must come from the configured frontend origin.")
+
+    user = require_acting_user()
+    event = get_event_by_id(event_id)
+
+    if event is None:
+        raise NotFound("Event not found.")
+
+    related_users = {event.get("organiser_id"), event.get("coordinator_id")}
+    if user["id"] not in related_users and not is_event_participant(event_id, user["id"]):
+        raise Forbidden("You are not a related user for this event.")
+
+    event["status"] = canonical_event_status(event.get("status"))
+    return jsonify({"event": event}), 200
+
+
+@events.get("/<event_id>/history")
+def get_event_history(event_id):
+    if request.headers.get("Origin") != current_app.config["FRONTEND_ORIGIN"]:
+        raise Forbidden("Request must come from the configured frontend origin.")
+
+    user = require_acting_user()
+    event = get_event_by_id(event_id)
+    if event is None:
+        raise NotFound("Event not found.")
+
+    related_users = {event.get("organiser_id"), event.get("coordinator_id")}
+    if user["id"] not in related_users and not is_event_participant(event_id, user["id"]):
+        raise Forbidden("You are not a related user for this event.")
+
+    return jsonify({"history": get_status_history(event_id)}), 200
+
+
+@events.patch("/<event_id>/status")
+def change_event_status(event_id):
+    if request.headers.get("Origin") != current_app.config["FRONTEND_ORIGIN"]:
+        raise Forbidden("Request must come from the configured frontend origin.")
+
+    user = require_acting_user()
+    event = get_event_by_id(event_id)
+    if event is None:
+        raise NotFound("Event not found.")
+
+    related_users = {event.get("organiser_id"), event.get("coordinator_id")}
+    if user["id"] not in related_users and not is_event_participant(event_id, user["id"]):
+        raise Forbidden("You are not a related user for this event.")
+
+    data = request.get_json(silent=True)
+    if not isinstance(data, dict) or set(data) != {"status"}:
+        raise BadRequest("Send a JSON object containing only status.")
+
+    status = data["status"]
+    allowed_statuses = {
+        "Submitted", "Assigned", "Under review", "Approved", "Planning",
+        "Confirmed", "Completed", "Rejected", "Cancelled",
+    }
+    if status not in allowed_statuses:
+        raise BadRequest("Choose a valid event status.")
+
+    old_status = event.get("status")
+    updated = update_event_status(event_id, status, user["id"])
+    add_status_history(event_id, old_status, status, user["id"])
+    updated["status"] = canonical_event_status(updated.get("status"))
+    return jsonify({"event": updated}), 200
