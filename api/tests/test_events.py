@@ -18,10 +18,11 @@ def event_database(monkeypatch):
     rows = []
     participants = []
     history = []
+    edit_log = []
     client = MagicMock()
 
     def table(name):
-        assert name in {"events", "event_participants", "event_status_history"}
+        assert name in {"events", "event_participants", "event_status_history", "event_edit_log"}
         query = MagicMock()
         filters = {}
         operation = "select"
@@ -44,6 +45,14 @@ def event_database(monkeypatch):
                     }
                     history.append(history_row)
                     return SimpleNamespace(data=[history_row])
+                if name == "event_edit_log":
+                    edit_row = {
+                        **pending_insert,
+                        "id": len(edit_log) + 1,
+                        "occurred_at": datetime.now(UTC).isoformat(),
+                    }
+                    edit_log.append(edit_row)
+                    return SimpleNamespace(data=[edit_row])
                 now = datetime.now(UTC).isoformat()
                 row = {
                     **pending_insert, "id": str(uuid4()), "coordinator_id": None,
@@ -79,6 +88,12 @@ def event_database(monkeypatch):
             if name == "event_status_history":
                 return SimpleNamespace(data=[
                     row for row in history
+                    if all(row.get(key) == value for key, value in filters.items())
+                ])
+
+            if name == "event_edit_log":
+                return SimpleNamespace(data=[
+                    row for row in edit_log
                     if all(row.get(key) == value for key, value in filters.items())
                 ])
 
@@ -129,6 +144,7 @@ def event_database(monkeypatch):
 
     client.table.side_effect = table
     client.participants = participants
+    client.edit_log = edit_log
     monkeypatch.setattr("app.event_repository.get_supabase_client", lambda: client)
     return rows, client
 
@@ -561,3 +577,108 @@ def test_status_update_rejects_invalid_status(app, event_database):
     )
 
     assert response.status_code == 400
+
+
+# --- SCRUM-23: Edit event info during Planning (TC-US4.6-01..05) ----------------------
+
+@pytest.fixture
+def coordinator(app):
+    client = app.test_client()
+    assert select_user(client, 2).status_code == 200
+    return client
+
+
+def _seed_planning_event(event_database, *, status="Planning", coordinator_id=2):
+    """Put one event straight into the fake DB (coordinator 2, in Planning by default)."""
+    now = datetime.now(UTC).isoformat()
+    event = {
+        "id": str(uuid4()),
+        "title": "Original title", "description": "Original description",
+        "purpose": "Original purpose", "category": "Workshop",
+        "event_datetime": (datetime.now(UTC) + timedelta(days=5)).isoformat(),
+        "expected_attendance": 40,
+        "venue_requirements": "Main hall", "accessibility_requirements": "Ramp access",
+        "equipment_requirements": "Microphone", "registration_requirements": "RSVP",
+        "status": status, "organiser_id": 1, "coordinator_id": coordinator_id,
+        "created_at": now, "updated_at": now, "submitted_at": now,
+        "last_status_changed_by": 1, "last_status_changed_at": now,
+    }
+    event_database[0].append(event)
+    return event
+
+
+def _edit_payload(event, **overrides):
+    """The full editable field set (the edit form submits all fields), with overrides applied."""
+    payload = {
+        name: event[name] for name in (
+            "title", "description", "purpose", "category", "event_datetime",
+            "expected_attendance", "venue_requirements", "accessibility_requirements",
+            "equipment_requirements", "registration_requirements",
+        )
+    }
+    payload.update(overrides)
+    return payload
+
+
+def test_coordinator_edits_event_while_planning(coordinator, event_database):
+    event = _seed_planning_event(event_database)
+    response = coordinator.patch(
+        f"/events/{event['id']}", json=_edit_payload(event, title="Updated title"), headers=ORIGIN
+    )
+    assert response.status_code == 200
+    assert response.json["event"]["title"] == "Updated title"
+    assert event_database[0][0]["title"] == "Updated title"  # persisted
+
+
+def test_edit_records_actor_and_timestamp(coordinator, event_database):
+    event = _seed_planning_event(event_database)
+    response = coordinator.patch(
+        f"/events/{event['id']}", json=_edit_payload(event, description="Revised description"),
+        headers=ORIGIN,
+    )
+    assert response.status_code == 200
+    log = event_database[1].edit_log
+    assert len(log) == 1
+    assert log[0]["editor_id"] == 2
+    assert log[0]["occurred_at"]
+    assert "description" in log[0]["changed_fields"]
+
+
+def test_edit_blocked_once_confirmed(coordinator, event_database):
+    event = _seed_planning_event(event_database, status="Confirmed")
+    response = coordinator.patch(
+        f"/events/{event['id']}", json=_edit_payload(event, title="Sneaky change"), headers=ORIGIN
+    )
+    assert response.status_code == 409
+    assert event_database[0][0]["title"] == "Original title"  # unchanged
+    assert event_database[1].edit_log == []
+
+
+def test_non_coordinator_cannot_edit(organiser, event_database):
+    event = _seed_planning_event(event_database)
+    response = organiser.patch(
+        f"/events/{event['id']}", json=_edit_payload(event, title="Not allowed"), headers=ORIGIN
+    )
+    assert response.status_code == 403
+    assert event_database[0][0]["title"] == "Original title"
+
+
+def test_important_change_is_flagged(coordinator, event_database):
+    event = _seed_planning_event(event_database)
+    response = coordinator.patch(
+        f"/events/{event['id']}", json=_edit_payload(event, expected_attendance=250), headers=ORIGIN
+    )
+    assert response.status_code == 200
+    assert response.json["importance"] == "important"
+    assert event_database[1].edit_log[0]["importance"] == "important"
+
+
+def test_ordinary_change_is_flagged(coordinator, event_database):
+    event = _seed_planning_event(event_database)
+    response = coordinator.patch(
+        f"/events/{event['id']}",
+        json=_edit_payload(event, title="Small title tweak"),
+        headers=ORIGIN,
+    )
+    assert response.status_code == 200
+    assert response.json["importance"] == "ordinary"
