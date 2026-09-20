@@ -1,77 +1,13 @@
 """Exercise the real Flask routes with a fake Supabase database (no network/secrets)."""
 
 import logging
-from types import SimpleNamespace
-from unittest.mock import MagicMock
 
 import pytest
 
 from app import create_app
 from app.acting_user import get_acting_user, require_acting_user
 
-ORIGIN = {"Origin": "http://localhost:3000"}
-ROLES = ["Organiser", "Coordinator", "Venue Staff", "Tech Support", "Attendee"]
-
-
-@pytest.fixture
-def database(monkeypatch):
-    rows = [
-        {
-            "id": number,
-            "display_name": f"Demo {role}",
-            "role": role,
-            "is_demo": True,
-        }
-        for number, role in enumerate(ROLES, start=1)
-    ]
-    rows.append({
-        "id": 99,
-        "display_name": "Real Attendee",
-        "role": "Attendee",
-        "is_demo": False,
-    })
-    client = MagicMock()
-
-    def table(name):
-        assert name == "app_users"
-        query = MagicMock()
-        filters = {}
-
-        def equals(column, value):
-            filters[column] = value
-            return query
-
-        def execute():
-            return SimpleNamespace(data=[
-                {key: row[key] for key in ("id", "display_name", "role")}
-                for row in rows
-                if all(row[key] == value for key, value in filters.items())
-            ])
-
-        query.select.return_value = query
-        query.eq.side_effect = equals
-        query.order.return_value = query
-        query.execute.side_effect = execute
-        return query
-
-    client.table.side_effect = table
-    monkeypatch.setattr("app.users.get_supabase_client", lambda: client)
-    return rows, client
-
-
-@pytest.fixture
-def app(database):
-    return create_app({
-        "TESTING": True,
-        "APP_ENV": "development",
-        "DEV_ROLE_SWITCHER_ENABLED": True,
-        "SECRET_KEY": "test-only-secret",
-        "FRONTEND_ORIGIN": ORIGIN["Origin"],
-    })
-
-
-def select_user(client, user_id):
-    return client.post("/dev/session", json={"user_id": user_id}, headers=ORIGIN)
+from .conftest import ORIGIN, ROLES, select_user
 
 
 def test_lists_exactly_five_demo_roles(app):
@@ -79,6 +15,29 @@ def test_lists_exactly_five_demo_roles(app):
     assert response.status_code == 200
     assert [user["role"] for user in response.json["users"]] == ROLES
     assert response.headers["Cache-Control"] == "no-store"
+
+
+def test_session_endpoint_reports_current_identity_without_changing_it(app):
+    client = app.test_client()
+    response = client.get("/session")
+    assert response.json == {"user": None}
+    assert response.headers["Cache-Control"] == "no-store"
+    select_user(client, 2)
+    # A query parameter cannot select another user through this read-only endpoint.
+    response = client.get("/session?user_id=1")
+    assert response.json["user"]["id"] == 2
+    assert response.json["user"]["role"] == "Coordinator"
+
+
+def test_session_lookup_failure_is_a_safe_json_error(app, database):
+    client = app.test_client()
+    select_user(client, 1)
+    database[1].table.side_effect = RuntimeError("secret-database-details")
+    response = client.get("/session")
+    assert response.status_code == 503
+    assert response.is_json
+    assert response.headers["Cache-Control"] == "no-store"
+    assert "secret-database-details" not in response.get_data(as_text=True)
 
 
 def test_switch_persists_and_action_uses_session_not_body(app, database, caplog):
@@ -205,6 +164,7 @@ def test_switcher_disabled_outside_explicit_development(database, environment, e
     client = app.test_client()
     with client.session_transaction() as session:
         session["acting_user_id"] = database[0][0]["id"]
+    assert client.get("/session").json == {"user": None}
     for method, path in [
         ("GET", "/dev/users"), ("GET", "/dev/session"),
         ("POST", "/dev/session"), ("DELETE", "/dev/session"),

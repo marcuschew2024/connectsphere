@@ -2,7 +2,11 @@
 export const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:5001";
 
 export class ApiError extends Error {
-  constructor(message: string, public status: number) {
+  constructor(
+    message: string,
+    public status: number,
+    public fields: Record<string, string> = {},
+  ) {
     super(message);
   }
 }
@@ -21,7 +25,11 @@ export async function apiRequest<T>(
   });
   if (!response.ok) {
     const data = await response.json().catch(() => ({}));
-    throw new ApiError(data.error ?? `API request failed (${response.status}).`, response.status);
+    throw new ApiError(
+      data.error ?? `API request failed (${response.status}).`,
+      response.status,
+      data.fields ?? {},
+    );
   }
   return response.json();
 }

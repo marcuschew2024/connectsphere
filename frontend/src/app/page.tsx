@@ -1,7 +1,9 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import { API_URL } from "@/lib/api";
+import { useActingRole } from "@/lib/use-acting-role";
 import DevRoleSwitcher from "./dev-role-switcher";
 
 const ROLES = [
@@ -16,6 +18,7 @@ type ApiStatus = "checking" | "ok" | "unreachable";
 
 export default function Home() {
   const [apiStatus, setApiStatus] = useState<ApiStatus>("checking");
+  const [actingRole, updateRole] = useActingRole();
 
   useEffect(() => {
     const controller = new AbortController();
@@ -75,7 +78,23 @@ export default function Home() {
         </ul>
       </section>
 
-      {process.env.NODE_ENV === "development" && <DevRoleSwitcher />}
+      {process.env.NODE_ENV === "development" && <DevRoleSwitcher onRoleChange={updateRole} />}
+
+      <div className="space-y-2 text-center">
+        {actingRole === "Organiser" ? (
+          <Link href="/events/new" className="inline-block rounded bg-sky-300 px-5 py-3 font-semibold text-slate-950">
+            Create an event request
+          </Link>
+        ) : (
+          <button type="button" disabled aria-describedby="create-event-help"
+            className="cursor-not-allowed rounded bg-sky-300 px-5 py-3 font-semibold text-slate-950 opacity-40">
+            Create an event request
+          </button>
+        )}
+        {actingRole !== "Organiser" && (
+          <p id="create-event-help" className="text-sm text-slate-400">Only Organisers can create event requests.</p>
+        )}
+      </div>
 
       <div className="flex items-center gap-2 rounded-full border border-slate-800 bg-slate-900 px-4 py-2 text-sm">
         <span className={`h-2.5 w-2.5 rounded-full ${statusColor}`} />

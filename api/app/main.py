@@ -7,9 +7,11 @@ import os
 from dotenv import load_dotenv
 from flask import Flask, jsonify
 from flask_cors import CORS
+from werkzeug.exceptions import HTTPException
 
-from .acting_user import dev_switcher_enabled
+from .acting_user import dev_switcher_enabled, get_acting_user
 from .dev_auth import dev_auth
+from .events import events
 
 load_dotenv()
 
@@ -37,6 +39,8 @@ def create_app(config: dict | None = None) -> Flask:
     if config:
         app.config.update(config)
 
+    app.register_blueprint(events)
+
     # Allow the frontend origin. Defaults to the local Next.js dev server.
     CORS(
         app,
@@ -54,6 +58,17 @@ def create_app(config: dict | None = None) -> Flask:
     @app.get("/health")
     def health():  # type: ignore[no-untyped-def]
         return jsonify({"status": "ok"})
+
+    @app.get("/session")
+    def current_session():
+        """Let the UI read the current identity; this cannot select or change a user."""
+        try:
+            response = jsonify({"user": get_acting_user()})
+        except HTTPException as error:
+            response = jsonify({"error": error.description})
+            response.status_code = error.code
+        response.headers["Cache-Control"] = "no-store"
+        return response
 
     return app
 
