@@ -132,8 +132,63 @@ alter table public.event_status_history enable row level security;
 revoke all on public.events from anon, authenticated;
 revoke all on public.event_participants from anon, authenticated;
 revoke all on public.event_status_history from anon, authenticated;
-grant select, insert on public.events to service_role;
-grant select, insert on public.event_participants to service_role;
+grant select, insert, update on public.events to service_role;
+-- The existing participant upsert also needs UPDATE, even on a fresh insert.
+grant select, insert, update on public.event_participants to service_role;
 grant select, insert on public.event_status_history to service_role;
+
+-- SCRUM-15: save an existing draft without creating another event.
+-- Flask validates the fields and supplies the Organiser ID from its session.
+-- A function makes the update and submission history succeed or roll back together.
+create or replace function public.save_event_draft(
+    p_event_id uuid,
+    p_organiser_id integer,
+    p_details jsonb,
+    p_submit boolean default false
+)
+returns setof public.events
+language plpgsql security invoker set search_path = '' as $$
+declare
+    saved public.events;
+begin
+    update public.events
+    set title = p_details ->> 'title',
+        description = p_details ->> 'description',
+        purpose = p_details ->> 'purpose',
+        category = p_details ->> 'category',
+        event_datetime = (p_details ->> 'event_datetime')::timestamptz,
+        expected_attendance = (p_details ->> 'expected_attendance')::integer,
+        venue_requirements = p_details ->> 'venue_requirements',
+        accessibility_requirements = p_details ->> 'accessibility_requirements',
+        equipment_requirements = p_details ->> 'equipment_requirements',
+        registration_requirements = p_details ->> 'registration_requirements',
+        status = case when p_submit then 'Submitted' else 'Draft' end,
+        submitted_at = case when p_submit then now() else null end,
+        last_status_changed_by = case when p_submit then p_organiser_id
+                                      else last_status_changed_by end,
+        last_status_changed_at = case when p_submit then now()
+                                      else last_status_changed_at end
+    where id = p_event_id and organiser_id = p_organiser_id and status = 'Draft'
+    returning * into saved;
+
+    -- The Draft condition is checked while PostgreSQL locks the row. A second
+    -- submit, or a save racing with submission, cannot edit a submitted request.
+    if not found then
+        return;
+    end if;
+
+    if p_submit then
+        insert into public.event_status_history (event_id, old_status, new_status, changed_by)
+        values (saved.id, 'Draft', 'Submitted', p_organiser_id);
+    end if;
+    return next saved;
+end;
+$$;
+
+-- Only the backend may call this function. Browser users cannot supply an actor ID.
+revoke all on function public.save_event_draft(uuid, integer, jsonb, boolean)
+    from public, anon, authenticated;
+grant execute on function public.save_event_draft(uuid, integer, jsonb, boolean) to service_role;
+grant usage, select on sequence public.event_status_history_id_seq to service_role;
 
 commit;

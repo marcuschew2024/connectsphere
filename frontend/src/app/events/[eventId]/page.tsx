@@ -78,14 +78,15 @@ export default function EventStatusPage() {
           <>
             <header className="space-y-3">
               <p className="text-xs font-medium uppercase tracking-[0.18em] text-sky-300">Event status</p>
-              <h1 className="text-3xl font-semibold tracking-tight sm:text-4xl">{event.title}</h1>
+              <h1 className="text-3xl font-semibold tracking-tight sm:text-4xl">{event.title || "Untitled request"}</h1>
+              {event.request_status === "Draft" && <Link href={`/events/drafts/${event.id}`} className="inline-flex rounded-full bg-sky-300 px-5 py-2.5 text-sm font-semibold text-slate-950">Continue editing</Link>}
             </header>
 
             <section className="space-y-5 rounded-2xl border border-white/10 bg-slate-900/70 p-6 sm:p-8">
               <div className="flex flex-wrap items-center justify-between gap-4 border-b border-white/10 pb-5">
                 <div>
                   <p className="text-sm text-slate-400">Current status</p>
-                  <div className="mt-2"><StatusBadge status={event.status} /></div>
+                  <div className="mt-2"><StatusBadge status={event.request_status === "Draft" ? "Draft" : event.status} /></div>
                 </div>
                 <p className="text-sm text-slate-400">
                   Last updated {new Date(event.last_status_changed_at ?? event.updated_at).toLocaleString()}

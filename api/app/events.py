@@ -1,9 +1,9 @@
-"""Create event requests using the current acting user's identity (SCRUM-14)."""
+"""Create, continue and view event requests (SCRUM-14/15 and status tracking)."""
 
 from datetime import UTC, datetime
 
 from flask import Blueprint, current_app, jsonify, request
-from werkzeug.exceptions import BadRequest, Forbidden, HTTPException, NotFound
+from werkzeug.exceptions import BadRequest, Conflict, Forbidden, HTTPException, NotFound
 
 from .acting_user import require_acting_user
 from .event_repository import (
@@ -15,6 +15,7 @@ from .event_repository import (
     get_status_history,
     insert_event,
     is_event_participant,
+    save_event_draft,
     update_event_status,
 )
 from .event_validation import TEXT_LIMITS, validate_event
@@ -31,6 +32,27 @@ def prevent_caching(response):
 @events.errorhandler(HTTPException)
 def json_error(error):
     return jsonify({"error": error.description}), error.code
+
+
+def event_response(event):
+    """Keep the status screen's display label and expose the real workflow state."""
+    return {**event, "request_status": event["status"],
+            "status": canonical_event_status(event["status"])}
+
+
+def require_event_access(event_id, user):
+    event = get_event_by_id(event_id)
+    if event is None:
+        raise NotFound("Event not found.")
+    if event["status"] == "Draft":
+        # Membership never grants access to a private draft, including its history.
+        if user["role"] != "Organiser" or event["organiser_id"] != user["id"]:
+            raise NotFound("Event not found.")
+    else:
+        related_users = {event.get("organiser_id"), event.get("coordinator_id")}
+        if user["id"] not in related_users and not is_event_participant(event_id, user["id"]):
+            raise Forbidden("You are not a related user for this event.")
+    return event
 
 
 @events.post("")
@@ -76,10 +98,15 @@ def list_events():
         raise Forbidden("Request must come from the configured frontend origin.")
 
     user = require_acting_user()
-    event_list = get_events_for_user(user["id"])
-    for event in event_list:
-        event["status"] = canonical_event_status(event.get("status"))
-    return jsonify({"events": event_list}), 200
+    status = request.args.get("status")
+    if status not in (None, "Draft"):
+        raise BadRequest("The supported status filter is Draft.")
+    if status == "Draft" and user["role"] != "Organiser":
+        raise Forbidden("Only Organisers can view their drafts.")
+    event_list = get_events_for_user(user["id"], drafts_only=status == "Draft")
+    event_list = [event for event in event_list
+                  if event["status"] != "Draft" or user["role"] == "Organiser"]
+    return jsonify({"events": [event_response(event) for event in event_list]}), 200
 
 
 @events.get("/<event_id>")
@@ -88,17 +115,42 @@ def get_event(event_id):
         raise Forbidden("Request must come from the configured frontend origin.")
 
     user = require_acting_user()
-    event = get_event_by_id(event_id)
+    event = require_event_access(event_id, user)
+    return jsonify({"event": event_response(event)}), 200
 
-    if event is None:
-        raise NotFound("Event not found.")
 
-    related_users = {event.get("organiser_id"), event.get("coordinator_id")}
-    if user["id"] not in related_users and not is_event_participant(event_id, user["id"]):
-        raise Forbidden("You are not a related user for this event.")
+@events.patch("/<event_id>")
+def edit_draft(event_id):
+    if request.headers.get("Origin") != current_app.config["FRONTEND_ORIGIN"]:
+        raise Forbidden("Request must come from the configured frontend origin.")
+    user = require_acting_user()
+    if user["role"] != "Organiser":
+        raise Forbidden("Only Organisers can edit their drafts.")
+    event = require_event_access(event_id, user)
+    if event["organiser_id"] != user["id"]:
+        raise Forbidden("Only the Organiser who owns this request can edit it.")
+    if event["status"] != "Draft":
+        raise Conflict("This request has already been submitted and cannot be edited as a draft.")
 
-    event["status"] = canonical_event_status(event.get("status"))
-    return jsonify({"event": event}), 200
+    data = request.get_json(silent=True)
+    if not isinstance(data, dict):
+        raise BadRequest("Send event details as a JSON object.")
+    editable_fields = set(TEXT_LIMITS) | {"event_datetime", "expected_attendance"}
+    if set(data) - editable_fields - {"action"}:
+        raise BadRequest("The request contains unsupported fields.")
+    action = data.get("action", "draft")
+    if action not in ("draft", "submit"):
+        raise BadRequest("Choose draft or submit as the action.")
+
+    # PATCH keeps omitted fields; an explicit null or empty string clears a field.
+    details = {name: event.get(name) for name in editable_fields}
+    details.update({name: value for name, value in data.items() if name in editable_fields})
+    fields, errors = validate_event(details, submitting=action == "submit")
+    if errors:
+        return jsonify({"error": "Please check the highlighted fields.", "fields": errors}), 400
+    saved = save_event_draft(event_id, user["id"], fields, submitting=action == "submit")
+    # Like POST /events, write responses retain the actual saved status.
+    return jsonify({"event": saved}), 200
 
 
 @events.get("/<event_id>/history")
@@ -107,13 +159,7 @@ def get_event_history(event_id):
         raise Forbidden("Request must come from the configured frontend origin.")
 
     user = require_acting_user()
-    event = get_event_by_id(event_id)
-    if event is None:
-        raise NotFound("Event not found.")
-
-    related_users = {event.get("organiser_id"), event.get("coordinator_id")}
-    if user["id"] not in related_users and not is_event_participant(event_id, user["id"]):
-        raise Forbidden("You are not a related user for this event.")
+    require_event_access(event_id, user)
 
     return jsonify({"history": get_status_history(event_id)}), 200
 
@@ -124,13 +170,9 @@ def change_event_status(event_id):
         raise Forbidden("Request must come from the configured frontend origin.")
 
     user = require_acting_user()
-    event = get_event_by_id(event_id)
-    if event is None:
-        raise NotFound("Event not found.")
-
-    related_users = {event.get("organiser_id"), event.get("coordinator_id")}
-    if user["id"] not in related_users and not is_event_participant(event_id, user["id"]):
-        raise Forbidden("You are not a related user for this event.")
+    event = require_event_access(event_id, user)
+    if event["status"] == "Draft":
+        raise Conflict("Complete and submit this request through the draft form first.")
 
     data = request.get_json(silent=True)
     if not isinstance(data, dict) or set(data) != {"status"}:

@@ -16,6 +16,8 @@ export type EventRecord = {
   equipment_requirements: string | null;
   registration_requirements: string | null;
   status: "Draft" | "Submitted" | "Planning" | "Confirmed" | "Completed" | "Rejected" | "Cancelled";
+  // GET responses keep the existing display status and also expose the stored state.
+  request_status?: string;
   organiser_id: number;
   coordinator_id: number | null;
   created_at: string;

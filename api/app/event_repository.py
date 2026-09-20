@@ -2,7 +2,7 @@
 
 from datetime import UTC, datetime
 
-from werkzeug.exceptions import ServiceUnavailable
+from werkzeug.exceptions import Conflict, ServiceUnavailable
 
 from .supabase_client import get_supabase_client
 
@@ -78,22 +78,55 @@ def get_event_by_id(event_id: str) -> dict | None:
         ) from error
 
 
-def get_events_for_user(user_id: int) -> list[dict]:
+def get_events_for_user(user_id: int, *, drafts_only: bool = False) -> list[dict]:
     """Fetch events where the user is the organiser or coordinator."""
     try:
         client = get_supabase_client()
         if client is None:
             raise ServiceUnavailable("The database is not configured. Contact the team.")
 
-        result = client.table("events").select("*").or_(
-            f"organiser_id.eq.{user_id},coordinator_id.eq.{user_id}"
-        ).order("updated_at", desc=True).execute()
-        return result.data or []
+        query = client.table("events").select("*")
+        if drafts_only:
+            query = query.eq("organiser_id", user_id).eq("status", "Draft")
+        else:
+            query = query.or_(f"organiser_id.eq.{user_id},coordinator_id.eq.{user_id}")
+        result = query.order("updated_at", desc=True).execute()
+        # Even an assigned coordinator must not receive someone else's draft.
+        # Filtering here also protects future callers of this shared query.
+        return [
+            event for event in (result.data or [])
+            if event["status"] != "Draft" or event["organiser_id"] == user_id
+        ]
     except ServiceUnavailable:
         raise
     except Exception as error:
         raise ServiceUnavailable(
             "Could not load event requests. Contact the team."
+        ) from error
+
+
+def save_event_draft(event_id: str, user_id: int, fields: dict, *, submitting: bool) -> dict:
+    """Save the same draft; SQL makes submission and its history entry atomic."""
+    try:
+        client = get_supabase_client()
+        if client is None:
+            raise ServiceUnavailable("The database is not configured. Contact the team.")
+        result = client.rpc("save_event_draft", {
+            "p_event_id": event_id,
+            "p_organiser_id": user_id,
+            "p_details": fields,
+            "p_submit": submitting,
+        }).execute()
+        if not result.data:
+            # SQL checks ownership and Draft status again at the moment of writing.
+            raise Conflict("This draft is no longer editable. Reload to see its latest status.")
+        return result.data[0]
+    except (Conflict, ServiceUnavailable):
+        raise
+    except Exception as error:
+        raise ServiceUnavailable(
+            "Could not confirm that the draft was saved. Reload it before retrying. "
+            "If this continues, ask the team to check the draft database setup."
         ) from error
 
 

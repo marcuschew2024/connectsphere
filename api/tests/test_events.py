@@ -128,7 +128,29 @@ def event_database(monkeypatch):
         return query
 
     client.table.side_effect = table
+    def rpc(name, params):
+        assert name == "save_event_draft"
+        matching = [row for row in rows if row["id"] == params["p_event_id"]
+                    and row["organiser_id"] == params["p_organiser_id"]
+                    and row["status"] == "Draft"]
+        for row in matching:
+            now = datetime.now(UTC).isoformat()
+            row.update(params["p_details"])
+            row["updated_at"] = now
+            if params["p_submit"]:
+                row.update(status="Submitted", submitted_at=now,
+                           last_status_changed_by=params["p_organiser_id"],
+                           last_status_changed_at=now)
+                history.append({"id": len(history) + 1, "event_id": row["id"],
+                                "old_status": "Draft", "new_status": "Submitted",
+                                "changed_by": params["p_organiser_id"], "changed_at": now})
+        query = MagicMock()
+        query.execute.return_value = SimpleNamespace(data=matching)
+        return query
+
+    client.rpc.side_effect = rpc
     client.participants = participants
+    client.history = history
     monkeypatch.setattr("app.event_repository.get_supabase_client", lambda: client)
     return rows, client
 
@@ -561,3 +583,148 @@ def test_status_update_rejects_invalid_status(app, event_database):
     )
 
     assert response.status_code == 400
+
+
+# SCRUM-15: exercise the real Flask routes and sessions. The SQL transaction is
+# checked separately with supabase/tests/drafts.sql against a test database.
+@pytest.fixture
+def draft(organiser):
+    return organiser.post("/events", json={
+        "action": "draft", "title": "First idea", "description": "Keep this detail",
+    }, headers=ORIGIN).json["event"]
+
+
+def test_owner_lists_and_reopens_draft_without_losing_raw_status(organiser, draft):
+    listed = organiser.get("/events?status=Draft", headers=ORIGIN)
+    opened = organiser.get(f"/events/{draft['id']}", headers=ORIGIN)
+    assert [event["id"] for event in listed.json["events"]] == [draft["id"]]
+    assert opened.json["event"]["request_status"] == "Draft"
+    assert opened.json["event"]["status"] == "Planning"  # Existing status API stays compatible.
+    assert opened.headers["Cache-Control"] == "no-store"
+
+
+@pytest.mark.parametrize("actor_id", [2, 3, 4, 5, 6])
+def test_drafts_are_private_even_for_related_users(app, database, event_database, draft, actor_id):
+    database[0].append({"id": 6, "display_name": "Organiser B", "role": "Organiser",
+                        "is_demo": True})
+    event_database[0][0]["coordinator_id"] = actor_id
+    event_database[1].participants.append({"event_id": draft["id"], "user_id": actor_id})
+    other = app.test_client()
+    select_user(other, actor_id)
+    assert other.get("/events", headers=ORIGIN).json["events"] == []
+    filtered = other.get("/events?status=Draft", headers=ORIGIN)
+    assert filtered.status_code == (200 if actor_id == 6 else 403)
+    if actor_id == 6:
+        assert filtered.json["events"] == []
+    for suffix in ("", "/history"):
+        assert other.get(f"/events/{draft['id']}{suffix}", headers=ORIGIN).status_code == 404
+    edit = other.patch(f"/events/{draft['id']}", json={"title": "Stolen"}, headers=ORIGIN)
+    assert edit.status_code in (403, 404)
+    assert event_database[0][0]["title"] == "First idea"
+    assert other.patch(f"/events/{draft['id']}/status", json={"status": "Submitted"},
+                       headers=ORIGIN).status_code == 404
+
+
+def test_save_repeatedly_updates_same_draft_and_keeps_omitted_fields(
+    organiser, draft, event_database
+):
+    for title in ("Second idea", "Final idea"):
+        response = organiser.patch(f"/events/{draft['id']}", json={"title": title}, headers=ORIGIN)
+        assert response.status_code == 200
+        saved = response.json["event"]
+        assert saved["id"] == draft["id"]
+        assert saved["title"] == title
+        assert saved["description"] == "Keep this detail"
+        assert saved["status"] == "Draft"
+        assert saved["submitted_at"] is None
+        assert saved["created_at"] == draft["created_at"]
+        assert saved["updated_at"] >= draft["updated_at"]
+    assert len(event_database[0]) == 1
+    assert len(event_database[1].history) == 1  # Creation only, no fake status changes.
+    cleared = organiser.patch(f"/events/{draft['id']}", json={"description": ""}, headers=ORIGIN)
+    assert cleared.json["event"]["description"] is None
+
+
+def test_incomplete_submission_preserves_draft(organiser, draft, event_database):
+    response = organiser.patch(f"/events/{draft['id']}", json={"action": "submit"}, headers=ORIGIN)
+    assert response.status_code == 400
+    assert "purpose" in response.json["fields"]
+    assert event_database[0][0]["status"] == "Draft"
+    event_database[1].rpc.assert_not_called()
+
+
+def test_complete_draft_submits_once_and_then_locks(organiser, draft, details, event_database):
+    response = organiser.patch(f"/events/{draft['id']}",
+                               json={**details, "action": "submit"}, headers=ORIGIN)
+    assert response.status_code == 200
+    saved = response.json["event"]
+    assert saved["id"] == draft["id"]
+    assert saved["status"] == "Submitted"
+    assert saved["submitted_at"]
+    assert saved["last_status_changed_by"] == 1
+    assert len(event_database[0]) == 1
+    history = event_database[1].history
+    assert len(history) == 2
+    assert history[-1]["old_status"] == "Draft"
+    assert history[-1]["new_status"] == "Submitted"
+    assert history[-1]["changed_by"] == 1
+    for action in ("draft", "submit"):
+        retry = organiser.patch(f"/events/{draft['id']}",
+                                json={"action": action, "title": "Too late"}, headers=ORIGIN)
+        assert retry.status_code == 409
+    assert len(history) == 2
+    assert organiser.get("/events?status=Draft", headers=ORIGIN).json["events"] == []
+
+
+def test_status_endpoint_cannot_bypass_draft_submission(organiser, draft, event_database):
+    for status in ("Submitted", "Confirmed", "Planning"):
+        response = organiser.patch(f"/events/{draft['id']}/status",
+                                   json={"status": status}, headers=ORIGIN)
+        assert response.status_code == 409
+    assert event_database[0][0]["status"] == "Draft"
+
+
+@pytest.mark.parametrize("payload", [
+    None, [], "text", {"action": "invalid"}, {"organiser_id": 2}, {"status": "Submitted"},
+    {"coordinator_id": 2}, {"submitted_at": "2099-01-01"}, {"id": "other"},
+    {"expected_attendance": 0}, {"expected_attendance": True},
+    {"event_datetime": "2000-01-01T00:00:00Z"}, {"title": "x" * 201},
+])
+def test_invalid_draft_changes_do_not_write(organiser, draft, event_database, payload):
+    response = organiser.patch(f"/events/{draft['id']}", json=payload, headers=ORIGIN)
+    assert response.status_code == 400
+    event_database[1].rpc.assert_not_called()
+
+
+def test_edit_requires_session_and_matching_origin(app, organiser, draft):
+    url = f"/events/{draft['id']}"
+    assert app.test_client().patch(url, json={}, headers=ORIGIN).status_code == 401
+    assert organiser.patch(url, json={}).status_code == 403
+    assert organiser.patch(
+        url, json={}, headers={"Origin": "https://other.test"}
+    ).status_code == 403
+    assert organiser.patch("/events/11111111-1111-4111-8111-111111111111",
+                           json={}, headers=ORIGIN).status_code == 404
+
+
+def test_concurrent_submission_returns_conflict(organiser, draft, event_database):
+    # Simulate another request submitting after Flask's read but before SQL's update.
+    event_database[1].rpc.side_effect = lambda *_: SimpleNamespace(
+        execute=lambda: SimpleNamespace(data=[]))
+    response = organiser.patch(f"/events/{draft['id']}", json={"title": "Later"}, headers=ORIGIN)
+    assert response.status_code == 409
+
+
+def test_draft_database_failure_is_safe(organiser, draft, event_database):
+    event_database[1].rpc.side_effect = RuntimeError("private database credentials")
+    response = organiser.patch(f"/events/{draft['id']}", json={"title": "Later"}, headers=ORIGIN)
+    assert response.status_code == 503
+    assert "private database credentials" not in response.get_data(as_text=True)
+
+
+@pytest.mark.parametrize("environment,enabled", [("production", True), ("development", False)])
+def test_draft_edit_cannot_use_dev_cookie_outside_enabled_development(
+    app, organiser, draft, environment, enabled
+):
+    app.config.update(APP_ENV=environment, DEV_ROLE_SWITCHER_ENABLED=enabled)
+    assert organiser.patch(f"/events/{draft['id']}", json={}, headers=ORIGIN).status_code == 401

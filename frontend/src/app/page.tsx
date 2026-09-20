@@ -104,6 +104,10 @@ export default function Home() {
         )}
       </div>
 
+      {actingRole === "Organiser" && <Link href="/events/drafts" className="-mt-5 rounded-full border border-white/15 px-5 py-2.5 text-sm text-slate-300 transition-colors hover:bg-white/5 hover:text-white motion-reduce:transition-none">
+        My drafts <span aria-hidden="true" className="ml-2">→</span>
+      </Link>}
+
       <div className="flex items-center gap-2 rounded-full border border-slate-800 bg-slate-900 px-4 py-2 text-sm">
         <span className={`h-2.5 w-2.5 rounded-full ${statusColor}`} />
         <span>API: {statusLabel}</span>

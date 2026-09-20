@@ -20,11 +20,22 @@ const REQUIREMENT_FIELDS = [
 ];
 const INPUT_STYLE = "w-full rounded border border-slate-600 bg-slate-950 p-3 [color-scheme:dark] focus:border-sky-400 focus:outline-none focus:ring-1 focus:ring-sky-400";
 
-export default function EventRequestForm({ canCreate }: { canCreate: boolean }) {
+function localDateTime(value: string | null | undefined) {
+  if (!value) return "";
+  const date = new Date(value);
+  return new Date(date.getTime() - date.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
+}
+
+export default function EventRequestForm({ canCreate, initialEvent }: {
+  canCreate: boolean;
+  initialEvent?: EventRecord;
+}) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const [saved, setSaved] = useState<EventRecord | null>(null);
+  const [lastSaved, setLastSaved] = useState<string | null>(null);
+  const editing = !!initialEvent;
 
   async function saveRequest(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -32,6 +43,7 @@ export default function EventRequestForm({ canCreate }: { canCreate: boolean }) 
     const formElement = event.currentTarget;
     setError("");
     setFieldErrors({});
+    setLastSaved(null);
 
     const attendanceInput = event.currentTarget.elements.namedItem("expected_attendance") as HTMLInputElement;
     if (attendanceInput.validity.badInput) {
@@ -52,8 +64,8 @@ export default function EventRequestForm({ canCreate }: { canCreate: boolean }) 
     const details = Object.fromEntries(form.entries());
     setBusy(true);
     try {
-      const result = await apiRequest<{ event: EventRecord }>("/events", {
-        method: "POST",
+      const result = await apiRequest<{ event: EventRecord }>(initialEvent ? `/events/${initialEvent.id}` : "/events", {
+        method: initialEvent ? "PATCH" : "POST",
         body: JSON.stringify({
           ...details,
           action,
@@ -62,7 +74,12 @@ export default function EventRequestForm({ canCreate }: { canCreate: boolean }) 
           expected_attendance: attendance === "" ? null : Number(attendance),
         }),
       });
-      setSaved(result.event);
+      if (editing && result.event.status === "Draft") {
+        // Keep the form open after saving edits. This is still the same event ID.
+        setLastSaved(result.event.updated_at);
+      } else {
+        setSaved(result.event);
+      }
     } catch (error) {
       if (error instanceof ApiError) {
         setFieldErrors(error.fields);
@@ -94,22 +111,24 @@ export default function EventRequestForm({ canCreate }: { canCreate: boolean }) 
           : "Your request has been submitted and is now under Planning."}</p>
         <dl className="space-y-2 text-sm">
           <div><dt className="text-slate-400">Reference</dt><dd className="break-all font-mono">{saved.id}</dd></div>
-          <div><dt className="text-slate-400">Saved at</dt><dd>{new Date(saved.created_at).toLocaleString()}</dd></div>
+          <div><dt className="text-slate-400">Saved at</dt><dd>{new Date(saved.updated_at ?? saved.created_at).toLocaleString()}</dd></div>
         </dl>
-        <Link href={`/events/${saved.id}`} className="inline-flex rounded bg-sky-300 px-4 py-2 font-semibold text-slate-950">
-          View event status
+        <Link href={saved.status === "Draft" ? `/events/drafts/${saved.id}` : `/events/${saved.id}`} className="inline-flex rounded-full bg-sky-300 px-5 py-2.5 font-semibold text-slate-950">
+          {saved.status === "Draft" ? "Continue editing" : "View event status"}
         </Link>
-        <button type="button" disabled={!canCreate} onClick={() => setSaved(null)}
+        <Link href="/events/drafts" className="inline-flex px-4 py-2 text-sm text-slate-300 hover:text-white">My drafts</Link>
+        {!editing && <button type="button" disabled={!canCreate} onClick={() => setSaved(null)}
           className="rounded bg-sky-300 px-4 py-2 font-semibold text-slate-950 disabled:cursor-not-allowed disabled:opacity-40">
           Create another request
-        </button>
+        </button>}
       </section>
     );
   }
 
   return (
-    <form onSubmit={saveRequest} noValidate className="space-y-6 rounded-2xl border border-white/10 bg-slate-900/70 p-5 sm:p-8">
+    <form onSubmit={saveRequest} onChange={() => setLastSaved(null)} noValidate className="space-y-6 rounded-2xl border border-white/10 bg-slate-900/70 p-5 sm:p-8">
       <p className="text-sm text-slate-300">Fields marked * are required to submit. You can save a draft with these fields blank.</p>
+      {editing && <p className="text-xs leading-relaxed text-slate-400">Only you can access this draft. Save your changes before leaving this page.</p>}
       {error && <p role="alert" className="rounded border border-red-700 bg-red-950/40 p-3 text-red-200">{error}</p>}
       <fieldset disabled={busy || !canCreate} className="space-y-5 disabled:opacity-40">
         <legend className="sr-only">Event details</legend>
@@ -118,11 +137,13 @@ export default function EventRequestForm({ canCreate }: { canCreate: boolean }) 
             <label htmlFor={field.name} className="mb-2 block font-medium">{field.label} *</label>
             {field.multiline ? (
               <textarea id={field.name} name={field.name} rows={3} maxLength={field.limit}
+                defaultValue={initialEvent?.[field.name as keyof EventRecord] ?? ""}
                 aria-required={field.required} aria-invalid={!!fieldErrors[field.name]}
                 aria-describedby={fieldErrors[field.name] ? `${field.name}-error` : undefined}
                 className={INPUT_STYLE} />
             ) : (
               <input id={field.name} name={field.name} type="text" maxLength={field.limit}
+                defaultValue={initialEvent?.[field.name as keyof EventRecord] ?? ""}
                 aria-required={field.required} aria-invalid={!!fieldErrors[field.name]}
                 aria-describedby={fieldErrors[field.name] ? `${field.name}-error` : undefined}
                 className={INPUT_STYLE} />
@@ -134,6 +155,7 @@ export default function EventRequestForm({ canCreate }: { canCreate: boolean }) 
           <div>
             <label htmlFor="event_datetime" className="mb-2 block font-medium">Preferred date and time *</label>
             <input id="event_datetime" name="event_datetime" type="datetime-local" aria-required="true"
+              defaultValue={localDateTime(initialEvent?.event_datetime)}
               aria-invalid={!!fieldErrors.event_datetime}
               aria-describedby={fieldErrors.event_datetime ? "event-time-help event_datetime-error" : "event-time-help"}
               className={INPUT_STYLE} />
@@ -143,6 +165,7 @@ export default function EventRequestForm({ canCreate }: { canCreate: boolean }) 
           <div>
             <label htmlFor="expected_attendance" className="mb-2 block font-medium">Expected attendance *</label>
             <input id="expected_attendance" name="expected_attendance" type="number" min="1" step="1" max="2147483647"
+              defaultValue={initialEvent?.expected_attendance ?? ""}
               aria-required="true" aria-invalid={!!fieldErrors.expected_attendance}
               aria-describedby={fieldErrors.expected_attendance ? "expected_attendance-error" : undefined}
               className={INPUT_STYLE} />
@@ -155,6 +178,7 @@ export default function EventRequestForm({ canCreate }: { canCreate: boolean }) 
             <div key={field.name}>
               <label htmlFor={field.name} className="mb-2 block font-medium">{field.label}</label>
               <textarea id={field.name} name={field.name} rows={2} maxLength={2000}
+                defaultValue={initialEvent?.[field.name as keyof EventRecord] ?? ""}
                 aria-invalid={!!fieldErrors[field.name]}
                 aria-describedby={fieldErrors[field.name] ? `${field.name}-error` : undefined}
                 className={INPUT_STYLE} />
@@ -163,14 +187,15 @@ export default function EventRequestForm({ canCreate }: { canCreate: boolean }) 
           ))}
         </fieldset>
         <div className="flex flex-wrap gap-3">
-          <button type="submit" value="submit" className="rounded bg-sky-300 px-5 py-3 font-semibold text-slate-950 disabled:opacity-50">
+          <button type="submit" value="submit" className="rounded-full bg-sky-300 px-6 py-3 text-sm font-semibold text-slate-950 transition-colors hover:bg-sky-200 disabled:opacity-50 motion-reduce:transition-none">
             {busy ? "Saving…" : "Submit request"}
           </button>
-          <button type="submit" value="draft" className="rounded border border-slate-500 px-5 py-3 font-semibold disabled:opacity-50">
-            Save as draft
+          <button type="submit" value="draft" className="rounded-full border border-white/20 px-6 py-3 text-sm font-medium transition-colors hover:bg-white/5 disabled:opacity-50 motion-reduce:transition-none">
+            {editing ? "Save changes" : "Save as draft"}
           </button>
         </div>
       </fieldset>
+      {lastSaved && <p role="status" className="rounded-xl border border-emerald-300/20 bg-emerald-300/5 px-4 py-3 text-sm text-emerald-200">Changes saved · {new Date(lastSaved).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</p>}
     </form>
   );
 }

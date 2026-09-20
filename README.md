@@ -32,6 +32,20 @@ Open **http://localhost:3000/events/new**, select **Demo Organiser**, and create
 draft or submit a completed event request. See the [code walkthrough, API contract,
 team integration notes and test instructions](docs/SCRUM-14.md).
 
+## Continue private drafts (SCRUM-15)
+
+Run the updated [`supabase/create_events.sql`](supabase/create_events.sql) again.
+It preserves existing events and adds the function used to save/submit a draft.
+Select **Demo Organiser**, then open **My drafts** from the home page, or visit
+**http://localhost:3000/events/drafts**. Reopen a draft, save changes, and submit
+when ready. Saving and submitting keep the same event reference.
+
+See the [SCRUM-15 walkthrough and acceptance checks](docs/SCRUM-15.md).
+Events still use the development role switcher. The newly merged login feature
+has a [documented integration handoff to SCRUM-21](docs/SCRUM-20.md#known-limitation--future-work).
+After pulling teammates' backend changes, rerun `pip install -r requirements.txt`
+in the API virtual environment (the login module requires bcrypt).
+
 ## Prerequisites
 
 - Node.js 22
