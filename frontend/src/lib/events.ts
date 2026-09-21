@@ -23,6 +23,9 @@ export type EventRecord = {
   submitted_at: string | null;
   last_status_changed_by: number | null;
   last_status_changed_at: string | null;
+  decision_reason: string | null;
+  decision_by: number | null;
+  decision_at: string | null;
 };
 
 export type EventStatusHistory = {

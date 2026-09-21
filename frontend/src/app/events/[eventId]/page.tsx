@@ -6,6 +6,7 @@ import { useEffect, useState } from "react";
 import { ApiError, apiRequest } from "@/lib/api";
 import { StatusBadge, type EventRecord, type EventStatusHistory } from "@/lib/events";
 import { useActingRole } from "@/lib/use-acting-role";
+import EventDecisionForm from "./event-decision-form";
 import EventEditForm from "./event-edit-form";
 
 export default function EventStatusPage() {
@@ -128,7 +129,10 @@ export default function EventStatusPage() {
             </section>
 
             {actingRole === "Coordinator" && (
-              <EventEditForm event={event} onSaved={setEvent} />
+              <>
+                <EventDecisionForm event={event} onSaved={setEvent} />
+                <EventEditForm event={event} onSaved={setEvent} />
+              </>
             )}
           </>
         )}
