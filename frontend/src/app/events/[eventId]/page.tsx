@@ -5,9 +5,12 @@ import { useParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import { ApiError, apiRequest } from "@/lib/api";
 import { StatusBadge, type EventRecord, type EventStatusHistory } from "@/lib/events";
+import { useActingRole } from "@/lib/use-acting-role";
+import EventEditForm from "./event-edit-form";
 
 export default function EventStatusPage() {
   const params = useParams<{ eventId: string }>();
+  const [actingRole] = useActingRole();
   const [event, setEvent] = useState<EventRecord | null>(null);
   const [history, setHistory] = useState<EventStatusHistory[]>([]);
   const [error, setError] = useState("");
@@ -123,6 +126,10 @@ export default function EventStatusPage() {
                 </ol>
               )}
             </section>
+
+            {actingRole === "Coordinator" && (
+              <EventEditForm event={event} onSaved={setEvent} />
+            )}
           </>
         )}
       </div>
