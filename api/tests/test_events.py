@@ -19,10 +19,17 @@ def event_database(monkeypatch):
     participants = []
     history = []
     edit_log = []
+    notifications = []
     client = MagicMock()
 
     def table(name):
-        assert name in {"events", "event_participants", "event_status_history", "event_edit_log"}
+        assert name in {
+            "events",
+            "event_participants",
+            "event_status_history",
+            "event_edit_log",
+            "notifications",
+        }
         query = MagicMock()
         filters = {}
         operation = "select"
@@ -53,6 +60,14 @@ def event_database(monkeypatch):
                     }
                     edit_log.append(edit_row)
                     return SimpleNamespace(data=[edit_row])
+                if name == "notifications":
+                    notification = {
+                        **pending_insert,
+                        "id": len(notifications) + 1,
+                        "created_at": datetime.now(UTC).isoformat(),
+                    }
+                    notifications.append(notification)
+                    return SimpleNamespace(data=[notification])
                 now = datetime.now(UTC).isoformat()
                 row = {
                     **pending_insert, "id": str(uuid4()), "coordinator_id": None,
@@ -145,6 +160,7 @@ def event_database(monkeypatch):
     client.table.side_effect = table
     client.participants = participants
     client.edit_log = edit_log
+    client.notifications = notifications
     monkeypatch.setattr("app.event_repository.get_supabase_client", lambda: client)
     return rows, client
 
@@ -354,7 +370,7 @@ def test_unconfigured_database_returns_json_error(organiser, details, monkeypatc
     assert response.is_json
 
 
-def test_event_status_submitted_is_shown_as_planning(app, event_database):
+def test_event_status_submitted_is_shown_as_submitted(app, event_database):
     client = app.test_client()
     select_user(client, 1)
 
@@ -371,7 +387,7 @@ def test_event_status_submitted_is_shown_as_planning(app, event_database):
 
     response = client.get(f"/events/{event_id}", headers=ORIGIN)
     assert response.status_code == 200
-    assert response.json["event"]["status"] == "Planning"
+    assert response.json["event"]["status"] == "Submitted"
 
 
 def test_related_user_can_list_event_requests(app, event_database):
@@ -400,7 +416,7 @@ def test_related_user_can_list_event_requests(app, event_database):
     assert [event["id"] for event in response.json["events"]] == [
         "88888888-8888-8888-8888-888888888888"
     ]
-    assert response.json["events"][0]["status"] == "Planning"
+    assert response.json["events"][0]["status"] == "Submitted"
 
 
 def test_event_status_approved_is_shown_as_planning(app, event_database):
@@ -605,6 +621,74 @@ def _seed_planning_event(event_database, *, status="Planning", coordinator_id=2)
     }
     event_database[0].append(event)
     return event
+
+
+def test_coordinator_can_approve_submitted_request(coordinator, event_database):
+    event = _seed_planning_event(event_database, status="Submitted")
+
+    response = coordinator.post(
+        f"/events/{event['id']}/decision",
+        json={"decision": "approve"},
+        headers=ORIGIN,
+    )
+
+    assert response.status_code == 200
+    assert response.json["event"]["status"] == "Planning"
+    assert response.json["event"]["decision_by"] == 2
+    assert response.json["event"]["decision_at"]
+
+
+def test_reject_without_reason_is_blocked(coordinator, event_database):
+    event = _seed_planning_event(event_database, status="Submitted")
+
+    response = coordinator.post(
+        f"/events/{event['id']}/decision",
+        json={"decision": "reject"},
+        headers=ORIGIN,
+    )
+
+    assert response.status_code == 400
+    assert event_database[0][0]["status"] == "Submitted"
+
+
+def test_rejection_stores_reason_and_notifies_organiser(coordinator, event_database):
+    event = _seed_planning_event(event_database, status="Submitted")
+
+    response = coordinator.post(
+        f"/events/{event['id']}/decision",
+        json={"decision": "reject", "reason": "The venue is unavailable."},
+        headers=ORIGIN,
+    )
+
+    assert response.status_code == 200
+    assert response.json["event"]["status"] == "Rejected"
+    assert response.json["event"]["decision_reason"] == "The venue is unavailable."
+    assert event_database[1].notifications[0]["recipient_id"] == 1
+
+
+def test_decided_request_cannot_be_decided_again(coordinator, event_database):
+    event = _seed_planning_event(event_database, status="Rejected")
+
+    response = coordinator.post(
+        f"/events/{event['id']}/decision",
+        json={"decision": "approve"},
+        headers=ORIGIN,
+    )
+
+    assert response.status_code == 409
+
+
+def test_non_coordinator_cannot_decide_request(organiser, event_database):
+    event = _seed_planning_event(event_database, status="Submitted")
+
+    response = organiser.post(
+        f"/events/{event['id']}/decision",
+        json={"decision": "approve"},
+        headers=ORIGIN,
+    )
+
+    assert response.status_code == 403
+    assert event_database[0][0]["status"] == "Submitted"
 
 
 def _edit_payload(event, **overrides):
