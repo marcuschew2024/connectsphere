@@ -18,6 +18,7 @@ export type EventRecord = {
   status: "Draft" | "Submitted" | "Planning" | "Confirmed" | "Completed" | "Rejected" | "Cancelled";
   organiser_id: number;
   coordinator_id: number | null;
+  coordinator_assigned_at: string | null;
   created_at: string;
   updated_at: string;
   submitted_at: string | null;

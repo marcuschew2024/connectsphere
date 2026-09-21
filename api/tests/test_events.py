@@ -70,7 +70,12 @@ def event_database(monkeypatch):
                     return SimpleNamespace(data=[notification])
                 now = datetime.now(UTC).isoformat()
                 row = {
-                    **pending_insert, "id": str(uuid4()), "coordinator_id": None,
+                    **pending_insert,
+                    "id": str(uuid4()),
+                    "coordinator_id": 2 if pending_insert.get("status") == "Submitted" else None,
+                    "coordinator_assigned_at": (
+                        now if pending_insert.get("status") == "Submitted" else None
+                    ),
                     "created_at": now, "updated_at": now,
                 }
                 rows.append(row)
@@ -192,7 +197,8 @@ def test_submit_persists_details_identity_status_and_timestamps(organiser, detai
     assert event["status"] == "Submitted"
     assert event["title"] == "Campus workshop"
     assert event["organiser_id"] == 1
-    assert event["coordinator_id"] is None
+    assert event["coordinator_id"] == 2
+    assert event["coordinator_assigned_at"]
     assert event["submitted_at"]
     assert event["created_at"]
     for field in ("description", "purpose", "category", "venue_requirements",
@@ -200,6 +206,10 @@ def test_submit_persists_details_identity_status_and_timestamps(organiser, detai
                   "registration_requirements"):
         assert event[field] == details[field]
     assert event_database[0] == [event]
+    assert event_database[1].participants == [
+        {"event_id": event["id"], "user_id": 1, "role": "Organiser"},
+        {"event_id": event["id"], "user_id": 2, "role": "Coordinator"},
+    ]
     assert response.headers["Cache-Control"] == "no-store"
 
 
@@ -370,7 +380,7 @@ def test_unconfigured_database_returns_json_error(organiser, details, monkeypatc
     assert response.is_json
 
 
-def test_event_status_submitted_is_shown_as_submitted(app, event_database):
+def test_event_status_submitted_is_shown_as_planning_to_organiser(app, event_database):
     client = app.test_client()
     select_user(client, 1)
 
@@ -387,7 +397,7 @@ def test_event_status_submitted_is_shown_as_submitted(app, event_database):
 
     response = client.get(f"/events/{event_id}", headers=ORIGIN)
     assert response.status_code == 200
-    assert response.json["event"]["status"] == "Submitted"
+    assert response.json["event"]["status"] == "Planning"
 
 
 def test_related_user_can_list_event_requests(app, event_database):
@@ -416,6 +426,23 @@ def test_related_user_can_list_event_requests(app, event_database):
     assert [event["id"] for event in response.json["events"]] == [
         "88888888-8888-8888-8888-888888888888"
     ]
+    assert response.json["events"][0]["status"] == "Planning"
+
+
+def test_coordinator_sees_submitted_internal_queue_status(app, event_database):
+    client = app.test_client()
+    select_user(client, 2)
+    event_database[0].append({
+        "id": "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa",
+        "title": "Assigned workshop",
+        "status": "Submitted",
+        "organiser_id": 1,
+        "coordinator_id": 2,
+    })
+
+    response = client.get("/events", headers=ORIGIN)
+
+    assert response.status_code == 200
     assert response.json["events"][0]["status"] == "Submitted"
 
 
