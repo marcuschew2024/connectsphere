@@ -11,11 +11,11 @@ class EventStatus:
     """Encapsulates the status mapping logic for user-visible event states."""
 
     _mapping = {
-        "Draft": "Planning",
-        "Submitted": "Planning",
-        "Assigned": "Planning",
-        "Under review": "Planning",
-        "Under Review": "Planning",
+        "Draft": "Draft",
+        "Submitted": "Submitted",
+        "Assigned": "Submitted",
+        "Under review": "Submitted",
+        "Under Review": "Submitted",
         "Approved": "Planning",
         "Planning": "Planning",
         "Confirmed": "Confirmed",
@@ -194,6 +194,57 @@ def update_event_status(event_id: str, status: str, user_id: int) -> dict:
     except Exception as error:
         raise ServiceUnavailable(
             "Could not update the event status. Contact the team before retrying."
+        ) from error
+
+
+def record_event_decision(
+    event_id: str, status: str, reason: str | None, user_id: int
+) -> dict:
+    """Record a coordinator decision only while the request is still submitted."""
+    try:
+        client = get_supabase_client()
+        if client is None:
+            raise ServiceUnavailable("The database is not configured. Contact the team.")
+
+        now = datetime.now(UTC).isoformat()
+        result = client.table("events").update({
+            "status": status,
+            "decision_reason": reason,
+            "decision_by": user_id,
+            "decision_at": now,
+            "last_status_changed_by": user_id,
+            "last_status_changed_at": now,
+        }).eq("id", event_id).eq("status", "Submitted").execute()
+        if not result.data:
+            raise ServiceUnavailable("The request may already have a decision.")
+        return result.data[0]
+    except ServiceUnavailable:
+        raise
+    except Exception as error:
+        raise ServiceUnavailable(
+            "Could not record the event decision. Contact the team."
+        ) from error
+
+
+def create_notification(
+    recipient_id: int, event_id: str, notification_type: str, message: str
+) -> None:
+    """Create an in-app notification for a user."""
+    try:
+        client = get_supabase_client()
+        if client is None:
+            raise ServiceUnavailable("The database is not configured. Contact the team.")
+        client.table("notifications").insert({
+            "recipient_id": recipient_id,
+            "event_id": event_id,
+            "notification_type": notification_type,
+            "message": message,
+        }).execute()
+    except ServiceUnavailable:
+        raise
+    except Exception as error:
+        raise ServiceUnavailable(
+            "Could not create the notification. Contact the team."
         ) from error
 
 

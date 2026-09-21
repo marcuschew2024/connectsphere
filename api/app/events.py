@@ -6,15 +6,18 @@ from flask import Blueprint, current_app, jsonify, request
 from werkzeug.exceptions import BadRequest, Conflict, Forbidden, HTTPException, NotFound
 
 from .acting_user import require_acting_user
+from .event_decision import EventDecision
 from .event_repository import (
     add_event_participant,
     add_status_history,
     canonical_event_status,
+    create_notification,
     get_event_by_id,
     get_events_for_user,
     get_status_history,
     insert_event,
     log_event_edit,
+    record_event_decision,
     update_event_fields,
     update_event_status,
 )
@@ -146,6 +149,46 @@ def change_event_status(event_id):
     old_status = event.get("status")
     updated = update_event_status(event_id, status, user["id"])
     add_status_history(event_id, old_status, status, user["id"])
+    updated["status"] = canonical_event_status(updated.get("status"))
+    return jsonify({"event": updated}), 200
+
+
+@events.post("/<event_id>/decision")
+def decide_event(event_id):
+    """Approve or reject a submitted request as its assigned coordinator."""
+    if request.headers.get("Origin") != current_app.config["FRONTEND_ORIGIN"]:
+        raise Forbidden("Request must come from the configured frontend origin.")
+
+    user = require_acting_user()
+    require_role(user, "Coordinator", action="decide_event")
+
+    event = get_event_by_id(event_id)
+    if event is None:
+        raise NotFound("Event not found.")
+
+    require_related_user(user, event, action="decide_event")
+
+    if event.get("status") != "Submitted":
+        raise Conflict("This request has already been decided.")
+
+    try:
+        decision = EventDecision.from_payload(request.get_json(silent=True))
+    except ValueError as error:
+        raise BadRequest(str(error)) from error
+
+    updated = record_event_decision(
+        event_id, decision.status, decision.reason, user["id"]
+    )
+    add_status_history(event_id, event["status"], decision.status, user["id"])
+
+    if decision.is_rejection:
+        create_notification(
+            event["organiser_id"],
+            event_id,
+            "event_rejected",
+            f"Your event request was rejected: {decision.reason}",
+        )
+
     updated["status"] = canonical_event_status(updated.get("status"))
     return jsonify({"event": updated}), 200
 
