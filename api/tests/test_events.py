@@ -213,6 +213,35 @@ def test_submit_persists_details_identity_status_and_timestamps(organiser, detai
     assert response.headers["Cache-Control"] == "no-store"
 
 
+def test_multiple_submissions_have_one_coordinator_each(organiser, details, event_database):
+    submitted = [
+        organiser.post("/events", json={**details, "title": f"Workshop {number}"}, headers=ORIGIN)
+        for number in range(3)
+    ]
+
+    assert all(response.status_code == 201 for response in submitted)
+    events = [response.json["event"] for response in submitted]
+    assert len({event["id"] for event in events}) == 3
+    assert all(event["coordinator_id"] == 2 for event in events)
+    assert all(event["coordinator_assigned_at"] for event in events)
+    assert all(
+        [participant for participant in event_database[1].participants
+         if participant["event_id"] == event["id"] and participant["role"] == "Coordinator"]
+        == [{"event_id": event["id"], "user_id": 2, "role": "Coordinator"}]
+        for event in events
+    )
+
+
+def test_no_manual_reassignment_endpoint_exists(app):
+    reassignment_routes = {
+        rule.rule
+        for rule in app.url_map.iter_rules()
+        if "assign" in rule.rule.lower() or "reassign" in rule.rule.lower()
+    }
+
+    assert reassignment_routes == set()
+
+
 @pytest.mark.parametrize("field", [
     "title", "description", "purpose", "category", "event_datetime", "expected_attendance",
 ])
