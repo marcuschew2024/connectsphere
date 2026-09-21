@@ -12,6 +12,7 @@ from .event_repository import (
     add_status_history,
     canonical_event_status,
     create_notification,
+    customer_event_status,
     get_event_by_id,
     get_events_for_user,
     get_status_history,
@@ -70,6 +71,8 @@ def create_event():
     fields["last_status_changed_at"] = datetime.now(UTC).isoformat()
     saved = insert_event(fields)
     add_event_participant(saved["id"], user["id"], "Organiser")
+    if saved.get("coordinator_id") is not None:
+        add_event_participant(saved["id"], saved["coordinator_id"], "Coordinator")
     add_status_history(saved["id"], None, fields["status"], user["id"])
     return jsonify({"event": saved}), 201
 
@@ -83,6 +86,8 @@ def list_events():
     event_list = get_events_for_user(user["id"])
     for event in event_list:
         event["status"] = canonical_event_status(event.get("status"))
+        if user["role"] != "Coordinator":
+            event["status"] = customer_event_status(event["status"])
     if user["role"] == "Attendee":
         event_list = [public_event_view(event) for event in event_list]
     return jsonify({"events": event_list}), 200
@@ -102,6 +107,8 @@ def get_event(event_id):
     require_related_user(user, event, action="view_event")
 
     event["status"] = canonical_event_status(event.get("status"))
+    if user["role"] != "Coordinator":
+        event["status"] = customer_event_status(event["status"])
     if user["role"] == "Attendee":
         event = public_event_view(event)
     return jsonify({"event": event}), 200

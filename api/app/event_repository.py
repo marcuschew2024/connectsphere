@@ -58,6 +58,12 @@ def canonical_event_status(raw_status: str | None) -> str:
     return EventStatus.to_visible(raw_status)
 
 
+def customer_event_status(raw_status: str | None) -> str:
+    """Map internal submitted/review states to the customer-facing Planning state."""
+    visible = canonical_event_status(raw_status)
+    return "Planning" if visible == "Submitted" else visible
+
+
 def get_event_by_id(event_id: str) -> dict | None:
     """Fetch one event record by ID."""
     try:

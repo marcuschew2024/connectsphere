@@ -33,6 +33,11 @@ For coordinator approve/reject decisions, also run
 in the same SQL Editor. This adds decision metadata to events and creates the
 organiser notification table.
 
+For automatic Coordinator assignment, also run
+[`supabase/auto_assign_coordinator.sql`](supabase/auto_assign_coordinator.sql).
+Submitted requests are assigned to one Coordinator and show as Planning to customers;
+the Coordinator queue retains the internal Submitted marker.
+
 Open **http://localhost:3000/events/new**, select **Demo Organiser**, and create a
 draft or submit a completed event request. See the [code walkthrough, API contract,
 team integration notes and test instructions](docs/SCRUM-14.md).
