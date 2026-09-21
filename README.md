@@ -28,6 +28,11 @@ After the user setup, run [`supabase/create_events.sql`](supabase/create_events.
 in the Supabase SQL Editor. This creates the events table without deleting existing
 users or events. Both SQL scripts are safe to rerun on their supported schemas.
 
+For coordinator approve/reject decisions, also run
+[`supabase/event_decision_notifications.sql`](supabase/event_decision_notifications.sql)
+in the same SQL Editor. This adds decision metadata to events and creates the
+organiser notification table.
+
 Open **http://localhost:3000/events/new**, select **Demo Organiser**, and create a
 draft or submit a completed event request. See the [code walkthrough, API contract,
 team integration notes and test instructions](docs/SCRUM-14.md).
