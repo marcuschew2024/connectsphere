@@ -141,6 +141,13 @@ export default function EventStatusPage() {
 
             {actingRole === "Coordinator" && (
               <>
+                {clarification && (
+                  <section data-testid="clarification-confirmation" className="space-y-2 rounded-2xl border border-amber-500/30 bg-slate-900/70 p-6 sm:p-8">
+                    <h2 className="text-lg font-semibold">Clarification requested</h2>
+                    <p className="text-sm text-slate-300">{clarification.note}</p>
+                    <p className="text-sm text-slate-400">The request is waiting for the organiser to revise and resubmit it.</p>
+                  </section>
+                )}
                 {!clarification && <EventDecisionForm event={event} onSaved={setEvent} />}
                 {event.status === "Submitted" && !clarification && (
                   <EventClarificationForm event={event} onRequested={setClarification} />
