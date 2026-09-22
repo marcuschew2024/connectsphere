@@ -94,7 +94,14 @@ def get_events_for_user(user_id: int) -> list[dict]:
         result = client.table("events").select("*").or_(
             f"organiser_id.eq.{user_id},coordinator_id.eq.{user_id}"
         ).order("updated_at", desc=True).execute()
-        return result.data or []
+        events = result.data or []
+        if events:
+            pending_ids = get_pending_clarification_event_ids()
+            events = [
+                event for event in events
+                if not (event.get("coordinator_id") == user_id and event["id"] in pending_ids)
+            ]
+        return events
     except ServiceUnavailable:
         raise
     except Exception as error:
@@ -141,19 +148,29 @@ def is_event_participant(event_id: str, user_id: int) -> bool:
 
 
 def add_status_history(
-    event_id: str, old_status: str | None, new_status: str, user_id: int
+    event_id: str,
+    old_status: str | None,
+    new_status: str,
+    user_id: int,
+    action: str | None = None,
+    note: str | None = None,
 ) -> None:
     """Append one immutable status transition record."""
     try:
         client = get_supabase_client()
         if client is None:
             raise ServiceUnavailable("The database is not configured. Contact the team.")
-        client.table("event_status_history").insert({
+        payload = {
             "event_id": event_id,
             "old_status": old_status,
             "new_status": new_status,
             "changed_by": user_id,
-        }).execute()
+        }
+        if action is not None:
+            payload["action"] = action
+        if note is not None:
+            payload["note"] = note
+        client.table("event_status_history").insert(payload).execute()
     except ServiceUnavailable:
         raise
     except Exception as error:
@@ -177,6 +194,88 @@ def get_status_history(event_id: str) -> list[dict]:
     except Exception as error:
         raise ServiceUnavailable(
             "Could not load the event status history. Contact the team."
+        ) from error
+
+
+def create_clarification(event_id: str, note: str, user_id: int) -> dict:
+    """Create one pending clarification request for an event."""
+    try:
+        client = get_supabase_client()
+        if client is None:
+            raise ServiceUnavailable("The database is not configured. Contact the team.")
+        result = client.table("event_clarifications").insert({
+            "event_id": event_id,
+            "note": note,
+            "requested_by": user_id,
+            "status": "Pending",
+        }).execute()
+        if not result.data:
+            raise ServiceUnavailable("The database did not confirm the clarification request.")
+        return result.data[0]
+    except ServiceUnavailable:
+        raise
+    except Exception as error:
+        raise ServiceUnavailable(
+            "Could not save the clarification request. Contact the team."
+        ) from error
+
+
+def get_pending_clarification(event_id: str) -> dict | None:
+    """Return the current pending clarification, if one exists."""
+    try:
+        client = get_supabase_client()
+        if client is None:
+            raise ServiceUnavailable("The database is not configured. Contact the team.")
+        result = client.table("event_clarifications").select("*").eq(
+            "event_id", event_id
+        ).eq("status", "Pending").execute()
+        return result.data[0] if result.data else None
+    except ServiceUnavailable:
+        raise
+    except Exception as error:
+        raise ServiceUnavailable(
+            "Could not load the clarification request. Contact the team."
+        ) from error
+
+
+def get_pending_clarification_event_ids() -> set[str]:
+    """Return event IDs currently waiting for organiser clarification."""
+    try:
+        client = get_supabase_client()
+        if client is None:
+            raise ServiceUnavailable("The database is not configured. Contact the team.")
+        result = client.table("event_clarifications").select("event_id").eq(
+            "status", "Pending"
+        ).execute()
+        return {row["event_id"] for row in (result.data or [])}
+    except ServiceUnavailable:
+        raise
+    except Exception as error:
+        raise ServiceUnavailable(
+            "Could not load clarification requests. Contact the team."
+        ) from error
+
+
+def mark_clarification_resubmitted(event_id: str, user_id: int) -> dict:
+    """Close the pending clarification after the organiser resubmits."""
+    try:
+        client = get_supabase_client()
+        if client is None:
+            raise ServiceUnavailable("The database is not configured. Contact the team.")
+        now = datetime.now(UTC).isoformat()
+        result = client.table("event_clarifications").update({
+            "status": "Resubmitted",
+            "responded_by": user_id,
+            "responded_at": now,
+        }).eq("event_id", event_id).eq("status", "Pending").execute()
+        if not result.data:
+            raise ServiceUnavailable("The clarification request may already be resolved.")
+        return result.data[0]
+    except ServiceUnavailable:
+        raise
+    except Exception as error:
+        raise ServiceUnavailable(
+            "Could not record the resubmission. Contact the team."
         ) from error
 
 

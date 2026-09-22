@@ -11,13 +11,16 @@ from .event_repository import (
     add_event_participant,
     add_status_history,
     canonical_event_status,
+    create_clarification,
     create_notification,
     customer_event_status,
     get_event_by_id,
     get_events_for_user,
+    get_pending_clarification,
     get_status_history,
     insert_event,
     log_event_edit,
+    mark_clarification_resubmitted,
     record_event_decision,
     update_event_fields,
     update_event_status,
@@ -197,6 +200,94 @@ def decide_event(event_id):
         )
 
     updated["status"] = canonical_event_status(updated.get("status"))
+    return jsonify({"event": updated}), 200
+
+
+@events.post("/<event_id>/clarification")
+def request_clarification(event_id):
+    """Return a submitted request to its organiser for clarification."""
+    if request.headers.get("Origin") != current_app.config["FRONTEND_ORIGIN"]:
+        raise Forbidden("Request must come from the configured frontend origin.")
+
+    user = require_acting_user()
+    require_role(user, "Coordinator", action="request_clarification")
+    event = get_event_by_id(event_id)
+    if event is None:
+        raise NotFound("Event not found.")
+    require_related_user(user, event, action="request_clarification")
+    if event.get("status") != "Submitted":
+        raise Conflict("Clarification can only be requested for a submitted request.")
+    if get_pending_clarification(event_id) is not None:
+        raise Conflict("This request already has a pending clarification.")
+
+    data = request.get_json(silent=True)
+    note = data.get("note") if isinstance(data, dict) else None
+    if not isinstance(note, str) or not note.strip() or len(note.strip()) > 2000:
+        raise BadRequest("A clarification note of 1 to 2000 characters is required.")
+    note = note.strip()
+    clarification = create_clarification(event_id, note, user["id"])
+    add_status_history(
+        event_id, event["status"], event["status"], user["id"],
+        action="clarification_requested", note=note,
+    )
+    create_notification(
+        event["organiser_id"], event_id, "event_clarification",
+        f"Clarification requested: {note}",
+    )
+    return jsonify({"clarification": clarification}), 201
+
+
+@events.get("/<event_id>/clarification")
+def get_clarification(event_id):
+    if request.headers.get("Origin") != current_app.config["FRONTEND_ORIGIN"]:
+        raise Forbidden("Request must come from the configured frontend origin.")
+    user = require_acting_user()
+    event = get_event_by_id(event_id)
+    if event is None:
+        raise NotFound("Event not found.")
+    require_related_user(user, event, action="view_clarification")
+    return jsonify({"clarification": get_pending_clarification(event_id)}), 200
+
+
+@events.post("/<event_id>/resubmit")
+def resubmit_event(event_id):
+    """Save organiser revisions and return the request to the coordinator queue."""
+    if request.headers.get("Origin") != current_app.config["FRONTEND_ORIGIN"]:
+        raise Forbidden("Request must come from the configured frontend origin.")
+    user = require_acting_user()
+    require_role(user, "Organiser", action="resubmit_event")
+    event = get_event_by_id(event_id)
+    if event is None:
+        raise NotFound("Event not found.")
+    if event.get("organiser_id") != user["id"]:
+        require_related_user(user, event, action="resubmit_event")
+        raise Forbidden("Only the organiser can resubmit this request.")
+    clarification = get_pending_clarification(event_id)
+    if clarification is None:
+        raise Conflict("This request does not have a pending clarification.")
+
+    data = request.get_json(silent=True)
+    if not isinstance(data, dict):
+        raise BadRequest("Send the revised event details as a JSON object.")
+    allowed_fields = set(TEXT_LIMITS) | {"event_datetime", "expected_attendance"}
+    if set(data) - allowed_fields:
+        raise BadRequest("The request contains unsupported fields.")
+    fields, errors = validate_event(data, submitting=True)
+    if errors:
+        return jsonify({"error": "Please check the highlighted fields.", "fields": errors}), 400
+
+    fields.update({
+        "status": "Submitted",
+        "submitted_at": datetime.now(UTC).isoformat(),
+        "last_status_changed_by": user["id"],
+        "last_status_changed_at": datetime.now(UTC).isoformat(),
+    })
+    updated = update_event_fields(event_id, fields)
+    mark_clarification_resubmitted(event_id, user["id"])
+    add_status_history(
+        event_id, event["status"], event["status"], user["id"],
+        action="clarification_resubmitted", note=clarification["note"],
+    )
     return jsonify({"event": updated}), 200
 
 

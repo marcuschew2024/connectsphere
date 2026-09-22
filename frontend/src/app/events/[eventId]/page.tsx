@@ -4,16 +4,24 @@ import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import { ApiError, apiRequest } from "@/lib/api";
-import { StatusBadge, type EventRecord, type EventStatusHistory } from "@/lib/events";
+import {
+  StatusBadge,
+  type EventClarification,
+  type EventRecord,
+  type EventStatusHistory,
+} from "@/lib/events";
 import { useActingRole } from "@/lib/use-acting-role";
 import EventDecisionForm from "./event-decision-form";
 import EventEditForm from "./event-edit-form";
+import EventClarificationForm from "./event-clarification-form";
+import EventResubmitForm from "./event-resubmit-form";
 
 export default function EventStatusPage() {
   const params = useParams<{ eventId: string }>();
   const [actingRole] = useActingRole();
   const [event, setEvent] = useState<EventRecord | null>(null);
   const [history, setHistory] = useState<EventStatusHistory[]>([]);
+  const [clarification, setClarification] = useState<EventClarification | null>(null);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(true);
 
@@ -32,10 +40,14 @@ export default function EventStatusPage() {
       apiRequest<{ history: EventStatusHistory[] }>(`/events/${params.eventId}/history`, {
         signal: controller.signal,
       }),
+      apiRequest<{ clarification: EventClarification | null }>(
+        `/events/${params.eventId}/clarification`, { signal: controller.signal },
+      ),
     ])
-      .then(([eventResult, historyResult]) => {
+      .then(([eventResult, historyResult, clarificationResult]) => {
         setEvent(eventResult.event);
         setHistory(historyResult.history);
+        setClarification(clarificationResult.clarification);
         setLoading(false);
       })
       .catch((requestError) => {
@@ -116,9 +128,8 @@ export default function EventStatusPage() {
                 <ol className="space-y-3">
                   {history.map((change) => (
                     <li key={change.id} className="border-l-2 border-sky-300/50 pl-4 text-sm">
-                      <p>
-                        {change.old_status ?? "Created"} → {change.new_status}
-                      </p>
+                      <p>{change.action ?? `${change.old_status ?? "Created"} → ${change.new_status}`}</p>
+                      {change.note && <p className="mt-1 text-slate-300">{change.note}</p>}
                       <p className="text-slate-400">
                         User {change.changed_by} · {new Date(change.changed_at).toLocaleString()}
                       </p>
@@ -130,9 +141,22 @@ export default function EventStatusPage() {
 
             {actingRole === "Coordinator" && (
               <>
-                <EventDecisionForm event={event} onSaved={setEvent} />
+                {!clarification && <EventDecisionForm event={event} onSaved={setEvent} />}
+                {event.status === "Submitted" && !clarification && (
+                  <EventClarificationForm event={event} onRequested={setClarification} />
+                )}
                 <EventEditForm event={event} onSaved={setEvent} />
               </>
+            )}
+            {actingRole === "Organiser" && clarification && (
+              <EventResubmitForm
+                event={event}
+                clarification={clarification}
+                onSaved={(updated) => {
+                  setEvent(updated);
+                  setClarification(null);
+                }}
+              />
             )}
           </>
         )}

@@ -38,6 +38,11 @@ For automatic Coordinator assignment, also run
 Submitted requests are assigned to one Coordinator and show as Planning to customers;
 the Coordinator queue retains the internal Submitted marker.
 
+For the confirmed request clarification workflow, run
+[`supabase/request_clarification.sql`](supabase/request_clarification.sql) after the
+event and notification migrations. Coordinators can return submitted requests with a
+note; organisers revise and resubmit them before they return to the review queue.
+
 Open **http://localhost:3000/events/new**, select **Demo Organiser**, and create a
 draft or submit a completed event request. See the [code walkthrough, API contract,
 team integration notes and test instructions](docs/SCRUM-14.md).
