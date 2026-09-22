@@ -3,6 +3,7 @@ import { test, expect, type Page } from "@playwright/test";
 test.use({ timezoneId: "Asia/Singapore" });
 
 const EVENT_ID = "11111111-1111-4111-8111-111111111111";
+const API_ORIGIN = "http://localhost:5001";
 
 test.beforeEach(async ({ page }) => {
   await page.route("**/session", (route) => route.fulfill({ json: {
@@ -156,4 +157,97 @@ test("event page does not expose the switcher in production", async ({ page }) =
   await page.getByLabel("Event name").fill("Production check");
   await expect(page.getByRole("combobox", { name: "Act as" })).toHaveCount(0);
   expect(devRequests).toEqual([]);
+});
+
+const CLARIFICATION_EVENT = {
+  id: EVENT_ID,
+  title: "Campus workshop",
+  description: "Learn together.",
+  purpose: "Share skills",
+  category: "Workshop",
+  event_datetime: "2099-10-20T06:00:00.000Z",
+  expected_attendance: 50,
+  venue_requirements: "Room for 50",
+  accessibility_requirements: "Step-free access",
+  equipment_requirements: "Projector",
+  registration_requirements: "RSVP",
+  status: "Submitted",
+  organiser_id: 1,
+  coordinator_id: 2,
+  coordinator_assigned_at: "2026-09-20T04:00:00Z",
+  created_at: "2026-09-20T04:00:00Z",
+  updated_at: "2026-09-20T04:00:00Z",
+  submitted_at: "2026-09-20T04:00:00Z",
+  last_status_changed_by: 1,
+  last_status_changed_at: "2026-09-20T04:00:00Z",
+  decision_reason: null,
+  decision_by: null,
+  decision_at: null,
+};
+
+test("coordinator can return a submitted request with a required note", async ({ page }) => {
+  await page.unroute("**/session");
+  await page.route("**/session", (route) => route.fulfill({ json: {
+    user: { id: 2, display_name: "Demo Coordinator", role: "Coordinator" },
+  } }));
+  await page.route(`${API_ORIGIN}/events/11111111-1111-4111-8111-111111111111`, (route) =>
+    route.fulfill({ json: { event: CLARIFICATION_EVENT } }));
+  await page.route(`${API_ORIGIN}/events/11111111-1111-4111-8111-111111111111/history`, (route) =>
+    route.fulfill({ json: { history: [] } }));
+  await page.route(`${API_ORIGIN}/events/11111111-1111-4111-8111-111111111111/clarification`, async (route) => {
+    if (route.request().method() === "GET") {
+      await route.fulfill({ json: { clarification: null } });
+      return;
+    }
+    await route.fulfill({ status: 201, json: { clarification: {
+      id: 1, event_id: EVENT_ID, note: "Please clarify the venue.", requested_by: 2,
+      requested_at: "2026-09-21T04:00:00Z", status: "Pending", responded_by: null, responded_at: null,
+    } } });
+  });
+  await page.goto(`/events/${EVENT_ID}`);
+  await expect(page.getByRole("heading", { name: "Request clarification" })).toBeVisible();
+  await page.getByRole("button", { name: "Return for clarification" }).click();
+  await expect(page.getByText("Explain what the organiser needs to clarify.", { exact: true })).toBeVisible();
+  await page.getByLabel("Clarification note").fill("Please clarify the venue.");
+  const clarificationResponse = page.waitForResponse((response) =>
+    response.url() === `${API_ORIGIN}/events/${EVENT_ID}/clarification`
+      && response.request().method() === "POST",
+  );
+  await page.getByRole("button", { name: "Return for clarification" }).click();
+  await clarificationResponse;
+  await expect(page.getByTestId("clarification-confirmation")).toContainText("Please clarify the venue.");
+  await expect(page.getByRole("heading", { name: "Review request" })).toHaveCount(0);
+});
+
+test("organiser can revise and resubmit a returned request", async ({ page }) => {
+  await page.unroute("**/session");
+  await page.route("**/session", (route) => route.fulfill({ json: {
+    user: { id: 1, display_name: "Demo Organiser", role: "Organiser" },
+  } }));
+  await page.route(`${API_ORIGIN}/events/11111111-1111-4111-8111-111111111111`, (route) =>
+    route.fulfill({ json: { event: CLARIFICATION_EVENT } }));
+  await page.route(`${API_ORIGIN}/events/11111111-1111-4111-8111-111111111111/history`, (route) =>
+    route.fulfill({ json: { history: [{
+      id: 1, event_id: EVENT_ID, old_status: "Submitted", new_status: "Submitted",
+      action: "clarification_requested", note: "Please clarify the venue.", changed_by: 2,
+      changed_at: "2026-09-21T04:00:00Z",
+    }] } }));
+  await page.route(`${API_ORIGIN}/events/11111111-1111-4111-8111-111111111111/clarification`, (route) =>
+    route.fulfill({ json: { clarification: {
+      id: 1, event_id: EVENT_ID, note: "Please clarify the venue.", requested_by: 2,
+      requested_at: "2026-09-21T04:00:00Z", status: "Pending", responded_by: null, responded_at: null,
+    } } }));
+  await page.route(`${API_ORIGIN}/events/11111111-1111-4111-8111-111111111111/resubmit`, async (route) => {
+    const body = route.request().postDataJSON();
+    expect(body.venue_requirements).toBe("Accessible main hall");
+    await route.fulfill({ status: 200, json: { event: {
+      ...CLARIFICATION_EVENT, title: "Campus workshop revised", venue_requirements: "Accessible main hall",
+    } } });
+  });
+  await page.goto(`/events/${EVENT_ID}`);
+  await expect(page.getByRole("heading", { name: "Changes requested" })).toBeVisible();
+  await page.getByLabel("Venue requirements").fill("Accessible main hall");
+  await page.getByRole("button", { name: "Revise and resubmit" }).click();
+  await expect(page.getByRole("heading", { name: "Campus workshop revised" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Changes requested" })).toHaveCount(0);
 });

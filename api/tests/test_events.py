@@ -793,6 +793,18 @@ def test_coordinator_can_request_clarification_with_audited_note(coordinator, ev
     assert event_database[1].history[0]["note"] == clarification["note"]
 
 
+def test_empty_clarification_note_is_rejected(coordinator, event_database):
+    event = _seed_planning_event(event_database, status="Submitted")
+
+    response = coordinator.post(
+        f"/events/{event['id']}/clarification", json={"note": "  "}, headers=ORIGIN
+    )
+
+    assert response.status_code == 400
+    assert event_database[1].clarifications == []
+    assert event_database[1].history == []
+
+
 def test_pending_clarification_is_removed_from_coordinator_queue(coordinator, event_database):
     event = _seed_planning_event(event_database, status="Submitted")
     response = coordinator.post(
