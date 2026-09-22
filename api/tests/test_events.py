@@ -20,6 +20,7 @@ def event_database(monkeypatch):
     history = []
     edit_log = []
     notifications = []
+    clarifications = []
     client = MagicMock()
 
     def table(name):
@@ -29,6 +30,7 @@ def event_database(monkeypatch):
             "event_status_history",
             "event_edit_log",
             "notifications",
+            "event_clarifications",
         }
         query = MagicMock()
         filters = {}
@@ -68,6 +70,14 @@ def event_database(monkeypatch):
                     }
                     notifications.append(notification)
                     return SimpleNamespace(data=[notification])
+                if name == "event_clarifications":
+                    clarification = {
+                        **pending_insert,
+                        "id": len(clarifications) + 1,
+                        "requested_at": datetime.now(UTC).isoformat(),
+                    }
+                    clarifications.append(clarification)
+                    return SimpleNamespace(data=[clarification])
                 now = datetime.now(UTC).isoformat()
                 row = {
                     **pending_insert,
@@ -82,6 +92,14 @@ def event_database(monkeypatch):
                 return SimpleNamespace(data=[row])
 
             if operation == "update":
+                if name == "event_clarifications":
+                    matching = [
+                        row for row in clarifications
+                        if all(row.get(key) == value for key, value in filters.items())
+                    ]
+                    for row in matching:
+                        row.update(pending_update)
+                    return SimpleNamespace(data=matching)
                 matching = [
                     row for row in rows
                     if all(row.get(key) == value for key, value in filters.items())
@@ -114,6 +132,12 @@ def event_database(monkeypatch):
             if name == "event_edit_log":
                 return SimpleNamespace(data=[
                     row for row in edit_log
+                    if all(row.get(key) == value for key, value in filters.items())
+                ])
+
+            if name == "event_clarifications":
+                return SimpleNamespace(data=[
+                    row for row in clarifications
                     if all(row.get(key) == value for key, value in filters.items())
                 ])
 
@@ -164,8 +188,10 @@ def event_database(monkeypatch):
 
     client.table.side_effect = table
     client.participants = participants
+    client.history = history
     client.edit_log = edit_log
     client.notifications = notifications
+    client.clarifications = clarifications
     monkeypatch.setattr("app.event_repository.get_supabase_client", lambda: client)
     return rows, client
 
@@ -745,6 +771,79 @@ def test_non_coordinator_cannot_decide_request(organiser, event_database):
 
     assert response.status_code == 403
     assert event_database[0][0]["status"] == "Submitted"
+
+
+def test_coordinator_can_request_clarification_with_audited_note(coordinator, event_database):
+    event = _seed_planning_event(event_database, status="Submitted")
+
+    response = coordinator.post(
+        f"/events/{event['id']}/clarification",
+        json={"note": "Please add the accessibility arrangements."},
+        headers=ORIGIN,
+    )
+
+    assert response.status_code == 201
+    clarification = response.json["clarification"]
+    assert clarification["note"] == "Please add the accessibility arrangements."
+    assert clarification["requested_by"] == 2
+    assert clarification["requested_at"]
+    assert event_database[1].clarifications[0]["status"] == "Pending"
+    assert event_database[1].notifications[0]["recipient_id"] == 1
+    assert event_database[1].history[0]["action"] == "clarification_requested"
+    assert event_database[1].history[0]["note"] == clarification["note"]
+
+
+def test_pending_clarification_is_removed_from_coordinator_queue(coordinator, event_database):
+    event = _seed_planning_event(event_database, status="Submitted")
+    response = coordinator.post(
+        f"/events/{event['id']}/clarification",
+        json={"note": "Please clarify the venue."},
+        headers=ORIGIN,
+    )
+    assert response.status_code == 201
+
+    queue = coordinator.get("/events", headers=ORIGIN)
+
+    assert queue.status_code == 200
+    assert queue.json["events"] == []
+
+
+def test_organiser_can_view_and_resubmit_clarified_request(organiser, coordinator, event_database):
+    event = _seed_planning_event(event_database, status="Submitted")
+    requested = coordinator.post(
+        f"/events/{event['id']}/clarification",
+        json={"note": "Please clarify the venue."},
+        headers=ORIGIN,
+    )
+    assert requested.status_code == 201
+
+    clarification = organiser.get(f"/events/{event['id']}/clarification", headers=ORIGIN)
+    assert clarification.status_code == 200
+    assert clarification.json["clarification"]["note"] == "Please clarify the venue."
+
+    payload = _edit_payload(event, venue_requirements="Accessible main hall")
+    response = organiser.post(f"/events/{event['id']}/resubmit", json=payload, headers=ORIGIN)
+
+    assert response.status_code == 200
+    assert response.json["event"]["venue_requirements"] == "Accessible main hall"
+    assert event_database[1].clarifications[0]["status"] == "Resubmitted"
+    assert event_database[1].clarifications[0]["responded_by"] == 1
+    assert event_database[1].clarifications[0]["responded_at"]
+    assert event_database[1].history[-1]["action"] == "clarification_resubmitted"
+    assert event_database[1].history[-1]["changed_by"] == 1
+
+
+def test_coordinator_cannot_resubmit_clarified_request(coordinator, event_database):
+    event = _seed_planning_event(event_database, status="Submitted")
+    event_database[1].clarifications.append({
+        "id": 1, "event_id": event["id"], "note": "Please clarify.", "status": "Pending",
+    })
+
+    response = coordinator.post(
+        f"/events/{event['id']}/resubmit", json=_edit_payload(event), headers=ORIGIN
+    )
+
+    assert response.status_code == 403
 
 
 def _edit_payload(event, **overrides):

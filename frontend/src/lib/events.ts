@@ -36,6 +36,19 @@ export type EventStatusHistory = {
   new_status: string;
   changed_by: number;
   changed_at: string;
+  action?: string | null;
+  note?: string | null;
+};
+
+export type EventClarification = {
+  id: number;
+  event_id: string;
+  note: string;
+  requested_by: number;
+  requested_at: string;
+  status: "Pending" | "Resubmitted";
+  responded_by: number | null;
+  responded_at: string | null;
 };
 
 
