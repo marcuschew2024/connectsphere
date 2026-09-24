@@ -33,15 +33,16 @@ export default function ReviewEventsPage() {
 
   return (
     <main className="min-h-screen bg-slate-950 px-5 py-8 text-slate-100 sm:py-12">
-      <div className="mx-auto max-w-3xl space-y-7">
+      <div className="mx-auto max-w-6xl space-y-6">
         <Link href="/" className="inline-flex items-center gap-2 text-sm text-slate-400 hover:text-white">
-          <span aria-hidden="true">←</span> ConnectSphere
+          <span aria-hidden="true">←</span> Back to workspace
         </Link>
 
         <header className="space-y-3">
           <p className="text-xs font-medium uppercase tracking-[0.18em] text-sky-300">Coordinator workspace</p>
           <h1 className="text-3xl font-semibold tracking-tight sm:text-4xl">Review event requests</h1>
-          <p className="text-slate-400">Choose a submitted request to approve or reject it.</p>
+          <p className="text-sm text-slate-400">Choose a submitted request to approve, reject or return for clarification.</p>
+          {!loading && !error && <p className="text-sm text-sky-200">{events.length} {events.length === 1 ? "request" : "requests"} awaiting review</p>}
         </header>
 
         {error && (
@@ -59,7 +60,7 @@ export default function ReviewEventsPage() {
         )}
 
         {!loading && events.length > 0 && (
-          <section className="space-y-3">
+          <section className="grid gap-4 sm:grid-cols-2">
             {events.map((event) => (
               <Link
                 key={event.id}
@@ -67,8 +68,8 @@ export default function ReviewEventsPage() {
                 className="block rounded-2xl border border-white/10 bg-slate-900/70 p-5 transition hover:border-sky-400/60 hover:bg-slate-900"
               >
                 <div className="flex flex-wrap items-start justify-between gap-3">
-                  <div>
-                    <h2 className="font-semibold">{event.title ?? "Untitled event request"}</h2>
+                  <div className="min-w-0 flex-1">
+                    <h2 className="break-words font-semibold">{event.title || "Untitled event request"}</h2>
                     <p className="mt-1 text-sm text-slate-400">
                       {event.category ?? "Category not provided"}
                       {event.event_datetime

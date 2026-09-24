@@ -14,6 +14,7 @@ from .acting_user import dev_switcher_enabled, get_acting_user
 from .auth import auth, get_authenticated_user
 from .dev_auth import dev_auth
 from .events import events
+from .notifications import notifications
 
 load_dotenv()
 
@@ -45,6 +46,7 @@ def create_app(config: dict | None = None) -> Flask:
 
     app.register_blueprint(events)
     app.register_blueprint(auth)
+    app.register_blueprint(notifications)
 
     # Allow the frontend origin. Defaults to the local Next.js dev server.
     CORS(

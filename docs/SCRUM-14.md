@@ -126,11 +126,11 @@ endpoint. Future draft reads/edits must filter by `organiser_id` and check the
 record's status. Future assignment must verify that the assigned user is a
 Coordinator. A foreign key alone does not check someone's role.
 
-The event routes call the shared identity helper. Real login can replace its
-implementation without making every event endpoint understand Supabase Auth.
-`GET /session` exposes that same identity to the UI (or null when none is
-authenticated). It is read-only, does not enable passwordless login, and does not
-cache its response. Real authentication can reuse this endpoint too.
+The event routes call the shared development identity helper. Since SCRUM-20,
+`GET /session` prefers a real login and falls back to a development identity.
+Event routes still use the development identity only; SCRUM-21 will integrate
+real login with event permissions. See [the login handoff](SCRUM-20.md#known-limitation--future-work).
+The session endpoint remains read-only and does not cache its response.
 
 Before another teammate modifies the schema, start from this checked-in SQL.
 `CREATE TABLE IF NOT EXISTS` supports reruns; it does not migrate a separately
@@ -182,9 +182,11 @@ Validation response example:
 ```
 
 This ticket provides initial creation, draft saving and submission confirmation.
-SCRUM-15 adds listing/reopening/editing private drafts. SCRUM-16 adds submission
-of existing drafts, email confirmation, audit history and edit-lock enforcement.
-There are no GET/PATCH event endpoints or email sends in this change.
+SCRUM-15 now adds listing/reopening/editing private drafts, submission of the same
+draft, and the draft edit lock. This transition is explicitly required by SCRUM-15.
+The status/history work also adds GET/PATCH event endpoints. SCRUM-16 builds on
+these foundations for the remaining submission workflow, including email confirmation.
+See [the current draft contract and handoff](SCRUM-15.md).
 
 ## Verification and manual checks
 
@@ -226,8 +228,8 @@ map to these checks:
 Also try another role or no selection: the form is hidden. Direct
 API calls still return 403 for other roles and 401 with no selection. Test a
 second Organiser session too (each created row has its own Organiser's ID).
-Drafts are persisted now, but the
-screen to reopen them will arrive in SCRUM-15.
+Saved drafts can now be reopened through **My drafts** (`/events/drafts`), added
+in SCRUM-15. The original creation checks below remain applicable.
 
 After saving through the hosted development app, inspect the rows in Supabase:
 

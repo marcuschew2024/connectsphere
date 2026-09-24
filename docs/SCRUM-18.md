@@ -6,8 +6,8 @@ and reason so that the outcome is traceable.
 ## Acceptance criteria
 
 - Rejecting without a reason is blocked.
-- Approving changes the request to `Planning` and records the decision actor and timestamp.
-- Rejecting with a reason changes the request to `Rejected`, stores the reason, and creates an organiser notification.
+- Approving changes the request to `Planning`, records the decision actor and timestamp, and sends an acceptance notification to the Organiser.
+- Rejecting with a reason changes the request to `Rejected`, stores the reason, and shows a notification on the Organiser's home page with a link to the request.
 - An already-decided request cannot be silently decided again.
 - The workflow has only Approve and Reject decisions; there is no pending decision state.
 
@@ -31,9 +31,9 @@ It also creates `public.notifications`:
 | --- | --- |
 | `recipient_id` | User who should receive the notification. |
 | `event_id` | Related event request. |
-| `notification_type` | Notification category, currently `event_rejected`. |
+| `notification_type` | `event_approved`, `event_rejected`, or `event_clarification`. |
 | `message` | Notification text. |
-| `read_at` | Reserved for a future notification-reading UI. |
+| `read_at` | Reserved for a future read/unread feature; the current list does not change it. |
 | `created_at` | Time the notification was created. |
 
 The table is backend-only and grants access to `service_role` only. The migration is
@@ -66,7 +66,12 @@ Keeping these rules in a small class makes them independent from Flask and Supab
 The update includes a `status = 'Submitted'` condition so an event cannot be decided
 again through this workflow after its first decision.
 
-`create_notification()` inserts a rejection notification for the organiser.
+`create_notification()` inserts an acceptance or rejection notification for the organiser.
+
+`get_notifications_for_user()` reads the latest 50 notifications for the selected
+Organiser, newest first, including each related event's title. `GET /notifications` checks the configured frontend origin
+and the Organiser role, then takes the recipient ID from the signed session. A
+caller cannot select another recipient through query parameters. Responses are not cached.
 
 ### API endpoint — `api/app/events.py`
 
@@ -105,7 +110,7 @@ The endpoint checks, in order:
 3. The Coordinator is related to the event.
 4. The event is still `Submitted`.
 5. The decision payload is valid.
-6. The event decision, history row, and rejection notification are written.
+6. The event decision, history row, and organiser notification are written.
 
 Approval intentionally stores `Planning`, not `Approved`. `Approved` is the action,
 while `Planning` is the next lifecycle state. The transition is:
@@ -147,9 +152,38 @@ It provides:
 - client-side required-reason validation;
 - success and error messages.
 
-After approval, the event enters `Planning`. The existing Scrum 23 planning edit form
-therefore becomes visible to the Coordinator. Its Cancel link returns to the review page
+After approval, the event enters `Planning` and a **Request accepted** confirmation appears.
+The Coordinator can expand **Edit event details** to use the Scrum 23 planning edit form.
+Its Cancel link returns to the review page
 without sending a save request. Cancel does not cancel the event or undo the decision.
+
+The Organiser's home page now has a Notifications section. Each message shows the event
+name, time and a **View request** link. The list shows four updates at a time with
+**Previous** and **Next** controls. **Refresh** reloads the latest updates and retries
+failed loads. Rejected requests show a **Rejection reason** panel on the event page,
+including after refresh or reopening. Existing stored rejection notifications appear
+automatically; no new SQL migration or email service is needed.
+
+New approvals create a green **Request accepted** notification. The request page also
+shows its recorded acceptance date. A request that is merely submitted still displays
+the customer status **Planning**, but has no acceptance banner until the Coordinator
+actually approves it. Earlier recorded approvals show the banner when opened; they
+do not receive retrospective notifications.
+
+The home page groups actions beside notifications on desktop and stacks them on mobile.
+Review actions sit beside request details on desktop. History and editing are expandable,
+and a **Back to review queue** link stays at the top of the Coordinator's request page.
+
+To try it locally:
+
+1. Open `http://localhost:3001` and select **Demo Coordinator**.
+2. Open a submitted request and choose **Approve**, or enter a reason and choose **Reject**.
+3. Return home and select **Demo Organiser**.
+4. Read the notification, then choose **View request** to see the acceptance or saved rejection reason.
+
+The list also displays existing clarification notifications. It reloads when the
+Organiser returns home or presses Refresh; automatic live updates and read/unread
+controls are not included.
 
 ## 4. Tests — `api/tests/test_events.py`
 
@@ -223,7 +257,7 @@ Expected notification type: `event_rejected` and recipient ID equal to the event
 
 ## Known limitations
 
-- Notifications are stored in Supabase, but no notification inbox or read/unread UI exists yet.
+- Notifications are visible on the Organiser's home page; read/unread controls and automatic live updates are not included.
 - Identity currently uses the development role switcher for the Sprint 1 demo rather than the real login session.
 - The older generic `PATCH /events/<event_id>/status` route still exists and should eventually be narrowed so decision statuses cannot bypass the dedicated decision endpoint.
 - The Coordinator review list currently shows only submitted requests; approved and rejected requests remain available through their event detail URLs and Supabase.

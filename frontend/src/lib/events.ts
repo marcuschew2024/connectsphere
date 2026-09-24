@@ -1,6 +1,5 @@
-// Shared with future draft, coordinator and status screens.
+// Shared event types and status badges for the request and review screens.
 // Column names match supabase/create_events.sql and the Flask API.
-// TODO: remove this temporary frontend-only helper once the real status screen is implemented.
 import { createElement } from "react";
 
 export type EventRecord = {
@@ -16,6 +15,8 @@ export type EventRecord = {
   equipment_requirements: string | null;
   registration_requirements: string | null;
   status: "Draft" | "Submitted" | "Planning" | "Confirmed" | "Completed" | "Rejected" | "Cancelled";
+  // GET responses keep the existing display status and also expose the stored state.
+  request_status?: string;
   organiser_id: number;
   coordinator_id: number | null;
   coordinator_assigned_at: string | null;
@@ -52,10 +53,8 @@ export type EventClarification = {
 };
 
 
-// Temporary helper for UI prototyping only; remove when frontend screen is implemented.
 type VisibleStatus = "Planning" | "Confirmed" | "Completed" | "Rejected" | "Cancelled";
 
-// Temporary style map for status badges during frontend implementation.
 const statusStyles: Record<VisibleStatus, string> = {
   Planning: "bg-blue-500/20 text-blue-200 border-blue-400/50",
   Confirmed: "bg-emerald-500/20 text-emerald-200 border-emerald-400/50",
@@ -64,7 +63,6 @@ const statusStyles: Record<VisibleStatus, string> = {
   Cancelled: "bg-slate-500/20 text-slate-200 border-slate-400/50",
 };
 
-// Temporary placeholder component; remove once a real event status screen is in place.
 export function StatusBadge({ status }: { status: string }) {
   const safeStatus = (status as VisibleStatus) ?? "Planning";
 

@@ -6,6 +6,16 @@ body {
     sans-serif;
 }
 
+/* A quiet entrance for drafts; no movement when reduced motion is requested. */
+.draft-reveal {
+  animation: draft-appear 240ms ease-out;
+}
+
+@keyframes draft-appear {
+  from { opacity: 0; transform: translateY(5px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
 /* Animate natural content height without guessing how tall the form will be. */
 .role-panel {
   display: grid;
@@ -35,6 +45,7 @@ body {
 }
 
 @media (prefers-reduced-motion: reduce) {
+  .draft-reveal { animation: none; }
   .role-panel {
     transition: none;
     transform: none;

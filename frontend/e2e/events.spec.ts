@@ -6,6 +6,7 @@ const EVENT_ID = "11111111-1111-4111-8111-111111111111";
 const API_ORIGIN = "http://localhost:5001";
 
 test.beforeEach(async ({ page }) => {
+  await page.route("**/notifications", (route) => route.fulfill({ json: { notifications: [] } }));
   await page.route("**/session", (route) => route.fulfill({ json: {
     user: { id: 1, display_name: "Demo Organiser", role: "Organiser" },
   } }));
@@ -185,6 +186,26 @@ const CLARIFICATION_EVENT = {
   decision_at: null,
 };
 
+test("coordinator queue shows submitted requests without manual assignment controls", async ({ page }) => {
+  await page.route("**/session", (route) => route.fulfill({ json: {
+    user: { id: 2, display_name: "Demo Coordinator", role: "Coordinator" },
+  } }));
+  await page.route(`${API_ORIGIN}/events`, (route) => route.fulfill({ json: {
+    events: [CLARIFICATION_EVENT, { ...CLARIFICATION_EVENT, id: "already-reviewed", status: "Planning", title: "Already reviewed" }],
+  } }));
+  await page.goto("/events/review");
+  await expect(page.getByRole("link", { name: /Campus workshop/ })).toBeVisible();
+  await expect(page.getByText("Submitted", { exact: true })).toBeVisible();
+  await expect(page.getByRole("link", { name: /Already reviewed/ })).toHaveCount(0);
+  await page.route(`${API_ORIGIN}/events/${EVENT_ID}`, (route) => route.fulfill({ json: { event: CLARIFICATION_EVENT } }));
+  await page.route(`${API_ORIGIN}/events/${EVENT_ID}/history`, (route) => route.fulfill({ json: { history: [] } }));
+  await page.route(`${API_ORIGIN}/events/${EVENT_ID}/clarification`, (route) => route.fulfill({ json: { clarification: null } }));
+  await page.getByRole("link", { name: /Campus workshop/ }).click();
+  await expect(page.getByRole("heading", { name: "Campus workshop" })).toBeVisible();
+  await expect(page.getByRole("button", { name: /assign/i })).toHaveCount(0);
+  await expect(page.getByRole("combobox", { name: /coordinator|assign/i })).toHaveCount(0);
+});
+
 test("coordinator can return a submitted request with a required note", async ({ page }) => {
   await page.unroute("**/session");
   await page.route("**/session", (route) => route.fulfill({ json: {
@@ -205,6 +226,7 @@ test("coordinator can return a submitted request with a required note", async ({
     } } });
   });
   await page.goto(`/events/${EVENT_ID}`);
+  await page.locator("summary").filter({ hasText: "Request clarification" }).click();
   await expect(page.getByRole("heading", { name: "Request clarification" })).toBeVisible();
   await page.getByRole("button", { name: "Return for clarification" }).click();
   await expect(page.getByText("Explain what the organiser needs to clarify.", { exact: true })).toBeVisible();

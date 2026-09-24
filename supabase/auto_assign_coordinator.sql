@@ -47,7 +47,7 @@ $$;
 
 drop trigger if exists events_assign_coordinator on public.events;
 create trigger events_assign_coordinator
-    before insert on public.events
+    before insert or update of status on public.events
     for each row execute function public.assign_event_coordinator();
 
 alter table public.events drop constraint if exists events_submitted_assignment_check;

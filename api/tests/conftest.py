@@ -70,5 +70,3 @@ def app(database):
 
 def select_user(client, user_id):
     return client.post("/dev/session", json={"user_id": user_id}, headers=ORIGIN)
-
-

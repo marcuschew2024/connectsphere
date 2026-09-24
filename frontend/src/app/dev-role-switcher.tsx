@@ -94,14 +94,14 @@ export default function DevRoleSwitcher({ onRoleChange, compact = false }: {
     <section
       aria-label="Development role switcher"
       className={compact
-        ? "grid w-full gap-4 rounded-2xl border border-white/10 bg-white/[0.03] p-5 sm:grid-cols-[1fr_auto] sm:items-center"
+        ? "grid w-full gap-3 rounded-2xl border border-white/10 bg-white/[0.03] px-5 py-3 sm:grid-cols-[1fr_auto] sm:items-center"
         : "w-full max-w-md space-y-4 rounded-lg border border-amber-700 bg-slate-900 p-5"}
     >
       <div>
         <h2 className={compact ? "text-sm font-medium text-slate-200" : "font-semibold text-amber-300"}>
           {compact ? "Role preview" : "Development role switcher"}
         </h2>
-        <p className="mt-1 text-sm text-slate-400">
+        <p className={compact ? "mt-1 hidden text-xs text-slate-400 sm:block" : "mt-1 text-sm text-slate-400"}>
           {compact ? "Choose a role to see its workspace." : "Choose a demo user to test the app. Temporary until real login is available."}
         </p>
       </div>
