@@ -76,7 +76,13 @@ export default function Home() {
           </Link>
         )}
 
-        {actingRole && actingRole !== "Organiser" && (
+        {actingRole === "Coordinator" && (
+          <Link href="/events/review" className="inline-block rounded bg-sky-300 px-5 py-3 font-semibold text-slate-950">
+            Review event requests
+          </Link>
+        )}
+
+        {actingRole && actingRole !== "Organiser" && actingRole !== "Coordinator" && (
           <p className="text-sm text-slate-400">
             No actions are available for the {actingRole} role yet — {actingRole} tools arrive in a later sprint.
           </p>

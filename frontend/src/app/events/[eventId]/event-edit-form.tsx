@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useState, type FormEvent } from "react";
 import { ApiError, apiRequest } from "@/lib/api";
 import type { EventRecord } from "@/lib/events";
@@ -178,9 +179,17 @@ export default function EventEditForm({
             </div>
           ))}
         </fieldset>
-        <button type="submit" className="rounded bg-sky-300 px-5 py-3 font-semibold text-slate-950 disabled:opacity-50">
-          {busy ? "Saving…" : "Save changes"}
-        </button>
+        <div className="flex flex-wrap items-center gap-3">
+          <button type="submit" className="rounded bg-sky-300 px-5 py-3 font-semibold text-slate-950 disabled:opacity-50">
+            {busy ? "Saving…" : "Save changes"}
+          </button>
+          <Link
+            href="/events/review"
+            className="rounded border border-slate-600 px-5 py-3 font-semibold text-slate-200 hover:border-slate-400 hover:text-white"
+          >
+            Cancel
+          </Link>
+        </div>
       </fieldset>
     </form>
   );

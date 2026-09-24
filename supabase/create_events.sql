@@ -178,6 +178,11 @@ begin
     end if;
 
     if p_submit then
+        -- Assignment runs on the Draft -> Submitted update as well as new requests.
+        insert into public.event_participants (event_id, user_id, role)
+        select saved.id, saved.coordinator_id, 'Coordinator'
+        where saved.coordinator_id is not null
+        on conflict (event_id, user_id) do nothing;
         insert into public.event_status_history (event_id, old_status, new_status, changed_by)
         values (saved.id, 'Draft', 'Submitted', p_organiser_id);
     end if;

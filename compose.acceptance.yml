@@ -1,0 +1,30 @@
+# Disposable test services. No hosted Supabase credentials or real email delivery.
+services:
+  db:
+    image: postgres:17
+    environment:
+      POSTGRES_PASSWORD: local-test-only
+      POSTGRES_DB: connectsphere
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d connectsphere"]
+      interval: 2s
+      timeout: 5s
+      retries: 20
+    volumes:
+      - ./supabase:/sql:ro
+  rest:
+    image: postgrest/postgrest:v12.2.3
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      PGRST_DB_URI: postgres://postgres:local-test-only@db:5432/connectsphere
+      PGRST_DB_SCHEMAS: public
+      PGRST_DB_ANON_ROLE: service_role
+    ports:
+      - "127.0.0.1:55433:3000"
+  mail:
+    image: axllent/mailpit:v1.27
+    ports:
+      - "127.0.0.1:51025:1025"
+      - "127.0.0.1:58025:8025"

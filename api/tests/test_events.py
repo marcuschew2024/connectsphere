@@ -19,10 +19,19 @@ def event_database(monkeypatch):
     participants = []
     history = []
     edit_log = []
+    notifications = []
+    clarifications = []
     client = MagicMock()
 
     def table(name):
-        assert name in {"events", "event_participants", "event_status_history", "event_edit_log"}
+        assert name in {
+            "events",
+            "event_participants",
+            "event_status_history",
+            "event_edit_log",
+            "notifications",
+            "event_clarifications",
+        }
         query = MagicMock()
         filters = {}
         operation = "select"
@@ -53,15 +62,44 @@ def event_database(monkeypatch):
                     }
                     edit_log.append(edit_row)
                     return SimpleNamespace(data=[edit_row])
+                if name == "notifications":
+                    notification = {
+                        **pending_insert,
+                        "id": len(notifications) + 1,
+                        "created_at": datetime.now(UTC).isoformat(),
+                    }
+                    notifications.append(notification)
+                    return SimpleNamespace(data=[notification])
+                if name == "event_clarifications":
+                    clarification = {
+                        **pending_insert,
+                        "id": len(clarifications) + 1,
+                        "requested_at": datetime.now(UTC).isoformat(),
+                    }
+                    clarifications.append(clarification)
+                    return SimpleNamespace(data=[clarification])
                 now = datetime.now(UTC).isoformat()
                 row = {
-                    **pending_insert, "id": str(uuid4()), "coordinator_id": None,
+                    **pending_insert,
+                    "id": str(uuid4()),
+                    "coordinator_id": 2 if pending_insert.get("status") == "Submitted" else None,
+                    "coordinator_assigned_at": (
+                        now if pending_insert.get("status") == "Submitted" else None
+                    ),
                     "created_at": now, "updated_at": now,
                 }
                 rows.append(row)
                 return SimpleNamespace(data=[row])
 
             if operation == "update":
+                if name == "event_clarifications":
+                    matching = [
+                        row for row in clarifications
+                        if all(row.get(key) == value for key, value in filters.items())
+                    ]
+                    for row in matching:
+                        row.update(pending_update)
+                    return SimpleNamespace(data=matching)
                 matching = [
                     row for row in rows
                     if all(row.get(key) == value for key, value in filters.items())
@@ -94,6 +132,12 @@ def event_database(monkeypatch):
             if name == "event_edit_log":
                 return SimpleNamespace(data=[
                     row for row in edit_log
+                    if all(row.get(key) == value for key, value in filters.items())
+                ])
+
+            if name == "event_clarifications":
+                return SimpleNamespace(data=[
+                    row for row in clarifications
                     if all(row.get(key) == value for key, value in filters.items())
                 ])
 
@@ -154,6 +198,7 @@ def event_database(monkeypatch):
             row["updated_at"] = now
             if params["p_submit"]:
                 row.update(status="Submitted", submitted_at=now,
+                           coordinator_id=2, coordinator_assigned_at=now,
                            last_status_changed_by=params["p_organiser_id"],
                            last_status_changed_at=now)
                 history.append({"id": len(history) + 1, "event_id": row["id"],
@@ -167,6 +212,8 @@ def event_database(monkeypatch):
     client.participants = participants
     client.history = history
     client.edit_log = edit_log
+    client.notifications = notifications
+    client.clarifications = clarifications
     monkeypatch.setattr("app.event_repository.get_supabase_client", lambda: client)
     return rows, client
 
@@ -195,18 +242,60 @@ def test_submit_persists_details_identity_status_and_timestamps(organiser, detai
     assert response.status_code == 201
     event = response.json["event"]
     assert event["id"]
-    assert event["status"] == "Submitted"
+    assert event["status"] == "Planning"
+    assert event["request_status"] == "Submitted"
+    assert event_database[0][0]["status"] == "Submitted"
     assert event["title"] == "Campus workshop"
     assert event["organiser_id"] == 1
-    assert event["coordinator_id"] is None
+    assert event["coordinator_id"] == 2
+    assert event["coordinator_assigned_at"]
     assert event["submitted_at"]
     assert event["created_at"]
     for field in ("description", "purpose", "category", "venue_requirements",
                   "accessibility_requirements", "equipment_requirements",
                   "registration_requirements"):
         assert event[field] == details[field]
-    assert event_database[0] == [event]
+    stored = event_database[0][0]
+    response_details = {
+        key: value for key, value in event.items() if key not in {"status", "request_status"}
+    }
+    assert response_details == {
+        key: value for key, value in stored.items() if key != "status"
+    }
+    assert event_database[1].participants == [
+        {"event_id": event["id"], "user_id": 1, "role": "Organiser"},
+        {"event_id": event["id"], "user_id": 2, "role": "Coordinator"},
+    ]
     assert response.headers["Cache-Control"] == "no-store"
+
+
+def test_multiple_submissions_have_one_coordinator_each(organiser, details, event_database):
+    submitted = [
+        organiser.post("/events", json={**details, "title": f"Workshop {number}"}, headers=ORIGIN)
+        for number in range(3)
+    ]
+
+    assert all(response.status_code == 201 for response in submitted)
+    events = [response.json["event"] for response in submitted]
+    assert len({event["id"] for event in events}) == 3
+    assert all(event["coordinator_id"] == 2 for event in events)
+    assert all(event["coordinator_assigned_at"] for event in events)
+    assert all(
+        [participant for participant in event_database[1].participants
+         if participant["event_id"] == event["id"] and participant["role"] == "Coordinator"]
+        == [{"event_id": event["id"], "user_id": 2, "role": "Coordinator"}]
+        for event in events
+    )
+
+
+def test_no_manual_reassignment_endpoint_exists(app):
+    reassignment_routes = {
+        rule.rule
+        for rule in app.url_map.iter_rules()
+        if "assign" in rule.rule.lower() or "reassign" in rule.rule.lower()
+    }
+
+    assert reassignment_routes == set()
 
 
 @pytest.mark.parametrize("field", [
@@ -376,7 +465,7 @@ def test_unconfigured_database_returns_json_error(organiser, details, monkeypatc
     assert response.is_json
 
 
-def test_event_status_submitted_is_shown_as_planning(app, event_database):
+def test_event_status_submitted_is_shown_as_planning_to_organiser(app, event_database):
     client = app.test_client()
     select_user(client, 1)
 
@@ -423,6 +512,23 @@ def test_related_user_can_list_event_requests(app, event_database):
         "88888888-8888-8888-8888-888888888888"
     ]
     assert response.json["events"][0]["status"] == "Planning"
+
+
+def test_coordinator_sees_submitted_internal_queue_status(app, event_database):
+    client = app.test_client()
+    select_user(client, 2)
+    event_database[0].append({
+        "id": "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa",
+        "title": "Assigned workshop",
+        "status": "Submitted",
+        "organiser_id": 1,
+        "coordinator_id": 2,
+    })
+
+    response = client.get("/events", headers=ORIGIN)
+
+    assert response.status_code == 200
+    assert response.json["events"][0]["status"] == "Submitted"
 
 
 def test_event_status_approved_is_shown_as_planning(app, event_database):
@@ -615,7 +721,7 @@ def test_owner_lists_and_reopens_draft_without_losing_raw_status(organiser, draf
     opened = organiser.get(f"/events/{draft['id']}", headers=ORIGIN)
     assert [event["id"] for event in listed.json["events"]] == [draft["id"]]
     assert opened.json["event"]["request_status"] == "Draft"
-    assert opened.json["event"]["status"] == "Planning"  # Existing status API stays compatible.
+    assert opened.json["event"]["status"] == "Draft"
     assert opened.headers["Cache-Control"] == "no-store"
 
 
@@ -675,7 +781,9 @@ def test_complete_draft_submits_once_and_then_locks(organiser, draft, details, e
     assert response.status_code == 200
     saved = response.json["event"]
     assert saved["id"] == draft["id"]
-    assert saved["status"] == "Submitted"
+    assert saved["status"] == "Planning"
+    assert saved["request_status"] == "Submitted"
+    assert event_database[0][0]["status"] == "Submitted"
     assert saved["submitted_at"]
     assert saved["last_status_changed_by"] == 1
     assert len(event_database[0]) == 1
@@ -770,6 +878,159 @@ def _seed_planning_event(event_database, *, status="Planning", coordinator_id=2)
     }
     event_database[0].append(event)
     return event
+
+
+def test_coordinator_can_approve_submitted_request(coordinator, event_database):
+    event = _seed_planning_event(event_database, status="Submitted")
+
+    response = coordinator.post(
+        f"/events/{event['id']}/decision",
+        json={"decision": "approve"},
+        headers=ORIGIN,
+    )
+
+    assert response.status_code == 200
+    assert response.json["event"]["status"] == "Planning"
+    assert response.json["event"]["decision_by"] == 2
+    assert response.json["event"]["decision_at"]
+
+
+def test_reject_without_reason_is_blocked(coordinator, event_database):
+    event = _seed_planning_event(event_database, status="Submitted")
+
+    response = coordinator.post(
+        f"/events/{event['id']}/decision",
+        json={"decision": "reject"},
+        headers=ORIGIN,
+    )
+
+    assert response.status_code == 400
+    assert event_database[0][0]["status"] == "Submitted"
+
+
+def test_rejection_stores_reason_and_notifies_organiser(coordinator, event_database):
+    event = _seed_planning_event(event_database, status="Submitted")
+
+    response = coordinator.post(
+        f"/events/{event['id']}/decision",
+        json={"decision": "reject", "reason": "The venue is unavailable."},
+        headers=ORIGIN,
+    )
+
+    assert response.status_code == 200
+    assert response.json["event"]["status"] == "Rejected"
+    assert response.json["event"]["decision_reason"] == "The venue is unavailable."
+    assert event_database[1].notifications[0]["recipient_id"] == 1
+
+
+def test_decided_request_cannot_be_decided_again(coordinator, event_database):
+    event = _seed_planning_event(event_database, status="Rejected")
+
+    response = coordinator.post(
+        f"/events/{event['id']}/decision",
+        json={"decision": "approve"},
+        headers=ORIGIN,
+    )
+
+    assert response.status_code == 409
+
+
+def test_non_coordinator_cannot_decide_request(organiser, event_database):
+    event = _seed_planning_event(event_database, status="Submitted")
+
+    response = organiser.post(
+        f"/events/{event['id']}/decision",
+        json={"decision": "approve"},
+        headers=ORIGIN,
+    )
+
+    assert response.status_code == 403
+    assert event_database[0][0]["status"] == "Submitted"
+
+
+def test_coordinator_can_request_clarification_with_audited_note(coordinator, event_database):
+    event = _seed_planning_event(event_database, status="Submitted")
+
+    response = coordinator.post(
+        f"/events/{event['id']}/clarification",
+        json={"note": "Please add the accessibility arrangements."},
+        headers=ORIGIN,
+    )
+
+    assert response.status_code == 201
+    clarification = response.json["clarification"]
+    assert clarification["note"] == "Please add the accessibility arrangements."
+    assert clarification["requested_by"] == 2
+    assert clarification["requested_at"]
+    assert event_database[1].clarifications[0]["status"] == "Pending"
+    assert event_database[1].notifications[0]["recipient_id"] == 1
+    assert event_database[1].history[0]["action"] == "clarification_requested"
+    assert event_database[1].history[0]["note"] == clarification["note"]
+
+
+def test_empty_clarification_note_is_rejected(coordinator, event_database):
+    event = _seed_planning_event(event_database, status="Submitted")
+
+    response = coordinator.post(
+        f"/events/{event['id']}/clarification", json={"note": "  "}, headers=ORIGIN
+    )
+
+    assert response.status_code == 400
+    assert event_database[1].clarifications == []
+    assert event_database[1].history == []
+
+
+def test_pending_clarification_is_removed_from_coordinator_queue(coordinator, event_database):
+    event = _seed_planning_event(event_database, status="Submitted")
+    response = coordinator.post(
+        f"/events/{event['id']}/clarification",
+        json={"note": "Please clarify the venue."},
+        headers=ORIGIN,
+    )
+    assert response.status_code == 201
+
+    queue = coordinator.get("/events", headers=ORIGIN)
+
+    assert queue.status_code == 200
+    assert queue.json["events"] == []
+
+
+def test_organiser_can_view_and_resubmit_clarified_request(organiser, coordinator, event_database):
+    event = _seed_planning_event(event_database, status="Submitted")
+    requested = coordinator.post(
+        f"/events/{event['id']}/clarification",
+        json={"note": "Please clarify the venue."},
+        headers=ORIGIN,
+    )
+    assert requested.status_code == 201
+
+    clarification = organiser.get(f"/events/{event['id']}/clarification", headers=ORIGIN)
+    assert clarification.status_code == 200
+    assert clarification.json["clarification"]["note"] == "Please clarify the venue."
+
+    payload = _edit_payload(event, venue_requirements="Accessible main hall")
+    response = organiser.post(f"/events/{event['id']}/resubmit", json=payload, headers=ORIGIN)
+
+    assert response.status_code == 200
+    assert response.json["event"]["venue_requirements"] == "Accessible main hall"
+    assert event_database[1].clarifications[0]["status"] == "Resubmitted"
+    assert event_database[1].clarifications[0]["responded_by"] == 1
+    assert event_database[1].clarifications[0]["responded_at"]
+    assert event_database[1].history[-1]["action"] == "clarification_resubmitted"
+    assert event_database[1].history[-1]["changed_by"] == 1
+
+
+def test_coordinator_cannot_resubmit_clarified_request(coordinator, event_database):
+    event = _seed_planning_event(event_database, status="Submitted")
+    event_database[1].clarifications.append({
+        "id": 1, "event_id": event["id"], "note": "Please clarify.", "status": "Pending",
+    })
+
+    response = coordinator.post(
+        f"/events/{event['id']}/resubmit", json=_edit_payload(event), headers=ORIGIN
+    )
+
+    assert response.status_code == 403
 
 
 def _edit_payload(event, **overrides):

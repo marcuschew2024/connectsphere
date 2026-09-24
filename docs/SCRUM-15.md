@@ -116,15 +116,16 @@ Example submission after completing the saved fields: `{"action":"submit"}`.
 The form sends all its fields; API callers may send only changed ones.
 
 Responses use the existing `{ "event": ... }` or `{ "events": [...] }` wrapper.
-GET responses add `request_status` with the actual stored state. The existing
-`status` display field remains compatible with the teammate's Planning mapping:
+Responses include `request_status` with the stored state. Drafts display as Draft;
+submitted requests display as Planning to Organisers and Submitted to Coordinators:
 
 ```json
-{ "status": "Planning", "request_status": "Draft" }
+{ "status": "Draft", "request_status": "Draft" }
 ```
 
-The draft UI uses `request_status`. Write responses from POST and draft PATCH
-retain the actual saved `status`, such as Draft or Submitted.
+The draft UI uses `request_status`. After submission, an Organiser receives
+`status: "Planning"` and `request_status: "Submitted"`, including in write responses.
+See [SCRUM-16](SCRUM-16.md) for confirmation emails and the final test evidence.
 
 - Draft reads by other users return 404, including direct history links.
 - Draft listings reject other roles. The existing general event list also hides

@@ -36,6 +36,13 @@ jobs:
       - name: End-to-end tests
         run: npm run test:e2e
 
+      - name: Save browser test evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: browser-test-results
+          path: frontend/playwright-report/
+
   api:
     name: API (Flask)
     runs-on: ubuntu-latest
@@ -58,5 +65,27 @@ jobs:
       - name: Ruff
         run: ruff check .
 
+      - name: Start isolated database and email capture
+        working-directory: .
+        run: |
+          docker compose -p connectsphere-acceptance -f compose.acceptance.yml up -d --wait
+          docker compose -p connectsphere-acceptance -f compose.acceptance.yml exec -T db sh /sql/tests/run.sh
+          curl --fail --retry 10 --retry-all-errors --retry-delay 1 http://127.0.0.1:55433/app_users > /dev/null
+
       - name: Pytest
-        run: pytest
+        env:
+          POSTGREST_TEST_URL: http://127.0.0.1:55433
+          TEST_EVIDENCE_DIR: test-results
+        run: pytest -v --junitxml=test-results/pytest.xml
+
+      - name: Save API test evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: api-test-results
+          path: api/test-results/
+
+      - name: Stop isolated test services
+        if: always()
+        working-directory: .
+        run: docker compose -p connectsphere-acceptance -f compose.acceptance.yml down -v

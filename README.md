@@ -28,6 +28,21 @@ After the user setup, run [`supabase/create_events.sql`](supabase/create_events.
 in the Supabase SQL Editor. This creates the events table without deleting existing
 users or events. Both SQL scripts are safe to rerun on their supported schemas.
 
+For coordinator approve/reject decisions, also run
+[`supabase/event_decision_notifications.sql`](supabase/event_decision_notifications.sql)
+in the same SQL Editor. This adds decision metadata to events and creates the
+organiser notification table.
+
+For automatic Coordinator assignment, also run
+[`supabase/auto_assign_coordinator.sql`](supabase/auto_assign_coordinator.sql).
+Submitted requests are assigned to one Coordinator and show as Planning to customers;
+the Coordinator queue retains the internal Submitted marker.
+
+For the confirmed request clarification workflow, run
+[`supabase/request_clarification.sql`](supabase/request_clarification.sql) after the
+event and notification migrations. Coordinators can return submitted requests with a
+note; organisers revise and resubmit them before they return to the review queue.
+
 Open **http://localhost:3000/events/new**, select **Demo Organiser**, and create a
 draft or submit a completed event request. See the [code walkthrough, API contract,
 team integration notes and test instructions](docs/SCRUM-14.md).
@@ -47,6 +62,9 @@ After pulling teammates' backend changes, rerun `pip install -r requirements.txt
 in the API virtual environment (the login module requires bcrypt).
 
 ## Prerequisites
+
+For draft submission, confirmation emails and coordinator assignment, see the
+[simple SCRUM-16/17 walkthrough and test instructions](docs/SCRUM-16.md).
 
 - Node.js 22
 - Python 3.12
