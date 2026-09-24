@@ -8,7 +8,7 @@ A mono-repo with two deployable parts:
 
 - `frontend/` - Next.js (App Router, React, TypeScript) styled with Tailwind CSS.
 - `api/` - Python Flask REST API.
-- Data and authentication are provided by Supabase (Postgres + Auth), accessed via environment variables. Supabase is not run locally.
+- Data is stored in Supabase PostgreSQL. Flask manages application login sessions and the local demo role selector. Supabase is not run locally.
 
 The five roles are: Organiser, Coordinator, Venue Staff, Tech Support, and Attendee.
 
@@ -60,6 +60,13 @@ Events still use the development role switcher. The newly merged login feature
 has a [documented integration handoff to SCRUM-21](docs/SCRUM-20.md#known-limitation--future-work).
 After pulling teammates' backend changes, rerun `pip install -r requirements.txt`
 in the API virtual environment (the login module requires bcrypt).
+
+## Venue catalogue (SCRUM-24)
+
+Run [`supabase/create_venues.sql`](supabase/create_venues.sql) after the user setup.
+Select **Demo Venue Staff**, then **Add a venue** from the home page. Saved venues
+are immediately visible in **Venue catalogue** to Venue Staff and Coordinators.
+See the [SCRUM-24 walkthrough, shared data contract and acceptance checks](docs/SCRUM-24.md).
 
 ## Prerequisites
 
@@ -146,8 +153,11 @@ pytest
 
 GitHub Actions runs two jobs on every push and pull request (see `.github/workflows/ci.yml`):
 
-- **frontend**: `npm ci`, lint, build, then Playwright E2E on Chromium.
-- **api**: install requirements, `ruff check`, then `pytest`.
+- **frontend**: `npm ci`, lint, build, Vitest unit checks, then Playwright E2E on Chromium.
+- **api**: install requirements, `ruff check`, then unit and disposable-database acceptance tests with coverage.
+
+Both jobs also run advisory dependency audits. GitHub stores API and browser test
+evidence, and the disposable test database is removed after the API checks.
 
 ## Team
 
