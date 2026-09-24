@@ -1,4 +1,4 @@
-"""SCRUM-15/16/17 acceptance tests against real PostgreSQL and PostgREST.
+"""SCRUM-15/16/17/18 acceptance tests against real PostgreSQL and PostgREST.
 
 Start compose.acceptance.yml and run supabase/tests/run.sh first. These tests use
 only disposable local records, never hosted data.
@@ -217,3 +217,51 @@ def test_tc_us32_01_to_05_private_draft_can_be_saved_reopened_and_submitted(live
     assert database.table("events").select("status").eq(
         "id", draft["id"]
     ).execute().data == [{"status": "Submitted"}]
+
+
+@pytest.mark.parametrize("decision", ["approve", "reject"])
+def test_decision_and_notification_reach_only_the_organiser(live, decision):
+    _, database, users = live
+    event = submit(users, new_draft(users, details())).json["event"]
+    reason = "The requested venue is unavailable." if decision == "reject" else None
+    response = users[2].post(f"/events/{event['id']}/decision", json={
+        "decision": decision, **({"reason": reason} if reason else {}),
+    }, headers=ORIGIN)
+    assert response.status_code == 200
+    for user_id in (1, 6):
+        response = users[user_id].get("/notifications?recipient_id=1", headers=ORIGIN)
+        assert response.status_code == 200
+        matching = [row for row in response.json["notifications"] if row["event_id"] == event["id"]]
+        assert len(matching) == (1 if user_id == 1 else 0)
+        if matching:
+            kind = "event_rejected" if decision == "reject" else "event_approved"
+            assert matching[0]["notification_type"] == kind
+            assert (reason or "accepted") in matching[0]["message"]
+            assert matching[0]["event"]["title"] == event["title"]
+    saved = users[1].get(f"/events/{event['id']}", headers=ORIGIN).json["event"]
+    assert saved["status"] == ("Rejected" if decision == "reject" else "Planning")
+    assert saved["decision_reason"] == reason
+    assert saved["decision_at"]
+    queue = users[2].get("/events", headers=ORIGIN).json["events"]
+    assert not any(row["id"] == event["id"] and row["status"] == "Submitted" for row in queue)
+    assert users[2].post(f"/events/{event['id']}/decision", json={
+        "decision": decision, "reason": "A repeated decision",
+    }, headers=ORIGIN).status_code == 409
+    notifications = database.table("notifications").select("id").eq(
+        "event_id", event["id"]
+    ).execute().data
+    assert len(notifications) == 1
+
+
+def test_notifications_are_newest_first_and_limited_to_50(live):
+    _, database, users = live
+    event = submit(users, new_draft(users, details())).json["event"]
+    database.table("notifications").insert([{
+        "recipient_id": 1, "event_id": event["id"], "notification_type": "event_rejected",
+        "message": f"Update {i}", "created_at": f"2099-01-01T00:00:{i:02d}Z",
+    } for i in range(55)]).execute()
+    response = users[1].get("/notifications", headers=ORIGIN)
+    assert response.status_code == 200
+    assert [row["message"] for row in response.json["notifications"]] == [
+        f"Update {i}" for i in reversed(range(5, 55))
+    ]

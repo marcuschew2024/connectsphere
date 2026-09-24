@@ -40,7 +40,7 @@ export default function EventClarificationForm({
   }
 
   return (
-    <section className="space-y-4 rounded-2xl border border-amber-500/30 bg-slate-900/70 p-6 sm:p-8">
+    <section className="space-y-4 border-t border-white/10 p-5">
       <div>
         <h2 className="text-lg font-semibold">Request clarification</h2>
         <p className="text-sm text-slate-400">Return this request to the organiser with the information they need to amend.</p>
@@ -52,7 +52,7 @@ export default function EventClarificationForm({
         value={note}
         onChange={(eventChange) => setNote(eventChange.target.value)}
         maxLength={2000}
-        rows={5}
+        rows={3}
         className="w-full rounded border border-slate-600 bg-slate-950 p-3"
         placeholder="Describe the missing or incorrect information"
       />

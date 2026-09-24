@@ -141,6 +141,12 @@ def event_database(monkeypatch):
                     if all(row.get(key) == value for key, value in filters.items())
                 ])
 
+            if name == "notifications":
+                return SimpleNamespace(data=[
+                    row for row in notifications
+                    if all(row.get(key) == value for key, value in filters.items())
+                ])
+
             return SimpleNamespace(data=[
                 row for row in rows
                 if (
@@ -183,6 +189,7 @@ def event_database(monkeypatch):
         query.eq.side_effect = equals
         query.or_.side_effect = related_users
         query.order.return_value = query
+        query.limit.return_value = query
         query.execute.side_effect = execute
         return query
 
@@ -893,6 +900,11 @@ def test_coordinator_can_approve_submitted_request(coordinator, event_database):
     assert response.json["event"]["status"] == "Planning"
     assert response.json["event"]["decision_by"] == 2
     assert response.json["event"]["decision_at"]
+    notification = event_database[1].notifications[0]
+    assert notification["recipient_id"] == 1
+    assert notification["event_id"] == event["id"]
+    assert notification["notification_type"] == "event_approved"
+    assert "accepted" in notification["message"]
 
 
 def test_reject_without_reason_is_blocked(coordinator, event_database):
@@ -921,6 +933,67 @@ def test_rejection_stores_reason_and_notifies_organiser(coordinator, event_datab
     assert response.json["event"]["status"] == "Rejected"
     assert response.json["event"]["decision_reason"] == "The venue is unavailable."
     assert event_database[1].notifications[0]["recipient_id"] == 1
+
+
+def test_organiser_can_read_rejection_notification_and_reason(
+    organiser, coordinator, event_database
+):
+    event = _seed_planning_event(event_database, status="Submitted")
+    assert coordinator.post(f"/events/{event['id']}/decision", json={
+        "decision": "reject", "reason": "The venue is unavailable.",
+    }, headers=ORIGIN).status_code == 200
+    event_database[1].notifications.append({
+        "id": 99, "recipient_id": 6, "message": "Another organiser's private message",
+    })
+
+    # A query-string recipient cannot replace the identity in the signed session.
+    response = organiser.get("/notifications?recipient_id=6", headers=ORIGIN)
+    assert response.status_code == 200
+    assert response.headers["Cache-Control"] == "no-store"
+    assert len(response.json["notifications"]) == 1
+    notification = response.json["notifications"][0]
+    assert notification["event_id"] == event["id"]
+    assert notification["message"] == "Your event request was rejected: The venue is unavailable."
+    assert notification["created_at"]
+    fetched = organiser.get(f"/events/{event['id']}", headers=ORIGIN).json["event"]
+    assert fetched["status"] == "Rejected"
+    assert fetched["decision_reason"] == "The venue is unavailable."
+
+
+def test_notifications_require_selected_user(app):
+    response = app.test_client().get("/notifications", headers=ORIGIN)
+    assert response.status_code == 401
+    assert "notifications" not in response.json
+
+
+@pytest.mark.parametrize("user_id", [2, 3, 4, 5])
+def test_notifications_are_only_available_to_organisers(app, user_id, monkeypatch):
+    monkeypatch.setattr("app.rbac.get_supabase_client", lambda: None)
+    client = app.test_client()
+    select_user(client, user_id)
+    response = client.get("/notifications", headers=ORIGIN)
+    assert response.status_code == 403
+    assert "notifications" not in response.json
+
+
+@pytest.mark.parametrize("headers", [{}, {"Origin": "https://untrusted.example"}])
+def test_notifications_reject_untrusted_origin(organiser, headers):
+    response = organiser.get("/notifications", headers=headers)
+    assert response.status_code == 403
+    assert "notifications" not in response.json
+
+
+def test_notifications_empty_state(organiser):
+    response = organiser.get("/notifications", headers=ORIGIN)
+    assert response.status_code == 200
+    assert response.json == {"notifications": []}
+
+
+def test_notifications_database_failure_is_safe(organiser, event_database):
+    event_database[1].table.side_effect = RuntimeError("private database connection details")
+    response = organiser.get("/notifications", headers=ORIGIN)
+    assert response.status_code == 503
+    assert response.json == {"error": "Could not load notifications. Please try again."}
 
 
 def test_decided_request_cannot_be_decided_again(coordinator, event_database):

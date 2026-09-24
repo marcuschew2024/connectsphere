@@ -12,6 +12,7 @@ const draft = {
 };
 
 test.beforeEach(async ({ page }) => {
+  await page.route("**/notifications", (route) => route.fulfill({ json: { notifications: [] } }));
   await page.route("**/session", (route) => route.fulfill({ json: {
     user: { id: 1, role: "Organiser", display_name: "Demo Organiser" },
   } }));

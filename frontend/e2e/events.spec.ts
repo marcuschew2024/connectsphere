@@ -6,6 +6,7 @@ const EVENT_ID = "11111111-1111-4111-8111-111111111111";
 const API_ORIGIN = "http://localhost:5001";
 
 test.beforeEach(async ({ page }) => {
+  await page.route("**/notifications", (route) => route.fulfill({ json: { notifications: [] } }));
   await page.route("**/session", (route) => route.fulfill({ json: {
     user: { id: 1, display_name: "Demo Organiser", role: "Organiser" },
   } }));
@@ -225,6 +226,7 @@ test("coordinator can return a submitted request with a required note", async ({
     } } });
   });
   await page.goto(`/events/${EVENT_ID}`);
+  await page.locator("summary").filter({ hasText: "Request clarification" }).click();
   await expect(page.getByRole("heading", { name: "Request clarification" })).toBeVisible();
   await page.getByRole("button", { name: "Return for clarification" }).click();
   await expect(page.getByText("Explain what the organiser needs to clarify.", { exact: true })).toBeVisible();

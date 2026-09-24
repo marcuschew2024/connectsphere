@@ -364,6 +364,23 @@ def record_event_decision(
         ) from error
 
 
+def get_notifications_for_user(user_id: int) -> list[dict]:
+    """Return the latest 50 messages addressed to this user, newest first."""
+    try:
+        client = get_supabase_client()
+        if client is None:
+            raise ServiceUnavailable("The database is not configured. Contact the team.")
+        return client.table("notifications").select(
+            "id,event_id,notification_type,message,created_at,event:events(title)"
+        ).eq("recipient_id", user_id).order("created_at", desc=True).order(
+            "id", desc=True
+        ).limit(50).execute().data
+    except ServiceUnavailable:
+        raise
+    except Exception as error:
+        raise ServiceUnavailable("Could not load notifications. Please try again.") from error
+
+
 def create_notification(
     recipient_id: int, event_id: str, notification_type: str, message: str
 ) -> None:

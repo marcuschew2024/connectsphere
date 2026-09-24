@@ -233,6 +233,13 @@ def decide_event(event_id):
             "event_rejected",
             f"Your event request was rejected: {decision.reason}",
         )
+    else:
+        create_notification(
+            event["organiser_id"],
+            event_id,
+            "event_approved",
+            "Your event request was accepted by the Coordinator and is now in Planning.",
+        )
 
     updated["status"] = canonical_event_status(updated.get("status"))
     return jsonify({"event": updated}), 200
