@@ -14,9 +14,8 @@ for check in drafts assignment; do
   echo "$check database checks: PASS"
 done
 psql -v ON_ERROR_STOP=1 <<'SQL'
-update public.app_users set email = 'organiser@connectsphere.test' where id = 1;
-insert into public.app_users (id, display_name, role, is_demo, email) values
-  (6, 'Organiser B', 'Organiser', true, 'organiser-b@connectsphere.test'),
-  (7, 'Coordinator B', 'Coordinator', true, 'coordinator-b@connectsphere.test');
+insert into public.app_users (id, display_name, role, is_demo) values
+  (6, 'Organiser B', 'Organiser', true),
+  (7, 'Coordinator B', 'Coordinator', true);
 notify pgrst, 'reload schema';
 SQL

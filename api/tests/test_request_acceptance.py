@@ -1,7 +1,7 @@
-"""SCRUM-15/16/17 acceptance tests against real PostgreSQL, PostgREST and SMTP.
+"""SCRUM-15/16/17 acceptance tests against real PostgreSQL and PostgREST.
 
 Start compose.acceptance.yml and run supabase/tests/run.sh first. These tests use
-only disposable local records and the Mailpit capture inbox, never hosted data.
+only disposable local records, never hosted data.
 """
 
 import importlib
@@ -10,7 +10,6 @@ import os
 from pathlib import Path
 from uuid import uuid4
 
-import httpx
 import pytest
 from postgrest import SyncPostgrestClient
 
@@ -27,15 +26,12 @@ pytestmark = pytest.mark.skipif(
 @pytest.fixture
 def live(monkeypatch):
     with SyncPostgrestClient(os.environ["POSTGREST_TEST_URL"]) as database:
-        for name in ("users", "event_repository", "rbac", "submission_email", "auth"):
+        for name in ("users", "event_repository", "rbac", "auth"):
             module = importlib.import_module(f"app.{name}")
             monkeypatch.setattr(module, "get_supabase_client", lambda: database)
         app = create_app({
             "TESTING": True, "APP_ENV": "development", "DEV_ROLE_SWITCHER_ENABLED": True,
             "SECRET_KEY": "acceptance-test-only", "FRONTEND_ORIGIN": ORIGIN["Origin"],
-            "SMTP_HOST": "127.0.0.1", "SMTP_PORT": 51025, "SMTP_STARTTLS": False,
-            "SMTP_USERNAME": "", "SMTP_PASSWORD": "",
-            "SMTP_FROM": "ConnectSphere <no-reply@connectsphere.test>",
         })
         users = {}
         for user_id in (1, 2, 6, 7):
@@ -66,19 +62,6 @@ def submit(users, draft):
     return response
 
 
-def captured_messages(event_id):
-    inbox = os.environ.get("MAILPIT_TEST_URL", "http://127.0.0.1:58025")
-    response = httpx.get(f"{inbox}/api/v1/messages", params={"limit": 500})
-    response.raise_for_status()
-    messages = []
-    for message in response.json()["messages"]:
-        if event_id in message["Subject"]:
-            content = httpx.get(f"{inbox}/api/v1/message/{message['ID']}")
-            content.raise_for_status()
-            messages.append(content.json())
-    return messages
-
-
 def test_tc_us33_01_invalid_draft_cannot_submit(live):
     _, database, users = live
     draft = new_draft(users, {**details(), "purpose": ""})
@@ -89,7 +72,6 @@ def test_tc_us33_01_invalid_draft_cannot_submit(live):
     assert "purpose" in response.json["fields"]
     stored = database.table("events").select("*").eq("id", draft["id"]).execute().data[0]
     assert stored["status"] == "Draft" and stored["submitted_at"] is None
-    assert captured_messages(draft["id"]) == []
 
 
 def test_tc_us33_02_valid_draft_reaches_coordinator_queue(live):
@@ -131,12 +113,14 @@ def test_tc_us33_04_submitted_request_cannot_be_edited_or_resubmitted(live):
     assert direct_edit.status_code == 403
     stored = database.table("events").select("*").eq("id", draft["id"]).execute().data[0]
     assert stored["title"] == draft["title"]
-    assert len(captured_messages(draft["id"])) == 1
 
 
 @pytest.mark.parametrize("from_draft", [True, False], ids=["draft", "new-request"])
-def test_tc_us33_05_email_contains_the_organisers_reference(live, from_draft):
-    _, _, users = live
+def test_tc_us33_05_confirmation_contains_reference_without_organiser_email(live, from_draft):
+    _, database, users = live
+    assert database.table("app_users").select("email").eq(
+        "id", 1
+    ).execute().data == [{"email": None}]
     if from_draft:
         draft = new_draft(users, details())
         response = submit(users, draft)
@@ -144,19 +128,21 @@ def test_tc_us33_05_email_contains_the_organisers_reference(live, from_draft):
         response = users[1].post("/events", json={**details(), "action": "submit"}, headers=ORIGIN)
         assert response.status_code == 201
     event = response.json["event"]
-    assert response.json["confirmation_email"] == "sent"
-    messages = captured_messages(event["id"])
-    assert len(messages) == 1
-    assert messages[0]["To"][0]["Address"] == "organiser@connectsphere.test"
-    assert event["id"] in messages[0]["Text"]
-    assert event["title"] in messages[0]["Text"]
-    assert "Status: Planning" in messages[0]["Text"]
+    assert set(response.json) == {"event"}
+    assert event["id"] and event["submitted_at"] and event["updated_at"]
+    assert event["status"] == "Planning"
+    if from_draft:
+        assert event["id"] == draft["id"]
+    fetched = users[1].get(f"/events/{event['id']}", headers=ORIGIN)
+    assert fetched.status_code == 200
+    assert fetched.json["event"]["id"] == event["id"]
+    assert fetched.json["event"]["status"] == "Planning"
     if evidence_dir := os.environ.get("TEST_EVIDENCE_DIR"):
         destination = Path(evidence_dir)
         destination.mkdir(parents=True, exist_ok=True)
-        receipt = {key: messages[0][key] for key in ("From", "To", "Subject", "Text")}
-        (destination / f"submission-email-{'draft' if from_draft else 'new'}.json").write_text(
-            json.dumps(receipt, indent=2) + "\n", encoding="utf-8"
+        filename = f"submission-confirmation-{'draft' if from_draft else 'new'}.json"
+        (destination / filename).write_text(
+            json.dumps(response.json, indent=2) + "\n", encoding="utf-8"
         )
 
 
@@ -231,15 +217,3 @@ def test_tc_us32_01_to_05_private_draft_can_be_saved_reopened_and_submitted(live
     assert database.table("events").select("status").eq(
         "id", draft["id"]
     ).execute().data == [{"status": "Submitted"}]
-
-
-def test_email_failure_preserves_saved_request_and_returns_honest_result(live):
-    app, database, users = live
-    app.config["SMTP_PORT"] = 1  # No SMTP server here.
-    draft = new_draft(users, details())
-    response = submit(users, draft)
-    assert response.json["confirmation_email"] == "unavailable"
-    assert database.table("events").select("status").eq(
-        "id", draft["id"]
-    ).execute().data == [{"status": "Submitted"}]
-    assert captured_messages(draft["id"]) == []

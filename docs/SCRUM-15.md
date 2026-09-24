@@ -125,7 +125,7 @@ submitted requests display as Planning to Organisers and Submitted to Coordinato
 
 The draft UI uses `request_status`. After submission, an Organiser receives
 `status: "Planning"` and `request_status: "Submitted"`, including in write responses.
-See [SCRUM-16](SCRUM-16.md) for confirmation emails and the final test evidence.
+See [SCRUM-16](SCRUM-16.md) for on-screen confirmation and the final test evidence.
 
 - Draft reads by other users return 404, including direct history links.
 - Draft listings reject other roles. The existing general event list also hides

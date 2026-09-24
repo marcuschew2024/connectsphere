@@ -65,7 +65,7 @@ jobs:
       - name: Ruff
         run: ruff check .
 
-      - name: Start isolated database and email capture
+      - name: Start isolated test database
         working-directory: .
         run: |
           docker compose -p connectsphere-acceptance -f compose.acceptance.yml up -d --wait

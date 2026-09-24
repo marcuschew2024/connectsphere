@@ -65,10 +65,8 @@ def app(database):
         "DEV_ROLE_SWITCHER_ENABLED": True,
         "SECRET_KEY": "test-only-secret",
         "FRONTEND_ORIGIN": ORIGIN["Origin"],
-        "SMTP_HOST": "",
     })
 
 
 def select_user(client, user_id):
     return client.post("/dev/session", json={"user_id": user_id}, headers=ORIGIN)
-

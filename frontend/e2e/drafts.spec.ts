@@ -95,7 +95,6 @@ test("completed draft submits with its existing reference", async ({ page }) => 
     expect(route.request().postDataJSON().action).toBe("submit");
     return route.fulfill({ json: {
       event: { ...draft, status: "Planning", request_status: "Submitted", submitted_at: "2026-09-20T06:00:00Z" },
-      confirmation_email: "sent",
     } });
   });
   await page.goto(`/events/drafts/${ID}`);
@@ -104,21 +103,10 @@ test("completed draft submits with its existing reference", async ({ page }) => 
   await expect(page.getByText(ID)).toBeVisible();
   await expect(page.getByRole("link", { name: "View event status" })).toHaveAttribute("href", `/events/${ID}`);
   await expect(page.locator("form")).toHaveCount(0);
-  await expect(page.getByText("A confirmation email with your reference has been sent.")).toBeVisible();
+  await expect(page.getByText("Your request has been submitted and is now under Planning.")).toBeVisible();
+  await expect(page.getByText("Saved at", { exact: true })).toBeVisible();
   await expect(page.getByText(/Direct editing is now locked/)).toBeVisible();
-});
-
-test("email failure keeps the submitted reference and prevents another submission", async ({ page }) => {
-  await page.route(`**/events/${ID}`, (route) => route.fulfill({ json:
-    route.request().method() === "GET" ? { event: draft } : {
-      event: { ...draft, status: "Planning", request_status: "Submitted" },
-      confirmation_email: "unavailable",
-    },
-  }));
-  await page.goto(`/events/drafts/${ID}`);
-  await page.getByRole("button", { name: "Submit request" }).click();
-  await expect(page.getByText(ID)).toBeVisible();
-  await expect(page.getByText(/we could not send the confirmation email/)).toBeVisible();
+  await expect(page.getByText(/email/i)).toHaveCount(0);
   await expect(page.getByRole("button", { name: "Submit request" })).toHaveCount(0);
 });
 

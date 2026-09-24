@@ -28,7 +28,6 @@ from .event_repository import (
 )
 from .event_validation import TEXT_LIMITS, validate_event
 from .rbac import public_event_view, require_related_user, require_role
-from .submission_email import send_submission_confirmation
 
 events = Blueprint("events", __name__, url_prefix="/events")
 
@@ -101,17 +100,7 @@ def create_event():
     if saved.get("coordinator_id") is not None:
         add_event_participant(saved["id"], saved["coordinator_id"], "Coordinator")
     add_status_history(saved["id"], None, fields["status"], user["id"])
-    return submission_response(saved, user, 201)
-
-
-def submission_response(event, user, status_code):
-    """A submitted request stays successful even if its email could not be sent."""
-    response = {"event": event_response(event, user)}
-    if event["status"] == "Submitted":
-        response["confirmation_email"] = (
-            "sent" if send_submission_confirmation(event) else "unavailable"
-        )
-    return jsonify(response), status_code
+    return jsonify({"event": event_response(saved, user)}), 201
 
 
 @events.get("")
@@ -165,7 +154,7 @@ def edit_draft(event, user, data):
     if errors:
         return jsonify({"error": "Please check the highlighted fields.", "fields": errors}), 400
     saved = save_event_draft(event["id"], user["id"], fields, submitting=action == "submit")
-    return submission_response(saved, user, 200)
+    return jsonify({"event": event_response(saved, user)}), 200
 
 
 @events.get("/<event_id>/history")

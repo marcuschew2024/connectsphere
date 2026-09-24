@@ -38,12 +38,6 @@ def create_app(config: dict | None = None) -> Flask:
         SESSION_COOKIE_SAMESITE="Lax",
         # Sessions expire after 30 minutes of inactivity.
         PERMANENT_SESSION_LIFETIME=timedelta(minutes=30),
-        SMTP_HOST=os.environ.get("SMTP_HOST", ""),
-        SMTP_PORT=int(os.environ.get("SMTP_PORT", "1025")),
-        SMTP_FROM=os.environ.get("SMTP_FROM", "ConnectSphere <no-reply@connectsphere.test>"),
-        SMTP_STARTTLS=os.environ.get("SMTP_STARTTLS", "").lower() == "true",
-        SMTP_USERNAME=os.environ.get("SMTP_USERNAME", ""),
-        SMTP_PASSWORD=os.environ.get("SMTP_PASSWORD", ""),
     )
 
     if config:

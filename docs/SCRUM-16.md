@@ -4,117 +4,127 @@
 
 “A draft is private and can be edited. When the Organiser clicks Submit, the API
 checks the required fields. The database changes that same draft to Submitted,
-assigns one Coordinator, and records who submitted it and when. The Organiser sees
-Planning and gets an email with the same reference. The Coordinator sees the request
+assigns one Coordinator, and records who submitted it and when. The confirmation
+screen shows the reference and Planning status. The Coordinator sees the request
 in their review queue. The Organiser cannot directly edit or submit it again.”
 
 We use the first Coordinator by ID because the story does not require workload
 balancing. No manual reassignment button or endpoint is added.
+
+Scope updated on 2026-09-24: confirmation is shown in the app. Confirmation email,
+SMTP settings and the local email inbox have been removed at the user's request.
+TC-US3.3-05 now checks the on-screen confirmation and reference.
+
+## Try it on localhost
+
+Normal use needs the frontend, Flask and the configured Supabase project.
+Docker is not needed for this walkthrough. The commands below use port 3001.
+
+Keep the Supabase keys and session secret in `api/.env`, and set:
+
+```dotenv
+APP_ENV=development
+DEV_ROLE_SWITCHER_ENABLED=true
+FRONTEND_ORIGIN=http://localhost:3001
+FLASK_RUN_PORT=5001
+```
+
+From the repository root, start Flask in one terminal:
+
+```bash
+cd api
+source .venv/bin/activate
+python -m flask --app app run --port 5001
+```
+
+From the repository root, start the frontend in a second terminal:
+
+```bash
+cd frontend
+npm run dev -- --port 3001
+```
+
+Leave both terminals running and open **http://localhost:3001**.
+Use the demo role switcher; event actions still use the Sprint 1 demo sessions.
+
+| Step | What to do | What it means |
+| --- | --- | --- |
+| 1 | Select Demo Organiser, then Create an event request. | You are testing as the person requesting an event. |
+| 2 | Enter an event name and choose Save as draft. | SCRUM-15: saves private unfinished work. Nothing goes to the Coordinator yet. |
+| 3 | Choose Continue editing, change the name, Save changes, and refresh. | Your edits remain on the same draft. |
+| 4 | Try Submit request with the other required fields empty. | Submission is blocked and missing fields are highlighted. |
+| 5 | Complete description, purpose, category, a future date/time, and attendance greater than zero. Submit. | SCRUM-16: the same reference is confirmed on screen, status is Planning, and direct editing is locked. |
+| 6 | Return home, switch to Demo Coordinator, and open Review event requests. | SCRUM-17: the request has been assigned automatically and appears in this Coordinator's queue. |
+
+The database and Coordinator queue use Submitted during review. Organisers see
+Planning. These describe the same request from different roles.
+If another Coordinator has a lower user ID than Demo Coordinator, use that user's
+queue: the current rule always chooses the Coordinator with the lowest ID.
 
 ## What was fixed
 
 - **SCRUM-15 CI failure:** Ruff found unsorted imports in `api/app/events.py`.
   The backend tests were skipped; this was not a failed behavioural test.
   [Original failed run](https://github.com/marcuschew2024/connectsphere/actions/runs/35522639959).
-- **Merge integration:** both draft editing and Coordinator editing registered the
-  same PATCH URL. One route now directs draft actions to the draft helper and keeps
-  the Coordinator's Planning edit flow working. Draft privacy and clarification
-  queue filtering are both retained.
-- **SCRUM-16:** submission now sends a plain-text email with the reference and
-  timestamp. The confirmation screen explains that editing is locked.
-- **SCRUM-17:** assignment now runs for an existing draft's status change as well
-  as a newly created submitted request. The assigned Coordinator is also recorded
-  as an event participant.
-- **Customer status:** Organisers see Planning in create, submit, read and list
-  responses. The database and Coordinator queue retain Submitted for review.
+- **Merge integration:** one PATCH route handles draft editing and Coordinator
+  Planning edits. Draft privacy and clarification queue filtering are retained.
+- **SCRUM-16:** submission confirms the reference on screen and explains the edit lock.
+- **SCRUM-17:** assignment runs both when submitting an existing draft and when
+  creating a submitted request. The Coordinator is also recorded as a participant.
 
 ## Where to look
 
 | File | What it does |
 | --- | --- |
-| `api/app/events.py` | Checks permission and input, saves/submits, returns confirmation. |
+| `api/app/events.py` | Checks permission and input, saves/submits, returns the event confirmation. |
 | `api/app/event_repository.py` | Reads private drafts and calls the database save function. |
 | `supabase/create_events.sql` | Saves the existing draft and its submission history together. |
 | `supabase/auto_assign_coordinator.sql` | Chooses exactly one Coordinator during submission. |
-| `api/app/submission_email.py` | Sends the plain-text confirmation using SMTP. |
-| `frontend/src/app/events/new/event-request-form.tsx` | Shows the reference, edit lock and email result. |
-| `api/tests/test_request_acceptance.py` | Runs the documented cases using real local database and email services. |
+| `frontend/src/app/events/new/event-request-form.tsx` | Shows the reference, Planning status and edit lock. |
+| `api/tests/test_request_acceptance.py` | Runs acceptance cases using a real disposable database. |
 
-## Local email inbox
-
-The agreed demo uses **Mailpit**, which captures emails locally without delivering
-them to real mailboxes. Start only the mail service from the repository root:
-
-```bash
-docker compose -p connectsphere-acceptance -f compose.acceptance.yml up -d mail
-```
-
-Set these in your existing `api/.env`, then restart Flask:
-
-```dotenv
-SMTP_HOST=127.0.0.1
-SMTP_PORT=51025
-SMTP_FROM=ConnectSphere <no-reply@connectsphere.test>
-SMTP_STARTTLS=false
-```
-
-The Organiser needs an `email` in `app_users` (the column comes from `login_auth.sql`).
-For a development demo, use an address such as `organiser@connectsphere.test`.
-Open **http://localhost:58025** to see the captured confirmation.
-SMTP settings stay on the backend. No frontend key or email service account is needed.
-
-If SMTP is unavailable or the Organiser has no email, the request still succeeds.
-The screen says the email could not be sent and keeps the reference. It does not
-ask the Organiser to submit again. Automatic email retry is not implemented.
-
-## Database setup after review/merge
+## Database setup
 
 On an existing development Supabase project, rerun the updated `create_events.sql`
 and then `auto_assign_coordinator.sql`. Keep the other Sprint 1 migrations applied,
 including `login_auth.sql`, `event_decision_notifications.sql` and
 `request_clarification.sql`. Existing events and users are preserved.
-This task's verification uses a disposable local database, not the shared project.
+A missing clarification migration causes both the draft list and Coordinator queue
+to report “Could not load clarification requests.”
 
-The event flow continues to use the agreed Sprint 1 demo role switcher. Connecting
-real login sessions to event actions remains the documented separate auth task.
+## Reproduce the automated acceptance checks
 
-## Reproduce the complete acceptance checks
-
-Use a fresh disposable stack. The following cleanup removes **only this stack's
-test database and captured test emails**:
+Docker is used only to provide an isolated database for these automated checks.
+The following cleanup removes only this stack's disposable test database:
 
 ```bash
 docker compose -p connectsphere-acceptance -f compose.acceptance.yml down -v
 docker compose -p connectsphere-acceptance -f compose.acceptance.yml up -d --wait
 docker compose -p connectsphere-acceptance -f compose.acceptance.yml exec -T db sh /sql/tests/run.sh
 cd api
-POSTGREST_TEST_URL=http://127.0.0.1:55433 python -m pytest -v
+source .venv/bin/activate
+POSTGREST_TEST_URL=http://127.0.0.1:55433 TEST_EVIDENCE_DIR=test-results python -m pytest -v --junitxml=test-results/pytest.xml
 ruff check .
 ```
 
-Use the project's virtual environment for Python and Ruff. The SQL script applies
-all migrations twice, checks draft rollback and assignment, and seeds only test
-email addresses. The API acceptance tests use real database queries and SMTP;
-ordinary unit tests keep their existing fake database.
+The SQL script applies all migrations twice, checks draft rollback and assignment,
+and seeds demo users without email addresses. API acceptance tests use real database
+queries; ordinary unit tests use a fake database.
 
-From `frontend`, run `npm run lint`, `npm run build`, and `npm run test:e2e`.
-Set `PLAYWRIGHT_PORT=3107` if your development server is already using port 3000.
-Browser tests check rendering and interactions with controlled API responses;
-the Python acceptance tests separately exercise real persistence and SMTP.
-
-CI runs both sets and uploads API/browser test reports. Each Confluence acceptance
-row links to its test and the matching CI run; these are automated results, not a
-claim that a person manually tested the hosted deployment.
+From `frontend`, run `npm run lint`, `npm run build`, and
+`PLAYWRIGHT_PORT=3107 npm run test:e2e`. Browser tests check rendering and interactions
+with controlled API responses; Python acceptance tests separately verify persistence.
+CI uploads the JUnit report, submission confirmation JSON and browser report.
 
 ## Acceptance case mapping
 
 | Case | What proves it |
 | --- | --- |
-| TC-US3.3-01 | Invalid draft stays Draft; no submission email. |
+| TC-US3.3-01 | Invalid draft stays Draft with no submission timestamp. |
 | TC-US3.3-02 | Same reference becomes Submitted and enters its Coordinator's queue. |
 | TC-US3.3-03 | Exactly one submission history row records Organiser and timestamp. |
 | TC-US3.3-04 | Direct edit and repeat submit fail without changing the record. |
-| TC-US3.3-05 | Mailpit captures the correct recipient and reference for draft and direct submissions. |
+| TC-US3.3-05 | On-screen confirmation shows the reference, Planning status, saved time and edit lock. Draft and direct submission work without an Organiser email address. |
 | TC-US4.1-01 | Exactly one Coordinator and assignment time, with one membership row. |
 | TC-US4.1-02 | Assigned Coordinator sees the request; another Coordinator does not. |
 | TC-US4.1-03 | Organiser sees Planning in submit, read and list responses. |

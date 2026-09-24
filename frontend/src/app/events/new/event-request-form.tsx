@@ -35,7 +35,6 @@ export default function EventRequestForm({ canCreate, initialEvent }: {
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const [saved, setSaved] = useState<EventRecord | null>(null);
   const [lastSaved, setLastSaved] = useState<string | null>(null);
-  const [confirmationEmail, setConfirmationEmail] = useState<string | null>(null);
   const editing = !!initialEvent;
 
   async function saveRequest(event: FormEvent<HTMLFormElement>) {
@@ -65,7 +64,7 @@ export default function EventRequestForm({ canCreate, initialEvent }: {
     const details = Object.fromEntries(form.entries());
     setBusy(true);
     try {
-      const result = await apiRequest<{ event: EventRecord; confirmation_email?: string }>(initialEvent ? `/events/${initialEvent.id}` : "/events", {
+      const result = await apiRequest<{ event: EventRecord }>(initialEvent ? `/events/${initialEvent.id}` : "/events", {
         method: initialEvent ? "PATCH" : "POST",
         body: JSON.stringify({
           ...details,
@@ -79,7 +78,6 @@ export default function EventRequestForm({ canCreate, initialEvent }: {
         // Keep the form open after saving edits. This is still the same event ID.
         setLastSaved(result.event.updated_at);
       } else {
-        setConfirmationEmail(result.confirmation_email ?? null);
         setSaved(result.event);
       }
     } catch (error) {
@@ -112,8 +110,6 @@ export default function EventRequestForm({ canCreate, initialEvent }: {
           ? "Your draft has been saved. It has not been submitted for review."
           : "Your request has been submitted and is now under Planning."}</p>
         {saved.status !== "Draft" && <p className="text-sm text-slate-300">Direct editing is now locked. You can make changes when your coordinator requests clarification.</p>}
-        {confirmationEmail === "sent" && <p className="text-sm text-green-300">A confirmation email with your reference has been sent.</p>}
-        {confirmationEmail === "unavailable" && <p className="text-sm text-amber-200">Your request is saved, but we could not send the confirmation email. Keep the reference below and contact the team. You do not need to submit again.</p>}
         <dl className="space-y-2 text-sm">
           <div><dt className="text-slate-400">Reference</dt><dd className="break-all font-mono">{saved.id}</dd></div>
           <div><dt className="text-slate-400">Saved at</dt><dd>{new Date(saved.updated_at ?? saved.created_at).toLocaleString()}</dd></div>

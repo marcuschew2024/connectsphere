@@ -63,7 +63,7 @@ in the API virtual environment (the login module requires bcrypt).
 
 ## Prerequisites
 
-For draft submission, confirmation emails and coordinator assignment, see the
+For draft submission, on-screen confirmation and coordinator assignment, see the
 [simple SCRUM-16/17 walkthrough and test instructions](docs/SCRUM-16.md).
 
 - Node.js 22
