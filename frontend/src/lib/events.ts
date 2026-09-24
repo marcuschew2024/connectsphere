@@ -18,11 +18,15 @@ export type EventRecord = {
   status: "Draft" | "Submitted" | "Planning" | "Confirmed" | "Completed" | "Rejected" | "Cancelled";
   organiser_id: number;
   coordinator_id: number | null;
+  coordinator_assigned_at: string | null;
   created_at: string;
   updated_at: string;
   submitted_at: string | null;
   last_status_changed_by: number | null;
   last_status_changed_at: string | null;
+  decision_reason: string | null;
+  decision_by: number | null;
+  decision_at: string | null;
 };
 
 export type EventStatusHistory = {
@@ -32,6 +36,19 @@ export type EventStatusHistory = {
   new_status: string;
   changed_by: number;
   changed_at: string;
+  action?: string | null;
+  note?: string | null;
+};
+
+export type EventClarification = {
+  id: number;
+  event_id: string;
+  note: string;
+  requested_by: number;
+  requested_at: string;
+  status: "Pending" | "Resubmitted";
+  responded_by: number | null;
+  responded_at: string | null;
 };
 
 

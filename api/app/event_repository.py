@@ -11,11 +11,11 @@ class EventStatus:
     """Encapsulates the status mapping logic for user-visible event states."""
 
     _mapping = {
-        "Draft": "Planning",
-        "Submitted": "Planning",
-        "Assigned": "Planning",
-        "Under review": "Planning",
-        "Under Review": "Planning",
+        "Draft": "Draft",
+        "Submitted": "Submitted",
+        "Assigned": "Submitted",
+        "Under review": "Submitted",
+        "Under Review": "Submitted",
         "Approved": "Planning",
         "Planning": "Planning",
         "Confirmed": "Confirmed",
@@ -58,6 +58,12 @@ def canonical_event_status(raw_status: str | None) -> str:
     return EventStatus.to_visible(raw_status)
 
 
+def customer_event_status(raw_status: str | None) -> str:
+    """Map internal submitted/review states to the customer-facing Planning state."""
+    visible = canonical_event_status(raw_status)
+    return "Planning" if visible == "Submitted" else visible
+
+
 def get_event_by_id(event_id: str) -> dict | None:
     """Fetch one event record by ID."""
     try:
@@ -88,7 +94,14 @@ def get_events_for_user(user_id: int) -> list[dict]:
         result = client.table("events").select("*").or_(
             f"organiser_id.eq.{user_id},coordinator_id.eq.{user_id}"
         ).order("updated_at", desc=True).execute()
-        return result.data or []
+        events = result.data or []
+        if events:
+            pending_ids = get_pending_clarification_event_ids()
+            events = [
+                event for event in events
+                if not (event.get("coordinator_id") == user_id and event["id"] in pending_ids)
+            ]
+        return events
     except ServiceUnavailable:
         raise
     except Exception as error:
@@ -135,19 +148,29 @@ def is_event_participant(event_id: str, user_id: int) -> bool:
 
 
 def add_status_history(
-    event_id: str, old_status: str | None, new_status: str, user_id: int
+    event_id: str,
+    old_status: str | None,
+    new_status: str,
+    user_id: int,
+    action: str | None = None,
+    note: str | None = None,
 ) -> None:
     """Append one immutable status transition record."""
     try:
         client = get_supabase_client()
         if client is None:
             raise ServiceUnavailable("The database is not configured. Contact the team.")
-        client.table("event_status_history").insert({
+        payload = {
             "event_id": event_id,
             "old_status": old_status,
             "new_status": new_status,
             "changed_by": user_id,
-        }).execute()
+        }
+        if action is not None:
+            payload["action"] = action
+        if note is not None:
+            payload["note"] = note
+        client.table("event_status_history").insert(payload).execute()
     except ServiceUnavailable:
         raise
     except Exception as error:
@@ -174,6 +197,88 @@ def get_status_history(event_id: str) -> list[dict]:
         ) from error
 
 
+def create_clarification(event_id: str, note: str, user_id: int) -> dict:
+    """Create one pending clarification request for an event."""
+    try:
+        client = get_supabase_client()
+        if client is None:
+            raise ServiceUnavailable("The database is not configured. Contact the team.")
+        result = client.table("event_clarifications").insert({
+            "event_id": event_id,
+            "note": note,
+            "requested_by": user_id,
+            "status": "Pending",
+        }).execute()
+        if not result.data:
+            raise ServiceUnavailable("The database did not confirm the clarification request.")
+        return result.data[0]
+    except ServiceUnavailable:
+        raise
+    except Exception as error:
+        raise ServiceUnavailable(
+            "Could not save the clarification request. Contact the team."
+        ) from error
+
+
+def get_pending_clarification(event_id: str) -> dict | None:
+    """Return the current pending clarification, if one exists."""
+    try:
+        client = get_supabase_client()
+        if client is None:
+            raise ServiceUnavailable("The database is not configured. Contact the team.")
+        result = client.table("event_clarifications").select("*").eq(
+            "event_id", event_id
+        ).eq("status", "Pending").execute()
+        return result.data[0] if result.data else None
+    except ServiceUnavailable:
+        raise
+    except Exception as error:
+        raise ServiceUnavailable(
+            "Could not load the clarification request. Contact the team."
+        ) from error
+
+
+def get_pending_clarification_event_ids() -> set[str]:
+    """Return event IDs currently waiting for organiser clarification."""
+    try:
+        client = get_supabase_client()
+        if client is None:
+            raise ServiceUnavailable("The database is not configured. Contact the team.")
+        result = client.table("event_clarifications").select("event_id").eq(
+            "status", "Pending"
+        ).execute()
+        return {row["event_id"] for row in (result.data or [])}
+    except ServiceUnavailable:
+        raise
+    except Exception as error:
+        raise ServiceUnavailable(
+            "Could not load clarification requests. Contact the team."
+        ) from error
+
+
+def mark_clarification_resubmitted(event_id: str, user_id: int) -> dict:
+    """Close the pending clarification after the organiser resubmits."""
+    try:
+        client = get_supabase_client()
+        if client is None:
+            raise ServiceUnavailable("The database is not configured. Contact the team.")
+        now = datetime.now(UTC).isoformat()
+        result = client.table("event_clarifications").update({
+            "status": "Resubmitted",
+            "responded_by": user_id,
+            "responded_at": now,
+        }).eq("event_id", event_id).eq("status", "Pending").execute()
+        if not result.data:
+            raise ServiceUnavailable("The clarification request may already be resolved.")
+        return result.data[0]
+    except ServiceUnavailable:
+        raise
+    except Exception as error:
+        raise ServiceUnavailable(
+            "Could not record the resubmission. Contact the team."
+        ) from error
+
+
 def update_event_status(event_id: str, status: str, user_id: int) -> dict:
     """Update status and record the user and time of the latest change."""
     try:
@@ -194,6 +299,57 @@ def update_event_status(event_id: str, status: str, user_id: int) -> dict:
     except Exception as error:
         raise ServiceUnavailable(
             "Could not update the event status. Contact the team before retrying."
+        ) from error
+
+
+def record_event_decision(
+    event_id: str, status: str, reason: str | None, user_id: int
+) -> dict:
+    """Record a coordinator decision only while the request is still submitted."""
+    try:
+        client = get_supabase_client()
+        if client is None:
+            raise ServiceUnavailable("The database is not configured. Contact the team.")
+
+        now = datetime.now(UTC).isoformat()
+        result = client.table("events").update({
+            "status": status,
+            "decision_reason": reason,
+            "decision_by": user_id,
+            "decision_at": now,
+            "last_status_changed_by": user_id,
+            "last_status_changed_at": now,
+        }).eq("id", event_id).eq("status", "Submitted").execute()
+        if not result.data:
+            raise ServiceUnavailable("The request may already have a decision.")
+        return result.data[0]
+    except ServiceUnavailable:
+        raise
+    except Exception as error:
+        raise ServiceUnavailable(
+            "Could not record the event decision. Contact the team."
+        ) from error
+
+
+def create_notification(
+    recipient_id: int, event_id: str, notification_type: str, message: str
+) -> None:
+    """Create an in-app notification for a user."""
+    try:
+        client = get_supabase_client()
+        if client is None:
+            raise ServiceUnavailable("The database is not configured. Contact the team.")
+        client.table("notifications").insert({
+            "recipient_id": recipient_id,
+            "event_id": event_id,
+            "notification_type": notification_type,
+            "message": message,
+        }).execute()
+    except ServiceUnavailable:
+        raise
+    except Exception as error:
+        raise ServiceUnavailable(
+            "Could not create the notification. Contact the team."
         ) from error
 
 
