@@ -90,7 +90,11 @@ export default function Home() {
               <p className="hidden pt-1 text-xs leading-relaxed text-slate-400 lg:block">Drafts are private. Once submitted, your Coordinator reviews your request and the decision appears in Notifications.</p>
             </div>}
             {actingRole === "Coordinator" && <Link href="/events/review" className="inline-flex items-center gap-6 rounded-xl bg-sky-300 px-5 py-3 text-sm font-semibold text-slate-950 hover:bg-sky-200">Review event requests <span aria-hidden="true">→</span></Link>}
-            {actingRole && actingRole !== "Organiser" && actingRole !== "Coordinator" && <p className="text-sm text-slate-400">No actions are available for the {actingRole} role yet — {actingRole} tools arrive in a later sprint.</p>}
+            {(actingRole === "Venue Staff" || actingRole === "Coordinator") && <div className="mt-3 flex flex-wrap gap-3">
+              {actingRole === "Venue Staff" && <Link href="/venues/new" className="rounded-xl bg-sky-300 px-5 py-3 text-sm font-semibold text-slate-950 hover:bg-sky-200">Add a venue</Link>}
+              <Link href="/venues" className="rounded-xl border border-white/15 px-5 py-3 text-sm font-medium text-sky-200 hover:bg-white/5">Venue catalogue</Link>
+            </div>}
+            {actingRole && !["Organiser", "Coordinator", "Venue Staff"].includes(actingRole) && <p className="text-sm text-slate-400">No actions are available for the {actingRole} role yet — {actingRole} tools arrive in a later sprint.</p>}
             {!actingRole && <p className="text-sm text-slate-400">{process.env.NODE_ENV === "development" ? "Select a role above to see what it can do." : "Sign in to access your workspace."}</p>}
           </section>
           {actingRole === "Organiser" && <OrganiserNotifications />}
