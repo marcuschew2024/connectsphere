@@ -1,0 +1,46 @@
+sequenceDiagram
+    actor VS as Venue Staff
+    participant FE as BookingDecisionForm (FE)
+    participant EP as bookings.decide_booking
+    participant RBAC as rbac.require_role
+    participant BD as BookingDecision
+    participant REPO as booking_repository
+    participant OVL as OverlapEngine (SCRUM-33)
+    participant NT as create_notification
+    actor CO as Coordinator
+
+    VS->>FE: click Approve / Reject (+reason, +alternative)
+    FE->>EP: POST /venues/bookings/{id}/decision
+    EP->>RBAC: require_role(Venue Staff)
+    alt not Venue Staff / bad origin
+        RBAC-->>FE: 403 Forbidden
+    end
+    EP->>REPO: get_booking_by_id(id)
+    alt not found
+        REPO-->>FE: 404 Not Found
+    end
+    alt status != "Pending"
+        EP-->>FE: 409 Conflict (already decided)
+    end
+    EP->>BD: from_payload(body)
+    alt invalid (e.g. reject without reason)
+        BD-->>FE: 400 Bad Request
+    end
+    alt decision = approve
+        EP->>OVL: is_slot_free(venue_id, start_at, end_at)?
+        alt slot overlaps a confirmed booking
+            OVL-->>EP: conflict
+            EP-->>FE: 409 Conflict (slot taken)
+        else slot free
+            OVL-->>EP: free
+            EP->>REPO: record_booking_decision(Confirmed, decided_by, at)
+            EP->>NT: booking_approved → requested_by
+            NT-->>CO: notification
+            EP-->>FE: 200 { booking: Confirmed }
+        end
+    else decision = reject
+        EP->>REPO: record_booking_decision(Rejected, reason, alternative, decided_by, at)
+        EP->>NT: booking_rejected(reason, alternative) → requested_by
+        NT-->>CO: notification
+        EP-->>FE: 200 { booking: Rejected }
+    end
