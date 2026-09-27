@@ -1,0 +1,62 @@
+classDiagram
+    class BookingDecision {
+        +str action
+        +str reason
+        +str alternative
+        -dict _STATUSES
+        +__init__(action, reason, alternative)
+        +from_payload(data) BookingDecision$
+        +status() str
+        +is_rejection() bool
+    }
+    note for BookingDecision "Value object (SCRUM-123).\nEncapsulation: all validation in __init__.\nAbstraction: models only one decision.\nstatus() / is_rejection() are read-only @property."
+
+    class EventDecision {
+        +str action
+        +str reason
+        +__init__(action, reason)
+        +from_payload(data) EventDecision$
+        +status() str
+        +is_rejection() bool
+    }
+    note for EventDecision "Sibling from SCRUM-18.\nSame shape → candidate shared abstract\nDecision base (see 'OO decisions')."
+
+    class Booking {
+        +UUID id
+        +UUID event_id
+        +UUID venue_id
+        +datetime start_at
+        +datetime end_at
+        +str status
+        +str decision_reason
+        +str suggested_alternative
+        +int decided_by
+        +datetime decision_at
+        +int requested_by
+    }
+
+    class Venue {
+        +UUID id
+        +str name
+        +str location
+    }
+    class Event {
+        +UUID id
+        +str title
+    }
+    class AppUser {
+        +int id
+        +str display_name
+        +str role
+    }
+    class OverlapEngine {
+        <<SCRUM-33 · OOP reuse>>
+        +is_slot_free(venue_id, start, end) bool
+    }
+
+    BookingDecision ..> Booking : applies status + audit to
+    Booking "1" --> "1" Venue : for
+    Booking "1" --> "1" Event : for
+    Booking "*" --> "1" AppUser : requested_by
+    Booking "0..1" --> "1" AppUser : decided_by
+    OverlapEngine ..> Booking : checks confirmed bookings
