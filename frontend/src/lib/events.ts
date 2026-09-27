@@ -56,12 +56,14 @@ export type EventClarification = {
 type VisibleStatus = "Planning" | "Confirmed" | "Completed" | "Rejected" | "Cancelled";
 
 const statusStyles: Record<VisibleStatus, string> = {
-  Planning: "bg-blue-500/20 text-blue-200 border-blue-400/50",
-  Confirmed: "bg-emerald-500/20 text-emerald-200 border-emerald-400/50",
-  Completed: "bg-violet-500/20 text-violet-200 border-violet-400/50",
-  Rejected: "bg-red-500/20 text-red-200 border-red-400/50",
-  Cancelled: "bg-slate-500/20 text-slate-200 border-slate-400/50",
+  Planning: "bg-blue-100 text-blue-700 border-blue-200 dark:bg-blue-500/15 dark:text-blue-300 dark:border-blue-400/30",
+  Confirmed: "bg-emerald-100 text-emerald-700 border-emerald-200 dark:bg-emerald-500/15 dark:text-emerald-300 dark:border-emerald-400/30",
+  Completed: "bg-violet-100 text-violet-700 border-violet-200 dark:bg-violet-500/15 dark:text-violet-300 dark:border-violet-400/30",
+  Rejected: "bg-red-100 text-red-700 border-red-200 dark:bg-red-500/15 dark:text-red-300 dark:border-red-400/30",
+  Cancelled: "bg-slate-100 text-slate-700 border-slate-200 dark:bg-slate-500/15 dark:text-slate-300 dark:border-slate-400/30",
 };
+
+const fallbackStyle = statusStyles.Cancelled;
 
 export function StatusBadge({ status }: { status: string }) {
   const safeStatus = (status as VisibleStatus) ?? "Planning";
@@ -69,7 +71,7 @@ export function StatusBadge({ status }: { status: string }) {
   return createElement(
     "span",
     {
-      className: `inline-flex items-center rounded-full border px-2.5 py-1 text-xs font-semibold ${statusStyles[safeStatus] ?? "bg-slate-500/20 text-slate-200 border-slate-400/50"}`,
+      className: `inline-flex items-center rounded-full border px-2.5 py-1 text-xs font-semibold ${statusStyles[safeStatus] ?? fallbackStyle}`,
     },
     safeStatus,
   );

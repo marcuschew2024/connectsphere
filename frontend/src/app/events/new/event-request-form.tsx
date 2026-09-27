@@ -18,7 +18,7 @@ const REQUIREMENT_FIELDS = [
   { name: "equipment_requirements", label: "Equipment requirements" },
   { name: "registration_requirements", label: "Registration requirements" },
 ];
-const INPUT_STYLE = "w-full rounded border border-slate-600 bg-slate-950 p-3 [color-scheme:dark] focus:border-sky-400 focus:outline-none focus:ring-1 focus:ring-sky-400";
+const INPUT_STYLE = "w-full rounded-md border border-input bg-background p-3 text-foreground focus:border-ring focus:outline-none focus:ring-2 focus:ring-ring/30";
 
 function localDateTime(value: string | null | undefined) {
   if (!value) return "";
@@ -96,41 +96,43 @@ export default function EventRequestForm({ canCreate, initialEvent }: {
 
   function fieldError(name: string) {
     return fieldErrors[name] ? (
-      <p id={`${name}-error`} className="mt-1 text-sm text-red-300">{fieldErrors[name]}</p>
+      <p id={`${name}-error`} className="mt-1 text-sm text-destructive">{fieldErrors[name]}</p>
     ) : null;
   }
 
   if (saved) {
     return (
-      <section role="status" className="space-y-4 rounded-lg border border-green-700 bg-slate-900 p-6">
-        <h2 className="text-xl font-semibold text-green-300">
+      <section role="status" className="space-y-4 rounded-2xl border border-emerald-500/30 bg-card p-6 shadow-sm">
+        <h2 className="text-xl font-semibold text-emerald-700 dark:text-emerald-400">
           {saved.status === "Draft" ? "Draft saved" : "Event request received"}
         </h2>
         <p>{saved.status === "Draft"
           ? "Your draft has been saved. It has not been submitted for review."
           : "Your request has been submitted and is now under Planning."}</p>
-        {saved.status !== "Draft" && <p className="text-sm text-slate-300">Direct editing is now locked. You can make changes when your coordinator requests clarification.</p>}
+        {saved.status !== "Draft" && <p className="text-sm text-muted-foreground">Direct editing is now locked. You can make changes when your coordinator requests clarification.</p>}
         <dl className="space-y-2 text-sm">
-          <div><dt className="text-slate-400">Reference</dt><dd className="break-all font-mono">{saved.id}</dd></div>
-          <div><dt className="text-slate-400">Saved at</dt><dd>{new Date(saved.updated_at ?? saved.created_at).toLocaleString()}</dd></div>
+          <div><dt className="text-muted-foreground">Reference</dt><dd className="break-all font-mono">{saved.id}</dd></div>
+          <div><dt className="text-muted-foreground">Saved at</dt><dd>{new Date(saved.updated_at ?? saved.created_at).toLocaleString()}</dd></div>
         </dl>
-        <Link href={saved.status === "Draft" ? `/events/drafts/${saved.id}` : `/events/${saved.id}`} className="inline-flex rounded-full bg-sky-300 px-5 py-2.5 font-semibold text-slate-950">
-          {saved.status === "Draft" ? "Continue editing" : "View event status"}
-        </Link>
-        <Link href="/events/drafts" className="inline-flex px-4 py-2 text-sm text-slate-300 hover:text-white">My drafts</Link>
-        {!editing && <button type="button" disabled={!canCreate} onClick={() => setSaved(null)}
-          className="rounded bg-sky-300 px-4 py-2 font-semibold text-slate-950 disabled:cursor-not-allowed disabled:opacity-40">
-          Create another request
-        </button>}
+        <div className="flex flex-wrap items-center gap-3">
+          <Link href={saved.status === "Draft" ? `/events/drafts/${saved.id}` : `/events/${saved.id}`} className="inline-flex rounded-full bg-primary px-5 py-2.5 font-semibold text-primary-foreground hover:bg-primary/90">
+            {saved.status === "Draft" ? "Continue editing" : "View event status"}
+          </Link>
+          <Link href="/events/drafts" className="inline-flex px-4 py-2 text-sm text-muted-foreground hover:text-foreground">My drafts</Link>
+          {!editing && <button type="button" disabled={!canCreate} onClick={() => setSaved(null)}
+            className="rounded-full border border-border px-4 py-2 font-medium hover:bg-muted disabled:cursor-not-allowed disabled:opacity-40">
+            Create another request
+          </button>}
+        </div>
       </section>
     );
   }
 
   return (
-    <form onSubmit={saveRequest} onChange={() => setLastSaved(null)} noValidate className="space-y-6 rounded-2xl border border-white/10 bg-slate-900/70 p-5 sm:p-8">
-      <p className="text-sm text-slate-300">Fields marked * are required to submit. You can save a draft with these fields blank.</p>
-      {editing && <p className="text-xs leading-relaxed text-slate-400">Only you can access this draft. Save your changes before leaving this page.</p>}
-      {error && <p role="alert" className="rounded border border-red-700 bg-red-950/40 p-3 text-red-200">{error}</p>}
+    <form onSubmit={saveRequest} onChange={() => setLastSaved(null)} noValidate className="space-y-6 rounded-2xl border border-border bg-card p-5 shadow-sm sm:p-8">
+      <p className="text-sm text-muted-foreground">Fields marked * are required to submit. You can save a draft with these fields blank.</p>
+      {editing && <p className="text-xs leading-relaxed text-muted-foreground">Only you can access this draft. Save your changes before leaving this page.</p>}
+      {error && <p role="alert" className="rounded-md border border-destructive/30 bg-destructive/5 p-3 text-sm text-destructive">{error}</p>}
       <fieldset disabled={busy || !canCreate} className="space-y-5 disabled:opacity-40">
         <legend className="sr-only">Event details</legend>
         {TEXT_FIELDS.map((field) => (
@@ -160,7 +162,7 @@ export default function EventRequestForm({ canCreate, initialEvent }: {
               aria-invalid={!!fieldErrors.event_datetime}
               aria-describedby={fieldErrors.event_datetime ? "event-time-help event_datetime-error" : "event-time-help"}
               className={INPUT_STYLE} />
-            <p id="event-time-help" className="mt-1 text-sm text-slate-400">Uses your device&apos;s time zone.</p>
+            <p id="event-time-help" className="mt-1 text-sm text-muted-foreground">Uses your device&apos;s time zone.</p>
             {fieldError("event_datetime")}
           </div>
           <div>
@@ -173,7 +175,7 @@ export default function EventRequestForm({ canCreate, initialEvent }: {
             {fieldError("expected_attendance")}
           </div>
         </div>
-        <fieldset className="space-y-5 border-t border-slate-700 pt-4">
+        <fieldset className="space-y-5 border-t border-border pt-4">
           <legend className="px-2 font-semibold">Additional requirements (optional)</legend>
           {REQUIREMENT_FIELDS.map((field) => (
             <div key={field.name}>
@@ -188,15 +190,15 @@ export default function EventRequestForm({ canCreate, initialEvent }: {
           ))}
         </fieldset>
         <div className="flex flex-wrap gap-3">
-          <button type="submit" value="submit" className="rounded-full bg-sky-300 px-6 py-3 text-sm font-semibold text-slate-950 transition-colors hover:bg-sky-200 disabled:opacity-50 motion-reduce:transition-none">
+          <button type="submit" value="submit" className="rounded-full bg-primary px-6 py-3 text-sm font-semibold text-primary-foreground transition-colors hover:bg-primary/90 disabled:opacity-50 motion-reduce:transition-none">
             {busy ? "Saving…" : "Submit request"}
           </button>
-          <button type="submit" value="draft" className="rounded-full border border-white/20 px-6 py-3 text-sm font-medium transition-colors hover:bg-white/5 disabled:opacity-50 motion-reduce:transition-none">
+          <button type="submit" value="draft" className="rounded-full border border-border px-6 py-3 text-sm font-medium transition-colors hover:bg-muted disabled:opacity-50 motion-reduce:transition-none">
             {editing ? "Save changes" : "Save as draft"}
           </button>
         </div>
       </fieldset>
-      {lastSaved && <p role="status" className="rounded-xl border border-emerald-300/20 bg-emerald-300/5 px-4 py-3 text-sm text-emerald-200">Changes saved · {new Date(lastSaved).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</p>}
+      {lastSaved && <p role="status" className="rounded-xl border border-emerald-500/30 bg-emerald-500/5 px-4 py-3 text-sm text-emerald-700 dark:text-emerald-400">Changes saved · {new Date(lastSaved).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</p>}
     </form>
   );
 }

@@ -13,7 +13,7 @@ const REQUIREMENT_FIELDS = [
   ["equipment_requirements", "Equipment requirements"],
   ["registration_requirements", "Registration requirements"],
 ] as const;
-const INPUT_STYLE = "w-full rounded border border-slate-600 bg-slate-950 p-3 [color-scheme:dark]";
+const INPUT_STYLE = "w-full rounded-md border border-input bg-background p-3 text-foreground focus:border-ring focus:outline-none focus:ring-2 focus:ring-ring/30";
 
 function toLocalInput(value: string | null) {
   if (!value) return "";
@@ -69,13 +69,13 @@ export default function EventResubmitForm({
   }
 
   return (
-    <form onSubmit={resubmit} noValidate className="space-y-5 rounded-2xl border border-amber-500/30 bg-slate-900/70 p-6 sm:p-8">
+    <form onSubmit={resubmit} noValidate className="space-y-5 rounded-2xl border border-amber-500/40 bg-card p-6 shadow-sm sm:p-8">
       <div>
         <h2 className="text-lg font-semibold">Changes requested</h2>
-        <p className="mt-1 text-sm text-amber-200">{clarification.note}</p>
-        <p className="mt-2 text-sm text-slate-400">Update the details below and resubmit for Coordinator review.</p>
+        <p className="mt-1 text-sm text-amber-700 dark:text-amber-400">{clarification.note}</p>
+        <p className="mt-2 text-sm text-muted-foreground">Update the details below and resubmit for Coordinator review.</p>
       </div>
-      {error && <p role="alert" className="rounded border border-red-700 p-3 text-red-200">{error}</p>}
+      {error && <p role="alert" className="rounded-md border border-destructive/30 bg-destructive/5 p-3 text-sm text-destructive">{error}</p>}
       <fieldset disabled={busy} className="space-y-5 disabled:opacity-40">
         {TEXT_FIELDS.map(([name, label]) => (
           <div key={name}>
@@ -85,7 +85,7 @@ export default function EventResubmitForm({
             ) : (
               <textarea id={`resubmit-${name}`} name={name} defaultValue={event[name] ?? ""} rows={3} maxLength={name === "description" ? 5000 : 2000} className={INPUT_STYLE} />
             )}
-            {fieldErrors[name] && <p className="mt-1 text-sm text-red-300">{fieldErrors[name]}</p>}
+            {fieldErrors[name] && <p className="mt-1 text-sm text-destructive">{fieldErrors[name]}</p>}
           </div>
         ))}
         <div className="grid gap-5 sm:grid-cols-2">
@@ -95,7 +95,7 @@ export default function EventResubmitForm({
         {REQUIREMENT_FIELDS.map(([name, label]) => (
           <label key={name} className="block font-medium">{label}<textarea name={name} defaultValue={event[name] ?? ""} rows={2} maxLength={2000} className={`${INPUT_STYLE} mt-2`} /></label>
         ))}
-        <button type="submit" className="rounded bg-sky-300 px-5 py-3 font-semibold text-slate-950 disabled:opacity-50">{busy ? "Resubmitting..." : "Revise and resubmit"}</button>
+        <button type="submit" className="rounded-md bg-primary px-5 py-3 font-semibold text-primary-foreground hover:bg-primary/90 disabled:opacity-50">{busy ? "Resubmitting..." : "Revise and resubmit"}</button>
       </fieldset>
     </form>
   );
