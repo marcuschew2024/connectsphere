@@ -57,7 +57,7 @@ export default function BookingDecisionPage() {
     };
   }, [params.bookingId]);
 
-  const canReview = actingRole === "Venue Staff" && booking?.status === "Pending";
+  const canReview = actingRole === "Venue Staff" && (booking?.status === "Requested" || booking?.status === "Pending");
 
   return (
     <AppShell actingRole={actingRole}>

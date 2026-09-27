@@ -4,7 +4,7 @@
 // owned by SCRUM-31; until it lands the frontend is exercised against mocked responses.
 import { createElement } from "react";
 
-export type BookingStatus = "Pending" | "Confirmed" | "Rejected" | "Cancelled";
+export type BookingStatus = "Requested" | "Pending" | "Confirmed" | "Rejected" | "Blocked" | "Cancelled";
 
 export type BookingRecord = {
   id: string;
@@ -18,6 +18,10 @@ export type BookingRecord = {
   decided_by: number | null;
   decision_at: string | null;
   requested_by: number;
+  requested_at: string;
+  expected_attendance: number;
+  layout: string;
+  special_requirements: string | null;
   created_at: string;
   // Optional joins the GET may include for display, mirroring venues' creator join.
   venue?: { name: string; location: string } | null;
@@ -25,9 +29,11 @@ export type BookingRecord = {
 };
 
 const statusStyles: Record<BookingStatus, string> = {
+  Requested: "bg-amber-100 text-amber-700 border-amber-200 dark:bg-amber-500/15 dark:text-amber-300 dark:border-amber-400/30",
   Pending: "bg-amber-100 text-amber-700 border-amber-200 dark:bg-amber-500/15 dark:text-amber-300 dark:border-amber-400/30",
   Confirmed: "bg-emerald-100 text-emerald-700 border-emerald-200 dark:bg-emerald-500/15 dark:text-emerald-300 dark:border-emerald-400/30",
   Rejected: "bg-red-100 text-red-700 border-red-200 dark:bg-red-500/15 dark:text-red-300 dark:border-red-400/30",
+  Blocked: "bg-orange-100 text-orange-700 border-orange-200 dark:bg-orange-500/15 dark:text-orange-300 dark:border-orange-400/30",
   Cancelled: "bg-slate-100 text-slate-700 border-slate-200 dark:bg-slate-500/15 dark:text-slate-300 dark:border-slate-400/30",
 };
 

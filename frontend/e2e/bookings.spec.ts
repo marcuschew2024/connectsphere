@@ -1,7 +1,6 @@
 import { test, expect } from "@playwright/test";
 
-// SCRUM-122 booking decision UI, exercised against a MOCKED contract (ADR-0001) because
-// the venue_bookings table (SCRUM-31) and the decision endpoint are not built yet.
+// SCRUM-31 booking submission and SCRUM-122 booking decision UI.
 test.use({ timezoneId: "Asia/Singapore" });
 
 const BOOKING_ID = "22222222-2222-4222-8222-222222222222";
@@ -23,6 +22,9 @@ const PENDING_BOOKING = {
   venue: { name: "Auditorium A", location: "Level 3, SIS" },
   event: { title: "Campus workshop" },
 };
+
+const REQUEST_EVENT = { id: PENDING_BOOKING.event_id, title: "Campus workshop", status: "Planning", event_datetime: "2099-10-20T06:00:00Z" };
+const REQUEST_VENUE = { id: PENDING_BOOKING.venue_id, name: "Auditorium A", location: "Level 3, SIS", capacity: 300, facilities: [], accessibility: [], supported_layouts: ["Theatre"], operating_hours: {}, timezone: "Asia/Singapore", created_by: 3, created_at: "2026-09-27T04:00:00Z" };
 
 test.beforeEach(async ({ page }) => {
   await page.route("**/notifications", (route) => route.fulfill({ json: { notifications: [] } }));
@@ -106,4 +108,79 @@ test("the decision form is hidden for non venue staff", async ({ page }) => {
   await expect(page.getByRole("heading", { name: "Auditorium A" })).toBeVisible();
   await expect(page.getByRole("heading", { name: "Review booking" })).toHaveCount(0);
   await expect(page.getByRole("button", { name: "Approve" })).toHaveCount(0);
+});
+
+test("coordinator submits a venue request with timing and requirements", async ({ page }) => {
+  await page.unroute("**/session");
+  await page.route(`${API_ORIGIN}/session`, (route) => route.fulfill({ json: { user: { id: 2, role: "Coordinator" } } }));
+  await page.route(`${API_ORIGIN}/events`, (route) => route.fulfill({ json: { events: [REQUEST_EVENT] } }));
+  await page.route(`${API_ORIGIN}/venues?*`, (route) => route.fulfill({ json: { venues: [REQUEST_VENUE], page: 1, has_more: false } }));
+  await page.route(`${API_ORIGIN}/venues/bookings`, async (route) => {
+    const body = route.request().postDataJSON();
+    expect(body.event_id).toBe(REQUEST_EVENT.id);
+    expect(body.venue_id).toBe(REQUEST_VENUE.id);
+    expect(body.expected_attendance).toBe(120);
+    expect(body.layout).toBe("Theatre");
+    expect(body.special_requirements).toBe("Step-free access");
+    await route.fulfill({ status: 201, json: { booking: { ...PENDING_BOOKING, status: "Requested" } } });
+  });
+  await page.goto("/venues/bookings/new");
+  await page.getByLabel("Expected attendance").fill("120");
+  await page.getByLabel("Layout").fill("Theatre");
+  await page.getByLabel("Special requirements").fill("Step-free access");
+  await page.getByLabel("Start").fill("2099-10-20T14:00");
+  await page.getByLabel("End", { exact: true }).fill("2099-10-20T16:00");
+  await page.getByRole("button", { name: "Submit booking request" }).click();
+  await expect(page.getByRole("heading", { name: "Booking request submitted" })).toBeVisible();
+});
+
+test("venue overlap rejection preserves the booking form", async ({ page }) => {
+  await page.unroute("**/session");
+  await page.route(`${API_ORIGIN}/session`, (route) => route.fulfill({ json: { user: { id: 2, role: "Coordinator" } } }));
+  await page.route(`${API_ORIGIN}/events`, (route) => route.fulfill({ json: { events: [REQUEST_EVENT] } }));
+  await page.route(`${API_ORIGIN}/venues?*`, (route) => route.fulfill({ json: { venues: [REQUEST_VENUE], page: 1, has_more: false } }));
+  await page.route(`${API_ORIGIN}/venues/bookings`, (route) => route.fulfill({ status: 409, json: { error: "The venue is already confirmed or blocked for that time slot." } }));
+  await page.goto("/venues/bookings/new");
+  await page.getByLabel("Expected attendance").fill("120");
+  await page.getByLabel("Layout").fill("Theatre");
+  await page.getByLabel("Start").fill("2099-10-20T14:00");
+  await page.getByLabel("End", { exact: true }).fill("2099-10-20T16:00");
+  await page.getByRole("button", { name: "Submit booking request" }).click();
+  await expect(page.getByText("The venue is already confirmed or blocked for that time slot.", { exact: true })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Booking request submitted" })).toHaveCount(0);
+  await expect(page.getByLabel("Expected attendance")).toHaveValue("120");
+});
+
+test("booking form blocks attendance over the selected venue capacity", async ({ page }) => {
+  await page.unroute("**/session");
+  await page.route(`${API_ORIGIN}/session`, (route) => route.fulfill({ json: { user: { id: 2, role: "Coordinator" } } }));
+  await page.route(`${API_ORIGIN}/events`, (route) => route.fulfill({ json: { events: [REQUEST_EVENT] } }));
+  await page.route(`${API_ORIGIN}/venues?*`, (route) => route.fulfill({ json: { venues: [{ ...REQUEST_VENUE, capacity: 50 }], page: 1, has_more: false } }));
+  let requests = 0;
+  await page.route(`${API_ORIGIN}/venues/bookings`, (route) => { requests += 1; return route.fulfill({ status: 201, json: { booking: PENDING_BOOKING } }); });
+  await page.goto("/venues/bookings/new");
+  await page.getByLabel("Expected attendance").fill("51");
+  await page.getByLabel("Layout").fill("Theatre");
+  await page.getByLabel("Start").fill("2099-10-20T14:00");
+  await page.getByLabel("End", { exact: true }).fill("2099-10-20T16:00");
+  await page.getByRole("button", { name: "Submit booking request" }).click();
+  await expect(page.getByText("Expected attendance cannot exceed this venue's capacity of 50.", { exact: true })).toBeVisible();
+  expect(requests).toBe(0);
+});
+
+test("booking form blocks an end time before the start time", async ({ page }) => {
+  await page.unroute("**/session");
+  await page.route(`${API_ORIGIN}/session`, (route) => route.fulfill({ json: { user: { id: 2, role: "Coordinator" } } }));
+  await page.route(`${API_ORIGIN}/events`, (route) => route.fulfill({ json: { events: [REQUEST_EVENT] } }));
+  await page.route(`${API_ORIGIN}/venues?*`, (route) => route.fulfill({ json: { venues: [REQUEST_VENUE], page: 1, has_more: false } }));
+  let requests = 0;
+  await page.route(`${API_ORIGIN}/venues/bookings`, (route) => { requests += 1; return route.fulfill({ status: 201, json: { booking: PENDING_BOOKING } }); });
+  await page.goto("/venues/bookings/new");
+  await page.getByLabel("Expected attendance").fill("120");
+  await page.getByLabel("Layout").fill("Theatre");
+  await page.getByLabel("Start").fill("2099-10-20T16:00");
+  await page.getByLabel("End", { exact: true }).fill("2099-10-20T14:00");
+  await page.getByRole("button", { name: "Submit booking request" }).click();
+  await expect(page.getByText("The end date and time must be after the start date and time.", { exact: true })).toBeVisible();
+  expect(requests).toBe(0);
 });
