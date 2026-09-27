@@ -18,7 +18,7 @@ const REQUIREMENT_FIELDS = [
   { name: "registration_requirements", label: "Registration requirements" },
 ] as const;
 const INPUT_STYLE =
-  "w-full rounded border border-slate-600 bg-slate-950 p-3 [color-scheme:dark] focus:border-sky-400 focus:outline-none focus:ring-1 focus:ring-sky-400";
+  "w-full rounded-md border border-input bg-background p-3 text-foreground focus:border-ring focus:outline-none focus:ring-2 focus:ring-ring/30";
 
 // Convert a stored UTC ISO time to the value a datetime-local input expects (local time).
 function toLocalInput(iso: string | null): string {
@@ -44,11 +44,11 @@ export default function EventEditForm({
   // Direct editing is only available while the event is in Planning (SCRUM-23 / TC-US4.6-03).
   if (event.status !== "Planning") {
     return (
-      <section className="space-y-2 rounded-2xl border border-white/10 bg-slate-900/70 p-6 text-sm text-slate-400 sm:p-8">
-        <h2 className="text-lg font-semibold text-slate-100">Editing</h2>
+      <section className="space-y-2 rounded-2xl border border-border bg-card p-6 text-sm text-muted-foreground shadow-sm sm:p-8">
+        <h2 className="text-lg font-semibold text-foreground">Editing</h2>
         <p>
           Direct editing is only available while an event is in Planning. This event is{" "}
-          <span className="font-medium text-slate-200">{event.status}</span> — changes must go
+          <span className="font-medium text-foreground">{event.status}</span> — changes must go
           through a change request.
         </p>
       </section>
@@ -115,18 +115,18 @@ export default function EventEditForm({
 
   function fieldError(name: string) {
     return fieldErrors[name] ? (
-      <p id={`${name}-error`} className="mt-1 text-sm text-red-300">{fieldErrors[name]}</p>
+      <p id={`${name}-error`} className="mt-1 text-sm text-destructive">{fieldErrors[name]}</p>
     ) : null;
   }
 
   return (
-    <form onSubmit={saveEdit} noValidate className="space-y-6 rounded-2xl border border-white/10 bg-slate-900/70 p-5 sm:p-8">
+    <form onSubmit={saveEdit} noValidate className="space-y-6 rounded-2xl border border-border bg-card p-5 shadow-sm sm:p-8">
       <div className="space-y-1">
         <h2 className="text-lg font-semibold">Edit event details</h2>
-        <p className="text-sm text-slate-400">Available while the event is in Planning. Each edit is recorded with your name and the time.</p>
+        <p className="text-sm text-muted-foreground">Available while the event is in Planning. Each edit is recorded with your name and the time.</p>
       </div>
-      {notice && <p role="status" className="rounded border border-green-700 bg-green-950/30 p-3 text-sm text-green-200">{notice}</p>}
-      {error && <p role="alert" className="rounded border border-red-700 bg-red-950/40 p-3 text-red-200">{error}</p>}
+      {notice && <p role="status" className="rounded-md border border-emerald-500/30 bg-emerald-500/5 p-3 text-sm text-emerald-700 dark:text-emerald-400">{notice}</p>}
+      {error && <p role="alert" className="rounded-md border border-destructive/30 bg-destructive/5 p-3 text-sm text-destructive">{error}</p>}
       <fieldset disabled={busy} className="space-y-5 disabled:opacity-40">
         <legend className="sr-only">Event details</legend>
         {TEXT_FIELDS.map((field) => (
@@ -154,7 +154,7 @@ export default function EventEditForm({
               aria-invalid={!!fieldErrors.event_datetime}
               aria-describedby={fieldErrors.event_datetime ? "edit-time-help event_datetime-error" : "edit-time-help"}
               className={INPUT_STYLE} />
-            <p id="edit-time-help" className="mt-1 text-sm text-slate-400">Uses your device&apos;s time zone.</p>
+            <p id="edit-time-help" className="mt-1 text-sm text-muted-foreground">Uses your device&apos;s time zone.</p>
             {fieldError("event_datetime")}
           </div>
           <div>
@@ -166,7 +166,7 @@ export default function EventEditForm({
             {fieldError("expected_attendance")}
           </div>
         </div>
-        <fieldset className="space-y-5 border-t border-slate-700 pt-4">
+        <fieldset className="space-y-5 border-t border-border pt-4">
           <legend className="px-2 font-semibold">Additional requirements (optional)</legend>
           {REQUIREMENT_FIELDS.map((field) => (
             <div key={field.name}>
@@ -180,12 +180,12 @@ export default function EventEditForm({
           ))}
         </fieldset>
         <div className="flex flex-wrap items-center gap-3">
-          <button type="submit" className="rounded bg-sky-300 px-5 py-3 font-semibold text-slate-950 disabled:opacity-50">
+          <button type="submit" className="rounded-md bg-primary px-5 py-3 font-semibold text-primary-foreground hover:bg-primary/90 disabled:opacity-50">
             {busy ? "Saving…" : "Save changes"}
           </button>
           <Link
             href="/events/review"
-            className="rounded border border-slate-600 px-5 py-3 font-semibold text-slate-200 hover:border-slate-400 hover:text-white"
+            className="rounded-md border border-border px-5 py-3 font-semibold text-foreground hover:bg-muted"
           >
             Cancel
           </Link>

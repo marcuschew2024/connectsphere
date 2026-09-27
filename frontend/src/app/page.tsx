@@ -2,24 +2,79 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { API_URL, apiRequest } from "@/lib/api";
+import {
+  ArrowUpRight,
+  Building2,
+  ClipboardCheck,
+  FileText,
+  Plus,
+  type LucideIcon,
+} from "lucide-react";
+import { API_URL } from "@/lib/api";
 import { useActingRole } from "@/lib/use-acting-role";
+import { AppShell } from "@/components/app-shell";
+import { cn } from "@/lib/utils";
 import DevRoleSwitcher from "./dev-role-switcher";
 import OrganiserNotifications from "./organiser-notifications";
 
 type ApiStatus = "checking" | "ok" | "unreachable";
 
+type Action = {
+  title: string;
+  description: string;
+  href: string;
+  icon: LucideIcon;
+  primary?: boolean;
+};
+
+const ROLE_ACTIONS: Record<string, Action[]> = {
+  Organiser: [
+    { title: "Create an event request", description: "Start a new request for approval.", href: "/events/new", icon: Plus, primary: true },
+    { title: "My drafts", description: "Pick up a private draft where you left off.", href: "/events/drafts", icon: FileText },
+  ],
+  Coordinator: [
+    { title: "Review event requests", description: "Approve, reject or return submissions.", href: "/events/review", icon: ClipboardCheck, primary: true },
+    { title: "Venue catalogue", description: "Browse venues for an event.", href: "/venues", icon: Building2 },
+  ],
+  "Venue Staff": [
+    { title: "Add a venue", description: "List a new venue in the catalogue.", href: "/venues/new", icon: Plus, primary: true },
+    { title: "Venue catalogue", description: "Browse and manage venues.", href: "/venues", icon: Building2 },
+  ],
+};
+
+function ActionTile({ action }: { action: Action }) {
+  const { title, description, href, icon: Icon, primary } = action;
+  return (
+    <Link
+      href={href}
+      aria-label={title}
+      className="group relative flex flex-col gap-4 rounded-2xl border border-border/80 bg-card p-5 shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:border-primary/40 hover:shadow-md motion-reduce:transition-none motion-reduce:hover:translate-y-0"
+    >
+      <span
+        className={cn(
+          "inline-flex size-11 items-center justify-center rounded-xl transition-colors",
+          primary ? "bg-primary text-primary-foreground" : "bg-primary/10 text-primary",
+        )}
+      >
+        <Icon className="size-5" aria-hidden="true" />
+      </span>
+      <div className="space-y-1">
+        <h3 className="flex items-center gap-1 font-medium tracking-tight">
+          {title}
+          <ArrowUpRight
+            className="size-4 -translate-x-1 text-muted-foreground opacity-0 transition-all duration-200 group-hover:translate-x-0 group-hover:opacity-100 motion-reduce:transition-none"
+            aria-hidden="true"
+          />
+        </h3>
+        <p className="text-sm text-muted-foreground">{description}</p>
+      </div>
+    </Link>
+  );
+}
+
 export default function Home() {
-  const router = useRouter();
   const [apiStatus, setApiStatus] = useState<ApiStatus>("checking");
   const [actingRole, updateRole] = useActingRole();
-
-  async function handleLogout() {
-    await apiRequest("/auth/logout", { method: "POST" }).catch(() => {});
-    updateRole(null);
-    router.push("/login");
-  }
 
   useEffect(() => {
     const controller = new AbortController();
@@ -40,66 +95,83 @@ export default function Home() {
   }, []);
 
   const statusLabel =
-    apiStatus === "checking"
-      ? "checking..."
-      : apiStatus === "ok"
-        ? "ok"
-        : "unreachable";
+    apiStatus === "checking" ? "checking…" : apiStatus === "ok" ? "ok" : "unreachable";
 
   const statusColor =
     apiStatus === "ok"
-      ? "bg-green-500"
+      ? "bg-emerald-500"
       : apiStatus === "unreachable"
-        ? "bg-red-500"
-        : "bg-yellow-500";
+        ? "bg-destructive"
+        : "bg-amber-500";
+
+  const actions = actingRole ? ROLE_ACTIONS[actingRole] : undefined;
 
   return (
-    <main className="min-h-screen bg-slate-950 text-slate-100">
-      <header className="border-b border-white/10 bg-slate-900/60">
-        <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-4 px-5 py-5 sm:px-8">
-          <div>
-            <h1 className="text-xl font-semibold tracking-tight">ConnectSphere<span aria-hidden="true" className="text-sky-300">.</span></h1>
-            <p className="mt-1 text-xs text-slate-400">Your event workspace</p>
-          </div>
-          <div className="flex items-center gap-4">
-            <span className="flex items-center gap-2 text-xs text-slate-400">
-              <span className={`h-1.5 w-1.5 rounded-full ${statusColor}`} />API: {statusLabel}
+    <AppShell actingRole={actingRole}>
+      <div className="relative">
+        {/* Subtle blue glow at the top of the content area for depth. */}
+        <div
+          aria-hidden="true"
+          className="pointer-events-none absolute inset-x-0 top-0 -z-10 h-64 bg-gradient-to-b from-primary/[0.06] to-transparent"
+        />
+
+        <div className="mx-auto max-w-6xl space-y-10 px-5 py-10 sm:px-8 sm:py-14">
+          {/* Page-level h1 for accessibility (the visible wordmark lives in the sidebar). */}
+          <h1 className="sr-only">ConnectSphere</h1>
+          <div className="flex items-start justify-between gap-4">
+            <div className="max-w-2xl">
+              <p className="mb-3 text-xs font-medium uppercase tracking-[0.18em] text-primary">
+                {actingRole ? `${actingRole} workspace` : "Overview"}
+              </p>
+              <h2 className="text-3xl font-semibold tracking-tight text-balance sm:text-4xl">
+                {actingRole ? `You’re in ${actingRole} view` : "Your workspace, all in one place"}
+              </h2>
+              <p className="mt-3 text-base leading-relaxed text-muted-foreground">
+                {actingRole === "Organiser"
+                  ? "Start a request, continue a draft or catch up on decisions."
+                  : actingRole === "Coordinator"
+                    ? "Review the requests assigned to you and keep events moving."
+                    : "Manage the full event lifecycle — requests, coordination, venues and bookings."}
+              </p>
+            </div>
+            <span className="hidden shrink-0 items-center gap-2 rounded-full border border-border bg-card px-3 py-1 text-xs text-muted-foreground shadow-sm sm:flex">
+              <span className={cn("h-1.5 w-1.5 rounded-full", statusColor)} />
+              API: {statusLabel}
             </span>
-            {actingRole && <button type="button" onClick={handleLogout} className="rounded-lg border border-white/10 px-3 py-2 text-sm text-slate-300 hover:bg-white/5">Sign out</button>}
           </div>
-        </div>
-      </header>
 
-      <div className="mx-auto max-w-6xl space-y-6 px-5 py-7 sm:px-8 sm:py-9">
-        <div className="flex flex-wrap items-center justify-between gap-5">
-          <div>
-            <p className="mb-2 text-xs font-medium uppercase tracking-[0.16em] text-sky-300">Overview</p>
-            <h2 className="text-2xl font-semibold tracking-tight sm:text-3xl">{actingRole ? `You’re in ${actingRole} view` : "Your workspace"}</h2>
-            <p className="mt-2 text-sm text-slate-400">{actingRole === "Organiser" ? "Start a request, continue a draft or catch up on decisions." : actingRole === "Coordinator" ? "Review the requests assigned to you and keep events moving." : "Manage your events in one place."}</p>
-          </div>
-        </div>
+          {process.env.NODE_ENV === "development" && (
+            <DevRoleSwitcher compact onRoleChange={updateRole} />
+          )}
 
-        {process.env.NODE_ENV === "development" && <DevRoleSwitcher compact onRoleChange={updateRole} />}
+          {actions && (
+            <section aria-label="Quick actions">
+              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                {actions.map((action) => (
+                  <ActionTile key={action.href + action.title} action={action} />
+                ))}
+              </div>
+            </section>
+          )}
 
-        <div className={`grid items-start gap-6 ${actingRole === "Organiser" ? "lg:grid-cols-[280px_minmax(0,1fr)]" : ""}`}>
-          <section aria-label="Workspace actions" className="rounded-2xl border border-white/10 bg-slate-900/50 p-5 sm:p-6">
-            <h3 className="mb-4 text-sm font-medium text-slate-300">{actingRole ? "Your next step" : "Get started"}</h3>
-            {actingRole === "Organiser" && <div className="space-y-3">
-              <Link href="/events/new" className="flex items-center justify-between gap-3 rounded-xl bg-sky-300 px-4 py-3 text-sm font-semibold text-slate-950 hover:bg-sky-200">Create an event request <span aria-hidden="true">＋</span></Link>
-              <Link href="/events/drafts" className="flex items-center justify-between rounded-xl border border-white/15 px-4 py-3 text-sm font-medium text-slate-200 hover:bg-white/5">My drafts <span aria-hidden="true">→</span></Link>
-              <p className="hidden pt-1 text-xs leading-relaxed text-slate-400 lg:block">Drafts are private. Once submitted, your Coordinator reviews your request and the decision appears in Notifications.</p>
-            </div>}
-            {actingRole === "Coordinator" && <Link href="/events/review" className="inline-flex items-center gap-6 rounded-xl bg-sky-300 px-5 py-3 text-sm font-semibold text-slate-950 hover:bg-sky-200">Review event requests <span aria-hidden="true">→</span></Link>}
-            {(actingRole === "Venue Staff" || actingRole === "Coordinator") && <div className="mt-3 flex flex-wrap gap-3">
-              {actingRole === "Venue Staff" && <Link href="/venues/new" className="rounded-xl bg-sky-300 px-5 py-3 text-sm font-semibold text-slate-950 hover:bg-sky-200">Add a venue</Link>}
-              <Link href="/venues" className="rounded-xl border border-white/15 px-5 py-3 text-sm font-medium text-sky-200 hover:bg-white/5">Venue catalogue</Link>
-            </div>}
-            {actingRole && !["Organiser", "Coordinator", "Venue Staff"].includes(actingRole) && <p className="text-sm text-slate-400">No actions are available for the {actingRole} role yet — {actingRole} tools arrive in a later sprint.</p>}
-            {!actingRole && <p className="text-sm text-slate-400">{process.env.NODE_ENV === "development" ? "Select a role above to see what it can do." : "Sign in to access your workspace."}</p>}
-          </section>
           {actingRole === "Organiser" && <OrganiserNotifications />}
+
+          {actingRole && !actions && (
+            <div className="rounded-2xl border border-border/80 bg-card p-6 text-sm text-muted-foreground shadow-sm">
+              No actions are available for the {actingRole} role yet — {actingRole} tools arrive in a
+              later sprint.
+            </div>
+          )}
+
+          {!actingRole && (
+            <div className="rounded-2xl border border-border/80 bg-card p-6 text-sm text-muted-foreground shadow-sm">
+              {process.env.NODE_ENV === "development"
+                ? "Select a role above to see what it can do."
+                : "Sign in to access your workspace."}
+            </div>
+          )}
         </div>
       </div>
-    </main>
+    </AppShell>
   );
 }

@@ -5,6 +5,7 @@ import { useParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import { apiRequest } from "@/lib/api";
 import type { EventRecord } from "@/lib/events";
+import { Button } from "@/components/ui/button";
 import EventRequestForm from "../../new/event-request-form";
 import DraftWorkspace from "../draft-workspace";
 
@@ -22,13 +23,13 @@ function DraftEditor({ eventId }: { eventId: string }) {
     return () => controller.abort();
   }, [eventId]);
 
-  if (error) return <p role="alert" className="rounded-2xl border border-red-300/20 bg-red-300/5 p-6 text-sm text-red-200">{error}</p>;
-  if (!event) return <p role="status" className="text-sm text-slate-400">Opening your draft…</p>;
+  if (error) return <p role="alert" className="rounded-2xl border border-destructive/30 bg-destructive/5 p-6 text-sm text-destructive">{error}</p>;
+  if (!event) return <p role="status" className="text-sm text-muted-foreground">Opening your draft…</p>;
   if ((event.request_status ?? event.status) !== "Draft") return (
-    <section className="rounded-3xl border border-white/10 bg-white/[0.02] p-8 text-center">
+    <section className="rounded-2xl border border-border bg-card p-8 text-center shadow-sm">
       <h2 className="text-xl font-medium">This request has moved on.</h2>
-      <p className="mt-3 text-sm text-slate-400">It has already been submitted and can no longer be edited as a draft.</p>
-      <Link href={`/events/${event.id}`} className="mt-6 inline-flex rounded-full bg-sky-300 px-5 py-2.5 text-sm font-semibold text-slate-950">View event status</Link>
+      <p className="mt-3 text-sm text-muted-foreground">It has already been submitted and can no longer be edited as a draft.</p>
+      <Button asChild className="mt-6"><Link href={`/events/${event.id}`}>View event status</Link></Button>
     </section>
   );
   return <EventRequestForm canCreate initialEvent={event} />;

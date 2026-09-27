@@ -59,26 +59,26 @@ export default function EventDecisionForm({
   }
 
   return (
-    <section className="space-y-4 rounded-2xl border border-white/10 bg-slate-900/70 p-5">
+    <section className="space-y-4 rounded-2xl border border-border bg-card p-5 shadow-sm">
       <div>
         <h2 className="text-lg font-semibold">Review request</h2>
-        <p className="text-sm text-slate-400">
+        <p className="text-sm text-muted-foreground">
           Approve the request or reject it with a reason.
         </p>
       </div>
 
-      {error && <p role="alert" className="rounded border border-red-700 p-3 text-red-200">{error}</p>}
+      {error && <p role="alert" className="rounded-md border border-destructive/30 bg-destructive/5 p-3 text-sm text-destructive">{error}</p>}
 
       <button
         type="button"
         disabled={busy}
         onClick={() => void makeDecision("approve")}
-        className="w-full rounded-xl bg-emerald-300 px-4 py-3 text-sm font-semibold text-slate-950 hover:bg-emerald-200 disabled:opacity-50"
+        className="w-full rounded-md bg-emerald-600 px-4 py-3 text-sm font-semibold text-white hover:bg-emerald-500 disabled:opacity-50"
       >
         Approve
       </button>
 
-      <form onSubmit={submitRejection} className="space-y-3 border-t border-white/10 pt-4">
+      <form onSubmit={submitRejection} className="space-y-3 border-t border-border pt-4">
         <label htmlFor="decision-reason" className="block font-medium">
           Rejection reason
         </label>
@@ -88,13 +88,13 @@ export default function EventDecisionForm({
           onChange={(formEvent) => setReason(formEvent.target.value)}
           rows={3}
           maxLength={2000}
-          className="w-full rounded-xl border border-slate-600 bg-slate-950 p-3 text-sm focus:border-sky-300 focus:outline-none"
+          className="w-full rounded-md border border-input bg-background p-3 text-sm text-foreground focus:border-ring focus:outline-none focus:ring-2 focus:ring-ring/30"
           placeholder="Explain why the request cannot proceed"
         />
         <button
           type="submit"
           disabled={busy}
-          className="w-full rounded-xl border border-rose-400/40 bg-rose-400/10 px-4 py-2.5 text-sm font-semibold text-rose-200 hover:bg-rose-400/20 disabled:opacity-50"
+          className="w-full rounded-md border border-destructive/40 bg-destructive/10 px-4 py-2.5 text-sm font-semibold text-destructive hover:bg-destructive/20 disabled:opacity-50"
         >
           Reject
         </button>
