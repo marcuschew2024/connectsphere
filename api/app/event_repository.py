@@ -7,33 +7,6 @@ from werkzeug.exceptions import Conflict, ServiceUnavailable
 from .supabase_client import get_supabase_client
 
 
-class EventStatus:
-    """Encapsulates the status mapping logic for user-visible event states."""
-
-    _mapping = {
-        "Draft": "Draft",
-        "Submitted": "Submitted",
-        "Assigned": "Submitted",
-        "Under review": "Submitted",
-        "Under Review": "Submitted",
-        "Approved": "Planning",
-        "Planning": "Planning",
-        "Confirmed": "Confirmed",
-        "Completed": "Completed",
-        "Rejected": "Rejected",
-        "Cancelled": "Cancelled",
-    }
-
-    @classmethod
-    def to_visible(cls, raw_status: str | None) -> str:
-        return cls._mapping.get((raw_status or "").strip(), "Planning")
-
-    @classmethod
-    def is_terminal(cls, raw_status: str | None) -> bool:
-        visible = cls.to_visible(raw_status)
-        return visible in {"Completed", "Rejected", "Cancelled"}
-
-
 def insert_event(fields: dict) -> dict:
     """Insert one event and return its stored ID, details and database timestamps."""
     try:
@@ -51,17 +24,6 @@ def insert_event(fields: dict) -> dict:
         raise ServiceUnavailable(
             "Could not confirm that the request was saved. Contact the team before retrying."
         ) from error
-
-
-def canonical_event_status(raw_status: str | None) -> str:
-    """Backward-compatible wrapper around the OOP status mapper."""
-    return EventStatus.to_visible(raw_status)
-
-
-def customer_event_status(raw_status: str | None) -> str:
-    """Map internal submitted/review states to the customer-facing Planning state."""
-    visible = canonical_event_status(raw_status)
-    return "Planning" if visible == "Submitted" else visible
 
 
 def get_event_by_id(event_id: str) -> dict | None:
