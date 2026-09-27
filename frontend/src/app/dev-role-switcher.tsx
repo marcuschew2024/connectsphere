@@ -94,25 +94,25 @@ export default function DevRoleSwitcher({ onRoleChange, compact = false }: {
     <section
       aria-label="Development role switcher"
       className={compact
-        ? "grid w-full gap-3 rounded-2xl border border-white/10 bg-white/[0.03] px-5 py-3 sm:grid-cols-[1fr_auto] sm:items-center"
-        : "w-full max-w-md space-y-4 rounded-lg border border-amber-700 bg-slate-900 p-5"}
+        ? "grid w-full gap-3 rounded-2xl border border-border bg-card px-5 py-4 shadow-sm sm:grid-cols-[1fr_auto] sm:items-center"
+        : "w-full max-w-md space-y-4 rounded-2xl border border-amber-500/50 bg-card p-5 text-foreground shadow-sm"}
     >
       <div>
-        <h2 className={compact ? "text-sm font-medium text-slate-200" : "font-semibold text-amber-300"}>
+        <h2 className={compact ? "text-sm font-medium text-foreground" : "font-semibold text-amber-600 dark:text-amber-400"}>
           {compact ? "Role preview" : "Development role switcher"}
         </h2>
-        <p className={compact ? "mt-1 hidden text-xs text-slate-400 sm:block" : "mt-1 text-sm text-slate-400"}>
+        <p className="mt-1 hidden text-xs text-muted-foreground sm:block">
           {compact ? "Choose a role to see its workspace." : "Choose a demo user to test the app. Temporary until real login is available."}
         </p>
       </div>
       <div>
-        <label htmlFor="acting-user" className={compact ? "sr-only" : "mb-2 block text-sm"}>Act as</label>
+        <label htmlFor="acting-user" className={compact ? "sr-only" : "mb-2 block text-sm text-muted-foreground"}>Act as</label>
         <select
           id="acting-user"
           value={user?.id ?? ""}
           disabled={busy || users.length === 0}
           onChange={(event) => void switchUser(event.target.value)}
-          className="w-full rounded-xl border border-slate-600 bg-slate-950 p-3 text-sm [color-scheme:dark] transition-colors focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-400/20 disabled:opacity-50 motion-reduce:transition-none"
+          className="w-full rounded-lg border border-input bg-background p-2.5 text-sm text-foreground shadow-xs transition-colors focus:border-ring focus:outline-none focus:ring-2 focus:ring-ring/30 disabled:opacity-50 motion-reduce:transition-none"
         >
           <option value="">Select a demo user</option>
           {users.map((demoUser) => (
@@ -122,19 +122,19 @@ export default function DevRoleSwitcher({ onRoleChange, compact = false }: {
           ))}
         </select>
       </div>
-      <p className={compact ? "sr-only" : "text-sm"} aria-live="polite">
+      <p className={compact ? "sr-only" : "text-sm text-muted-foreground"} aria-live="polite">
         {user ? `Acting as: ${user.display_name} (${user.role})` : "No acting user selected."}
       </p>
       {!compact && <button
         type="button"
         disabled={busy || !user}
         onClick={() => void testAction()}
-        className="rounded bg-amber-300 px-4 py-2 text-sm font-semibold text-slate-950 disabled:opacity-50"
+        className="rounded-full bg-amber-400 px-4 py-2 text-sm font-semibold text-amber-950 disabled:opacity-50"
       >
         Test action
       </button>}
-      {message && <p role="status" className="text-sm text-green-300 sm:col-span-full">{message}</p>}
-      {error && <p role="alert" className="text-sm text-red-300 sm:col-span-full">{error}</p>}
+      {message && <p role="status" className="text-sm text-emerald-600 sm:col-span-full">{message}</p>}
+      {error && <p role="alert" className="text-sm text-destructive sm:col-span-full">{error}</p>}
     </section>
   );
 }

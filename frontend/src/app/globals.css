@@ -139,7 +139,7 @@ body {
     calc(var(--radius) * 2.6);
 }
 
-/* ConnectSphere theme — cool neutral (slate) base with an indigo accent.
+/* ConnectSphere theme — cool neutral (slate) base with a blue accent.
    Replaces the default grayscale tokens. Edit these variables (or paste a
    tweakcn export) to retheme the whole app without touching components. */
 :root {
@@ -156,7 +156,7 @@ body {
   --popover-foreground:
     oklch(0.208 0.042 265.755);
   --primary:
-    oklch(0.511 0.262 276.966);
+    oklch(0.546 0.245 262.881);
   --primary-foreground:
     oklch(0.985 0.002 247.839);
   --secondary:
@@ -168,9 +168,9 @@ body {
   --muted-foreground:
     oklch(0.554 0.046 257.417);
   --accent:
-    oklch(0.932 0.034 272.788);
+    oklch(0.932 0.032 255.508);
   --accent-foreground:
-    oklch(0.379 0.146 277.026);
+    oklch(0.424 0.199 265.638);
   --destructive:
     oklch(0.577 0.245 27.325);
   --border:
@@ -178,17 +178,17 @@ body {
   --input:
     oklch(0.929 0.013 255.508);
   --ring:
-    oklch(0.511 0.262 276.966);
+    oklch(0.546 0.245 262.881);
   --chart-1:
-    oklch(0.511 0.262 276.966);
+    oklch(0.546 0.245 262.881);
   --chart-2:
-    oklch(0.585 0.233 277.117);
+    oklch(0.623 0.214 259.815);
   --chart-3:
-    oklch(0.673 0.182 276.935);
+    oklch(0.707 0.165 254.624);
   --chart-4:
-    oklch(0.746 0.16 232.661);
+    oklch(0.488 0.243 264.376);
   --chart-5:
-    oklch(0.398 0.195 277.366);
+    oklch(0.424 0.199 265.638);
   --radius:
     0.625rem;
   --sidebar:
@@ -196,17 +196,17 @@ body {
   --sidebar-foreground:
     oklch(0.208 0.042 265.755);
   --sidebar-primary:
-    oklch(0.511 0.262 276.966);
+    oklch(0.546 0.245 262.881);
   --sidebar-primary-foreground:
     oklch(0.985 0.002 247.839);
   --sidebar-accent:
     oklch(0.968 0.007 247.896);
   --sidebar-accent-foreground:
-    oklch(0.379 0.146 277.026);
+    oklch(0.424 0.199 265.638);
   --sidebar-border:
     oklch(0.929 0.013 255.508);
   --sidebar-ring:
-    oklch(0.511 0.262 276.966);
+    oklch(0.546 0.245 262.881);
 }
 
 .dark {
@@ -223,7 +223,7 @@ body {
   --popover-foreground:
     oklch(0.984 0.003 247.858);
   --primary:
-    oklch(0.673 0.182 276.935);
+    oklch(0.707 0.165 254.624);
   --primary-foreground:
     oklch(0.208 0.042 265.755);
   --secondary:
@@ -235,9 +235,9 @@ body {
   --muted-foreground:
     oklch(0.711 0.035 256.788);
   --accent:
-    oklch(0.339 0.06 267.148);
+    oklch(0.349 0.077 259.849);
   --accent-foreground:
-    oklch(0.882 0.059 279.096);
+    oklch(0.882 0.059 264.531);
   --destructive:
     oklch(0.704 0.191 22.216);
   --border:
@@ -245,33 +245,33 @@ body {
   --input:
     oklch(1 0 0 / 15%);
   --ring:
-    oklch(0.673 0.182 276.935);
+    oklch(0.707 0.165 254.624);
   --chart-1:
-    oklch(0.673 0.182 276.935);
+    oklch(0.707 0.165 254.624);
   --chart-2:
-    oklch(0.585 0.233 277.117);
+    oklch(0.623 0.214 259.815);
   --chart-3:
-    oklch(0.511 0.262 276.966);
+    oklch(0.546 0.245 262.881);
   --chart-4:
-    oklch(0.746 0.16 232.661);
+    oklch(0.488 0.243 264.376);
   --chart-5:
-    oklch(0.788 0.108 274.713);
+    oklch(0.809 0.105 251.813);
   --sidebar:
     oklch(0.279 0.041 260.031);
   --sidebar-foreground:
     oklch(0.984 0.003 247.858);
   --sidebar-primary:
-    oklch(0.673 0.182 276.935);
+    oklch(0.707 0.165 254.624);
   --sidebar-primary-foreground:
     oklch(0.208 0.042 265.755);
   --sidebar-accent:
-    oklch(0.339 0.06 267.148);
+    oklch(0.349 0.077 259.849);
   --sidebar-accent-foreground:
-    oklch(0.882 0.059 279.096);
+    oklch(0.882 0.059 264.531);
   --sidebar-border:
     oklch(1 0 0 / 10%);
   --sidebar-ring:
-    oklch(0.673 0.182 276.935);
+    oklch(0.707 0.165 254.624);
 }
 
 @layer base {
