@@ -2,7 +2,8 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
+import { apiRequest } from "@/lib/api";
 import {
   Building2,
   ClipboardCheck,
@@ -43,16 +44,21 @@ const DEFAULT_NAV: NavItem[] = [{ label: "Home", href: "/", icon: Home }];
 
 export function AppShell({
   actingRole,
-  onLogout,
   children,
 }: {
   actingRole: string | null;
-  onLogout?: () => void;
   children: React.ReactNode;
 }) {
   const pathname = usePathname();
+  const router = useRouter();
   const [mobileOpen, setMobileOpen] = useState(false);
   const nav = actingRole ? (NAV_BY_ROLE[actingRole] ?? DEFAULT_NAV) : DEFAULT_NAV;
+
+  async function handleLogout() {
+    await apiRequest("/auth/logout", { method: "POST" }).catch(() => {});
+    router.push("/login");
+    router.refresh();
+  }
 
   const sidebar = (
     <div className="flex h-full flex-col bg-slate-900 text-slate-300">
@@ -98,15 +104,13 @@ export function AppShell({
           <div className="space-y-1">
             <p className="px-2 text-xs text-slate-500">Signed in as</p>
             <p className="px-2 pb-1 text-sm font-medium text-slate-100">{actingRole}</p>
-            {onLogout && (
-              <button
-                type="button"
-                onClick={onLogout}
-                className="flex w-full items-center gap-2 rounded-lg px-2 py-2 text-sm text-slate-400 transition-colors hover:bg-white/5 hover:text-white"
-              >
-                <LogOut className="size-4" aria-hidden="true" /> Sign out
-              </button>
-            )}
+            <button
+              type="button"
+              onClick={handleLogout}
+              className="flex w-full items-center gap-2 rounded-lg px-2 py-2 text-sm text-slate-400 transition-colors hover:bg-white/5 hover:text-white"
+            >
+              <LogOut className="size-4" aria-hidden="true" /> Sign out
+            </button>
           </div>
         ) : (
           <p className="px-2 text-xs text-slate-500">Not signed in</p>

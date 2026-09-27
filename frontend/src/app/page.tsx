@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import {
   ArrowUpRight,
   Building2,
@@ -11,7 +10,7 @@ import {
   Plus,
   type LucideIcon,
 } from "lucide-react";
-import { API_URL, apiRequest } from "@/lib/api";
+import { API_URL } from "@/lib/api";
 import { useActingRole } from "@/lib/use-acting-role";
 import { AppShell } from "@/components/app-shell";
 import { cn } from "@/lib/utils";
@@ -30,11 +29,11 @@ type Action = {
 
 const ROLE_ACTIONS: Record<string, Action[]> = {
   Organiser: [
-    { title: "Create event request", description: "Start a new request for approval.", href: "/events/new", icon: Plus, primary: true },
+    { title: "Create an event request", description: "Start a new request for approval.", href: "/events/new", icon: Plus, primary: true },
     { title: "My drafts", description: "Pick up a private draft where you left off.", href: "/events/drafts", icon: FileText },
   ],
   Coordinator: [
-    { title: "Review requests", description: "Approve, reject or return submissions.", href: "/events/review", icon: ClipboardCheck, primary: true },
+    { title: "Review event requests", description: "Approve, reject or return submissions.", href: "/events/review", icon: ClipboardCheck, primary: true },
     { title: "Venue catalogue", description: "Browse venues for an event.", href: "/venues", icon: Building2 },
   ],
   "Venue Staff": [
@@ -73,15 +72,8 @@ function ActionTile({ action }: { action: Action }) {
 }
 
 export default function Home() {
-  const router = useRouter();
   const [apiStatus, setApiStatus] = useState<ApiStatus>("checking");
   const [actingRole, updateRole] = useActingRole();
-
-  async function handleLogout() {
-    await apiRequest("/auth/logout", { method: "POST" }).catch(() => {});
-    updateRole(null);
-    router.push("/login");
-  }
 
   useEffect(() => {
     const controller = new AbortController();
@@ -114,7 +106,7 @@ export default function Home() {
   const actions = actingRole ? ROLE_ACTIONS[actingRole] : undefined;
 
   return (
-    <AppShell actingRole={actingRole} onLogout={actingRole ? handleLogout : undefined}>
+    <AppShell actingRole={actingRole}>
       <div className="relative">
         {/* Subtle blue glow at the top of the content area for depth. */}
         <div
@@ -123,6 +115,8 @@ export default function Home() {
         />
 
         <div className="mx-auto max-w-6xl space-y-10 px-5 py-10 sm:px-8 sm:py-14">
+          {/* Page-level h1 for accessibility (the visible wordmark lives in the sidebar). */}
+          <h1 className="sr-only">ConnectSphere</h1>
           <div className="flex items-start justify-between gap-4">
             <div className="max-w-2xl">
               <p className="mb-3 text-xs font-medium uppercase tracking-[0.18em] text-primary">
