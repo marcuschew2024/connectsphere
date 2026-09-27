@@ -10,7 +10,7 @@ class EventDecision:
     }
 
     def __init__(self, action: str, reason: str | None = None):
-        if action not in self._STATUSES:
+        if not isinstance(action, str) or action not in self._STATUSES:
             raise ValueError("Decision must be approve or reject.")
 
         if action == "reject":
