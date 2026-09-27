@@ -49,3 +49,13 @@ def list_venues(page: int) -> tuple[list[dict], bool]:
         raise
     except Exception as error:
         raise ServiceUnavailable("Could not load the venue catalogue. Please try again.") from error
+
+
+def get_venue(venue_id: str) -> dict | None:
+    try:
+        result = _client().table("venues").select("*").eq("id", venue_id).execute()
+        return result.data[0] if result.data else None
+    except ServiceUnavailable:
+        raise
+    except Exception as error:
+        raise ServiceUnavailable("Could not load the selected venue. Contact the team.") from error

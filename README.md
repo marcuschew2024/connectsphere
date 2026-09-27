@@ -43,6 +43,11 @@ For the confirmed request clarification workflow, run
 event and notification migrations. Coordinators can return submitted requests with a
 note; organisers revise and resubmit them before they return to the review queue.
 
+For venue booking requests, run
+[`supabase/create_venue_bookings.sql`](supabase/create_venue_bookings.sql) after the
+event, venue, and notification migrations. Coordinators can request a venue from a
+Planning event; Venue Staff receive the request with status `Requested`.
+
 Open **http://localhost:3000/events/new**, select **Demo Organiser**, and create a
 draft or submit a completed event request. See the [code walkthrough, API contract,
 team integration notes and test instructions](docs/SCRUM-14.md).

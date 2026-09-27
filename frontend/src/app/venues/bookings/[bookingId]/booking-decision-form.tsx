@@ -19,7 +19,7 @@ export default function BookingDecisionForm({
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
 
-  if (booking.status !== "Pending") return null;
+  if (booking.status !== "Requested" && booking.status !== "Pending") return null;
 
   async function makeDecision(decision: "approve" | "reject") {
     if (busy) return;

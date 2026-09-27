@@ -7,6 +7,7 @@ import { apiRequest } from "@/lib/api";
 import {
   Building2,
   ClipboardCheck,
+  CalendarPlus,
   FilePlus2,
   FileText,
   Home,
@@ -32,11 +33,13 @@ const NAV_BY_ROLE: Record<string, NavItem[]> = {
     { label: "Home", href: "/", icon: Home },
     { label: "Review requests", href: "/events/review", icon: ClipboardCheck },
     { label: "Venues", href: "/venues", icon: Building2 },
+    { label: "Request venue", href: "/venues/bookings/new", icon: CalendarPlus },
   ],
   "Venue Staff": [
     { label: "Home", href: "/", icon: Home },
     { label: "Add venue", href: "/venues/new", icon: FilePlus2 },
     { label: "Venues", href: "/venues", icon: Building2 },
+    { label: "Booking requests", href: "/venues/bookings", icon: ClipboardCheck },
   ],
 };
 
