@@ -259,8 +259,10 @@ GET history -> check membership -> return append-only history ordered by time
 | File | Responsibility |
 | --- | --- |
 | `api/app/events.py` | Routes, origin checks, authentication, membership authorization and status mapping. |
+| `api/app/event_status.py` | Pure internal-to-visible status mapping and terminal-state rules. |
 | `api/app/event_repository.py` | Supabase queries for events, participants and status history. |
-| `api/tests/test_events.py` | Route, status mapping, access-control, update and history tests. |
+| `api/tests/test_event_status.py` | Status-mapping unit tests and status/history API integration tests. |
+| `frontend/e2e/event-status.spec.ts` | Browser checks for canonical badge styles and fallback styling. |
 | `supabase/create_events.sql` | Event columns, participant table, history table, indexes and grants. |
 | `frontend/src/app/events/[eventId]/page.tsx` | Single-event status and history screen. |
 | `frontend/src/lib/events.ts` | Shared event and history types plus status badge styling. |
@@ -275,16 +277,32 @@ python -m pytest
 ruff check .
 ```
 
+Run only the SCRUM-19 tests with branch-aware coverage from `api`:
+
+```bash
+python -m pytest tests/test_event_status.py --cov=. --cov-branch --cov-report=term-missing -q
+python -m coverage report --include="app/event_status.py" --show-missing
+```
+
+The status mapping module is isolated so this report measures its branches
+without requiring 100% coverage of unrelated repository or route code.
+
 From `frontend`:
 
 ```bash
+npm run test:unit
 npm run lint
 npm run build
+npm run test:e2e -- e2e/event-status.spec.ts
 ```
 
 The backend tests use an isolated fake Supabase client and do not modify the real
-project. At the time of writing, the backend suite passes 135 tests and the
-frontend lint and production build pass.
+project. Status mapping rules have unit tests; the Flask route tests are API
+integration tests using the fake database. The Playwright checks cover the
+browser-visible badge styling. The current local run has 363 backend tests
+passing, 25 skipped, and 100% statement and branch coverage for
+`api/app/event_status.py`. The dedicated status suite has 68 passing cases; the
+frontend unit suite has 5 passing tests and the focused status E2E suite has 6.
 
 ## Known limitations and future work
 

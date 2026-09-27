@@ -10,10 +10,8 @@ from .event_decision import EventDecision
 from .event_repository import (
     add_event_participant,
     add_status_history,
-    canonical_event_status,
     create_clarification,
     create_notification,
-    customer_event_status,
     get_event_by_id,
     get_events_for_user,
     get_pending_clarification,
@@ -26,6 +24,7 @@ from .event_repository import (
     update_event_fields,
     update_event_status,
 )
+from .event_status import canonical_event_status, customer_event_status
 from .event_validation import TEXT_LIMITS, validate_event
 from .rbac import public_event_view, require_related_user, require_role
 
