@@ -47,6 +47,7 @@ function ActionTile({ action }: { action: Action }) {
   return (
     <Link
       href={href}
+      aria-label={title}
       className="group relative flex flex-col gap-4 rounded-2xl border border-border/80 bg-card p-5 shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:border-primary/40 hover:shadow-md motion-reduce:transition-none motion-reduce:hover:translate-y-0"
     >
       <span

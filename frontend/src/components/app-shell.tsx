@@ -25,7 +25,7 @@ const NAV_BY_ROLE: Record<string, NavItem[]> = {
   Organiser: [
     { label: "Home", href: "/", icon: Home },
     { label: "New request", href: "/events/new", icon: FilePlus2 },
-    { label: "My drafts", href: "/events/drafts", icon: FileText },
+    { label: "Drafts", href: "/events/drafts", icon: FileText },
     { label: "Venues", href: "/venues", icon: Building2 },
   ],
   Coordinator: [
@@ -136,7 +136,7 @@ export function AppShell({
         </div>
       )}
 
-      <div className="lg:pl-64">
+      <main className="lg:pl-64">
         {/* Mobile top bar with menu toggle */}
         <div className="flex items-center gap-3 border-b border-border bg-background/80 px-4 py-3 backdrop-blur lg:hidden">
           <Button
@@ -153,7 +153,7 @@ export function AppShell({
           </span>
         </div>
         {children}
-      </div>
+      </main>
     </div>
   );
 }
