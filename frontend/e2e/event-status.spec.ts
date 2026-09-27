@@ -4,11 +4,11 @@ const EVENT_ID = "11111111-1111-4111-8111-111111111111";
 const API_ORIGIN = "http://localhost:5001";
 
 const statuses = [
-  ["Planning", "bg-blue-500/20"],
-  ["Confirmed", "bg-emerald-500/20"],
-  ["Completed", "bg-violet-500/20"],
-  ["Rejected", "bg-red-500/20"],
-  ["Cancelled", "bg-slate-500/20"],
+  ["Planning", "bg-blue-100"],
+  ["Confirmed", "bg-emerald-100"],
+  ["Completed", "bg-violet-100"],
+  ["Rejected", "bg-red-100"],
+  ["Cancelled", "bg-slate-100"],
 ] as const;
 
 // Each canonical visible state renders with its designated badge style.
@@ -60,7 +60,7 @@ test("unknown event status uses the neutral badge fallback", async ({ page }) =>
       last_status_changed_at: "2026-09-27T10:00:00Z",
       last_status_changed_by: 2,
     },
-  } }));
+    } }));
   await page.route(`${API_ORIGIN}/events/${EVENT_ID}/history`, (route) =>
     route.fulfill({ json: { history: [] } }));
   await page.route(`${API_ORIGIN}/events/${EVENT_ID}/clarification`, (route) =>
@@ -70,5 +70,5 @@ test("unknown event status uses the neutral badge fallback", async ({ page }) =>
 
   const badge = page.getByTestId("event-status-badge");
   await expect(badge).toHaveText("Unexpected");
-  await expect(badge).toHaveClass(/bg-slate-500\/20/);
+  await expect(badge).toHaveClass(/bg-slate-100/);
 });
