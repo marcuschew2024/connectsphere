@@ -106,3 +106,21 @@ def record_booking_decision(
         raise ServiceUnavailable(
             "Could not record the booking decision. Contact the team."
         ) from error
+
+
+def list_venue_bookings_in_range(venue_id: str, start_at: str, end_at: str) -> list[dict]:
+    """Bookings for one venue overlapping [start_at, end_at): confirmed, requested, blocked.
+
+    Powers the availability calendar (SCRUM-30). Half-open overlap via start < to and end > from.
+    """
+    try:
+        result = _client().table("venue_bookings").select(
+            "id,venue_id,start_at,end_at,status"
+        ).eq("venue_id", venue_id).in_(
+            "status", ["Confirmed", "Requested", "Blocked"]
+        ).lt("start_at", end_at).gt("end_at", start_at).execute()
+        return result.data or []
+    except ServiceUnavailable:
+        raise
+    except Exception as error:
+        raise ServiceUnavailable("Could not load venue bookings. Contact the team.") from error
