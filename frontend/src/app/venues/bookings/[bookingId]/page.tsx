@@ -8,6 +8,42 @@ import { useActingRole } from "@/lib/use-acting-role";
 import { AppShell } from "@/components/app-shell";
 import BookingDecisionForm from "./booking-decision-form";
 
+// A small stage timeline: Requested -> Under review -> Confirmed/Rejected.
+function BookingTimeline({ booking }: { booking: BookingRecord }) {
+  const decided = booking.status === "Confirmed" || booking.status === "Rejected";
+  const rejected = booking.status === "Rejected";
+  const steps = [
+    { label: "Requested", sub: booking.requested_at ? new Date(booking.requested_at).toLocaleDateString() : "", tone: "done" },
+    { label: "Under review", sub: "Venue Staff", tone: decided ? "done" : "active" },
+    {
+      label: decided ? (rejected ? "Rejected" : "Confirmed") : "Decision",
+      sub: booking.decision_at ? new Date(booking.decision_at).toLocaleDateString() : "Pending",
+      tone: decided ? (rejected ? "rejected" : "done") : "upcoming",
+    },
+  ];
+  const circle: Record<string, string> = {
+    done: "bg-emerald-500 border-emerald-500 text-white",
+    active: "bg-primary border-primary text-primary-foreground",
+    rejected: "bg-destructive border-destructive text-white",
+    upcoming: "bg-card border-border text-muted-foreground",
+  };
+  const glyph: Record<string, string> = { done: "✓", active: "•", rejected: "✕", upcoming: "•" };
+  return (
+    <ol className="flex items-start rounded-2xl border border-border bg-card px-4 py-5 shadow-sm">
+      {steps.map((step, index) => (
+        <li key={step.label} className="relative flex flex-1 flex-col items-center text-center">
+          {index > 0 && (
+            <span aria-hidden="true" className={`absolute right-1/2 top-4 h-0.5 w-full ${["done", "rejected"].includes(steps[index - 1].tone) ? "bg-emerald-500" : "bg-border"}`} />
+          )}
+          <span className={`relative z-10 grid size-8 place-items-center rounded-full border text-sm font-semibold ${circle[step.tone]}`}>{glyph[step.tone]}</span>
+          <span className="mt-2 text-xs font-semibold text-foreground">{step.label}</span>
+          <span className="text-[11px] text-muted-foreground">{step.sub}</span>
+        </li>
+      ))}
+    </ol>
+  );
+}
+
 // SCRUM-122: Venue Staff review one submitted booking request and decide on it.
 // The pending-bookings queue/list is SCRUM-31's; this page is the per-booking decision
 // surface, reachable from that queue (or by direct link).
@@ -78,6 +114,8 @@ export default function BookingDecisionPage() {
               <BookingStatusBadge status={booking.status} />
             </div>
           </header>
+
+          <BookingTimeline booking={booking} />
 
           {booking.status === "Confirmed" && (
             <section aria-labelledby="confirmed-heading" className="rounded-2xl border border-emerald-500/30 bg-emerald-500/5 p-5">

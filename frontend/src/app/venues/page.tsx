@@ -57,7 +57,10 @@ function Catalogue({ canCreate }: { canCreate: boolean }) {
             <summary className="cursor-pointer text-sm font-medium text-primary">Opening hours <span className="ml-1 text-xs font-normal text-muted-foreground">(Singapore time)</span></summary>
             <dl className="mt-3 space-y-2 text-xs text-muted-foreground">{VENUE_DAYS.map((day) => <div key={day} className="flex justify-between gap-3"><dt className="capitalize">{day}</dt><dd>{venue.operating_hours[day] ? `${venue.operating_hours[day]!.opens} – ${venue.operating_hours[day]!.closes}` : "Closed"}</dd></div>)}</dl>
           </details>
-          <p className="mt-5 text-xs text-muted-foreground">Added {new Date(venue.created_at).toLocaleDateString()}{venue.creator?.display_name ? ` by ${venue.creator.display_name}` : ""}</p>
+          <div className="mt-5 flex items-center justify-between gap-3 border-t border-border pt-4">
+            <p className="text-xs text-muted-foreground">Added {new Date(venue.created_at).toLocaleDateString()}{venue.creator?.display_name ? ` by ${venue.creator.display_name}` : ""}</p>
+            <Link href={`/venues/${venue.id}`} className="shrink-0 text-sm font-medium text-primary hover:underline">View availability →</Link>
+          </div>
         </li>)}
       </ul>}
       {(page > 1 || hasMore) && <nav aria-label="Catalogue pages" className="flex items-center justify-center gap-4">

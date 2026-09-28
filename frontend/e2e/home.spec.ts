@@ -15,7 +15,7 @@ test("production build has no passwordless role switcher", async ({ page }) => {
     }
   });
   await page.goto("/");
-  await expect(page.getByText(/API: (ok|unreachable)/)).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Your workspace, all in one place" })).toBeVisible();
   await expect(page.getByRole("combobox", { name: "Act as" })).toHaveCount(0);
   expect(devRequests).toEqual([]);
 });

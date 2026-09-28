@@ -22,7 +22,6 @@ export type BookingRecord = {
   expected_attendance: number;
   layout: string;
   special_requirements: string | null;
-  created_at: string;
   // Optional joins the GET may include for display, mirroring venues' creator join.
   venue?: { name: string; location: string } | null;
   event?: { title: string | null } | null;
