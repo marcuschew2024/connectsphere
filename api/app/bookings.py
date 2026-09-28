@@ -6,11 +6,13 @@ from flask import Blueprint, current_app, jsonify, request
 from werkzeug.exceptions import BadRequest, Conflict, Forbidden, HTTPException, NotFound
 
 from .acting_user import require_acting_user
+from .booking_decision import BookingDecision
 from .booking_repository import (
     create_booking,
     find_overlapping_bookings,
     get_booking,
     list_requested_bookings,
+    record_booking_decision,
 )
 from .event_repository import create_notification, get_event_by_id
 from .rbac import require_related_user, require_role
@@ -143,3 +145,42 @@ def booking_detail(booking_id):
         require_role(user, "Coordinator", action="view_venue_booking")
         require_related_user(user, event or booking, action="view_venue_booking")
     return jsonify({"booking": booking}), 200
+
+
+@bookings.post("/<booking_id>/decision")
+def decide_booking(booking_id):
+    """Approve or reject a submitted booking request as Venue Staff (SCRUM-32)."""
+    _origin_check()
+    user = require_acting_user()
+    require_role(user, "Venue Staff", action="decide_venue_booking")
+
+    booking = get_booking(booking_id)
+    if booking is None:
+        raise NotFound("Booking request not found.")
+    if booking.get("status") not in ("Requested", "Pending"):
+        raise Conflict("This booking has already been decided.")
+
+    try:
+        decision = BookingDecision.from_payload(request.get_json(silent=True))
+    except ValueError as error:
+        raise BadRequest(str(error)) from error
+
+    # Approving may trip the DB overlap constraint; the repository turns that into a 409.
+    updated = record_booking_decision(
+        booking_id, decision.status, decision.reason, decision.alternative, user["id"],
+    )
+
+    # Notify the Coordinator who requested the booking.
+    if decision.is_rejection:
+        message = f"Your venue booking was rejected: {decision.reason}"
+        if decision.alternative:
+            message += f" Suggested alternative: {decision.alternative}"
+        create_notification(
+            booking["requested_by"], booking["event_id"], "booking_rejected", message,
+        )
+    else:
+        create_notification(
+            booking["requested_by"], booking["event_id"], "booking_approved",
+            "Your venue booking was approved and the slot is now confirmed.",
+        )
+    return jsonify({"booking": updated}), 200

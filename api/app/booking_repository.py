@@ -71,3 +71,38 @@ def get_booking(booking_id: str) -> dict | None:
         raise
     except Exception as error:
         raise ServiceUnavailable("Could not load the booking request. Contact the team.") from error
+
+
+def record_booking_decision(
+    booking_id: str,
+    status: str,
+    reason: str | None,
+    alternative: str | None,
+    user_id: int,
+) -> dict:
+    """Record a Venue Staff decision while the booking still awaits one (SCRUM-32).
+
+    The ``status in (Requested, Pending)`` guard makes the write idempotent: an
+    already-decided booking matches no rows (409). Approving to 'Confirmed' can trip the
+    EXCLUDE overlap constraint (23P01) if the slot is now taken -> surfaced as a 409.
+    """
+    try:
+        now = datetime.now(UTC).isoformat()
+        result = _client().table("venue_bookings").update({
+            "status": status,
+            "decision_reason": reason,
+            "suggested_alternative": alternative,
+            "decided_by": user_id,
+            "decision_at": now,
+        }).eq("id", booking_id).in_("status", ["Requested", "Pending"]).execute()
+        if not result.data:
+            raise Conflict("This booking has already been decided.")
+        return result.data[0]
+    except (Conflict, ServiceUnavailable):
+        raise
+    except Exception as error:
+        if getattr(error, "code", None) in {"23P01", "23505"}:
+            raise Conflict("The venue is no longer available for that time slot.") from error
+        raise ServiceUnavailable(
+            "Could not record the booking decision. Contact the team."
+        ) from error
