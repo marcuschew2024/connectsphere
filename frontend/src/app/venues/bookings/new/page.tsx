@@ -5,7 +5,7 @@ import { useEffect, useState, type FormEvent } from "react";
 import { ChevronDown } from "lucide-react";
 import { ApiError, apiRequest } from "@/lib/api";
 import type { EventRecord } from "@/lib/events";
-import type { Venue } from "@/lib/venues";
+import { VENUE_DAYS, type Venue } from "@/lib/venues";
 import { AppShell } from "@/components/app-shell";
 import { useActingRole } from "@/lib/use-acting-role";
 
@@ -99,6 +99,25 @@ export default function NewBookingPage() {
     }
     if (end <= start) {
       setError("The end date and time must be after the start date and time.");
+      setBusy(false);
+      return;
+    }
+    // Keep a booking to a single day within the venue's opening hours (avoids the
+    // accidental 24-hour / overnight slot that the raw datetime pickers allow).
+    if (end.toDateString() !== start.toDateString()) {
+      setError("A booking must start and end on the same day.");
+      setBusy(false);
+      return;
+    }
+    const hours = selectedVenue.operating_hours[VENUE_DAYS[(start.getDay() + 6) % 7]];
+    const hhmm = (value: Date) => value.toTimeString().slice(0, 5);
+    if (!hours) {
+      setError("The venue is closed on the selected day.");
+      setBusy(false);
+      return;
+    }
+    if (hhmm(start) < hours.opens || hhmm(end) > hours.closes) {
+      setError(`Choose a time within the venue's opening hours (${hours.opens}–${hours.closes}).`);
       setBusy(false);
       return;
     }
