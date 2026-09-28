@@ -1,6 +1,5 @@
 "use client";
 
-import { useEffect, useState } from "react";
 import Link from "next/link";
 import {
   ArrowUpRight,
@@ -11,14 +10,11 @@ import {
   Plus,
   type LucideIcon,
 } from "lucide-react";
-import { API_URL } from "@/lib/api";
 import { useActingRole } from "@/lib/use-acting-role";
 import { AppShell } from "@/components/app-shell";
 import { cn } from "@/lib/utils";
 import DevRoleSwitcher from "./dev-role-switcher";
 import OrganiserNotifications from "./organiser-notifications";
-
-type ApiStatus = "checking" | "ok" | "unreachable";
 
 type Action = {
   title: string;
@@ -76,36 +72,7 @@ function ActionTile({ action }: { action: Action }) {
 }
 
 export default function Home() {
-  const [apiStatus, setApiStatus] = useState<ApiStatus>("checking");
   const [actingRole, updateRole] = useActingRole();
-
-  useEffect(() => {
-    const controller = new AbortController();
-
-    fetch(`${API_URL}/health`, { signal: controller.signal })
-      .then((res) => {
-        if (!res.ok) throw new Error(`status ${res.status}`);
-        return res.json();
-      })
-      .then((data: { status?: string }) => {
-        setApiStatus(data.status === "ok" ? "ok" : "unreachable");
-      })
-      .catch(() => {
-        setApiStatus("unreachable");
-      });
-
-    return () => controller.abort();
-  }, []);
-
-  const statusLabel =
-    apiStatus === "checking" ? "checking…" : apiStatus === "ok" ? "ok" : "unreachable";
-
-  const statusColor =
-    apiStatus === "ok"
-      ? "bg-emerald-500"
-      : apiStatus === "unreachable"
-        ? "bg-destructive"
-        : "bg-amber-500";
 
   const actions = actingRole ? ROLE_ACTIONS[actingRole] : undefined;
 
@@ -121,26 +88,20 @@ export default function Home() {
         <div className="mx-auto max-w-6xl space-y-10 px-5 py-10 sm:px-8 sm:py-14">
           {/* Page-level h1 for accessibility (the visible wordmark lives in the sidebar). */}
           <h1 className="sr-only">ConnectSphere</h1>
-          <div className="flex items-start justify-between gap-4">
-            <div className="max-w-2xl">
-              <p className="mb-3 text-xs font-medium uppercase tracking-[0.18em] text-primary">
-                {actingRole ? `${actingRole} workspace` : "Overview"}
-              </p>
-              <h2 className="text-3xl font-semibold tracking-tight text-balance sm:text-4xl">
-                {actingRole ? `You’re in ${actingRole} view` : "Your workspace, all in one place"}
-              </h2>
-              <p className="mt-3 text-base leading-relaxed text-muted-foreground">
-                {actingRole === "Organiser"
-                  ? "Start a request, continue a draft or catch up on decisions."
-                  : actingRole === "Coordinator"
-                    ? "Review the requests assigned to you and keep events moving."
-                    : "Manage the full event lifecycle — requests, coordination, venues and bookings."}
-              </p>
-            </div>
-            <span className="hidden shrink-0 items-center gap-2 rounded-full border border-border bg-card px-3 py-1 text-xs text-muted-foreground shadow-sm sm:flex">
-              <span className={cn("h-1.5 w-1.5 rounded-full", statusColor)} />
-              API: {statusLabel}
-            </span>
+          <div className="max-w-2xl">
+            <p className="mb-3 text-xs font-medium uppercase tracking-[0.18em] text-primary">
+              {actingRole ? `${actingRole} workspace` : "Overview"}
+            </p>
+            <h2 className="text-3xl font-semibold tracking-tight text-balance sm:text-4xl">
+              {actingRole ? `You’re in ${actingRole} view` : "Your workspace, all in one place"}
+            </h2>
+            <p className="mt-3 text-base leading-relaxed text-muted-foreground">
+              {actingRole === "Organiser"
+                ? "Start a request, continue a draft or catch up on decisions."
+                : actingRole === "Coordinator"
+                  ? "Review the requests assigned to you and keep events moving."
+                  : "Manage the full event lifecycle — requests, coordination, venues and bookings."}
+            </p>
           </div>
 
           {process.env.NODE_ENV === "development" && (
