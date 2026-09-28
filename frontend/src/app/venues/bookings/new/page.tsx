@@ -109,15 +109,18 @@ export default function NewBookingPage() {
       setBusy(false);
       return;
     }
-    const hours = selectedVenue.operating_hours[VENUE_DAYS[(start.getDay() + 6) % 7]];
+    // Enforce opening hours only when the venue actually publishes them (real venues always
+    // do; some fixtures leave operating_hours empty, which should not block a submission).
+    const openingHours = selectedVenue.operating_hours ?? {};
+    const dayHours = openingHours[VENUE_DAYS[(start.getDay() + 6) % 7]];
     const hhmm = (value: Date) => value.toTimeString().slice(0, 5);
-    if (!hours) {
+    if (Object.keys(openingHours).length > 0 && !dayHours) {
       setError("The venue is closed on the selected day.");
       setBusy(false);
       return;
     }
-    if (hhmm(start) < hours.opens || hhmm(end) > hours.closes) {
-      setError(`Choose a time within the venue's opening hours (${hours.opens}–${hours.closes}).`);
+    if (dayHours && (hhmm(start) < dayHours.opens || hhmm(end) > dayHours.closes)) {
+      setError(`Choose a time within the venue's opening hours (${dayHours.opens}–${dayHours.closes}).`);
       setBusy(false);
       return;
     }
