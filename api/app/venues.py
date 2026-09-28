@@ -1,12 +1,13 @@
 """Venue Staff create venues; Venue Staff and Coordinators read the catalogue."""
 
 from flask import Blueprint, current_app, jsonify, request
-from werkzeug.exceptions import BadRequest, Forbidden, HTTPException, Unauthorized
+from werkzeug.exceptions import BadRequest, Forbidden, HTTPException, NotFound, Unauthorized
 
 from .acting_user import get_acting_user
 from .auth import get_authenticated_user
+from .booking_repository import list_venue_bookings_in_range
 from .rbac import require_role
-from .venue_repository import create_venue, list_venues
+from .venue_repository import create_venue, get_venue, list_venues
 from .venue_validation import FIELDS, validate_venue
 
 venues = Blueprint("venues", __name__, url_prefix="/venues")
@@ -58,3 +59,23 @@ def catalogue():
         raise BadRequest("Choose a catalogue page from 1 to 10000.")
     rows, has_more = list_venues(int(page))
     return jsonify({"venues": rows, "page": int(page), "has_more": has_more}), 200
+
+
+@venues.get("/<venue_id>")
+def venue_detail(venue_id):
+    """One venue by id, for the availability calendar (SCRUM-30). Internal roles only."""
+    _require_user("Venue Staff", "Coordinator")
+    venue = get_venue(venue_id)
+    if venue is None:
+        raise NotFound("Venue not found.")
+    return jsonify({"venue": venue}), 200
+
+
+@venues.get("/<venue_id>/bookings")
+def venue_bookings(venue_id):
+    """A venue's confirmed/requested/blocked bookings over a date range (SCRUM-30)."""
+    _require_user("Venue Staff", "Coordinator")
+    start_at, end_at = request.args.get("from"), request.args.get("to")
+    if not start_at or not end_at:
+        raise BadRequest("Provide 'from' and 'to' timestamps.")
+    return jsonify({"bookings": list_venue_bookings_in_range(venue_id, start_at, end_at)}), 200
