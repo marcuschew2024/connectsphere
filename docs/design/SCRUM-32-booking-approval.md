@@ -5,9 +5,9 @@ text so they diff in PRs and evolve with the code. Structure = class diagram; be
 sequence diagram._
 
 - **Story:** SCRUM-32 (Venue Staff approve/reject a submitted booking) · Epic SCRUM-6
-- **Owner:** Marcus · **Consumes:** SCRUM-33 overlap engine (not implemented here)
-- **Scope boundary:** the double-booking check is **SCRUM-33's OOP-reuse story**. This design
-  *delegates* to it (an external call) and does **not** implement overlap logic here.
+- **Owner:** Marcus · **Consumes:** SCRUM-33 overlap engine
+- **Scope boundary:** the double-booking check delegates to the reusable SCRUM-33
+    `OverlapEngine`; this approval endpoint does not duplicate interval policy.
 
 ---
 
@@ -150,9 +150,7 @@ sequenceDiagram
 - **Association vs the engine** — overlap is a plain **delegation** to `OverlapEngine` (SCRUM-33),
   not inheritance/composition: booking approval *uses* the engine, it isn't *a kind of* it.
 
-> [!note] Interim implementation vs this design
-> This diagram shows the **agreed target** (overlap delegated to SCRUM-33). The current backend
-> (SCRUM-121) uses the DB partial-`EXCLUDE` constraint as an **interim backstop** — it catches a
-> `23P01` and returns 409. When SCRUM-33's engine lands, `decide_booking` calls it *before*
-> confirming, and the DB constraint stays as defence-in-depth. Settle this split with Ernest/Jessica.
+> [!note] Defence in depth
+> The endpoint calls `OverlapEngine` before confirming. Database exclusion constraints
+> remain the concurrency backstop and return 409 if another writer wins the race.
 ```

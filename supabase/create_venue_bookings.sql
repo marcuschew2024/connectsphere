@@ -18,8 +18,13 @@ create table if not exists public.venue_bookings (
     decided_by integer references public.app_users(id),
     decision_at timestamptz,
     decision_reason text check (char_length(decision_reason) <= 2000),
+    suggested_alternative text check (char_length(suggested_alternative) <= 2000),
     constraint venue_bookings_time_order check (end_at > start_at)
 );
+
+alter table public.venue_bookings
+    add column if not exists suggested_alternative text
+        check (char_length(suggested_alternative) <= 2000);
 
 create index if not exists venue_bookings_requested_idx
     on public.venue_bookings (status, requested_at desc);
@@ -28,14 +33,21 @@ create index if not exists venue_bookings_event_idx
 create index if not exists venue_bookings_venue_idx
     on public.venue_bookings (venue_id, start_at, end_at);
 
--- Confirmed and blocked periods cannot overlap. Requested rows remain reviewable;
--- the API prevents requests against an already confirmed/blocked period.
+-- Committed periods cannot overlap each other. Requested rows are tentative holds:
+-- only one hold may exist per slot, while a later confirmed booking may supersede a hold.
 alter table public.venue_bookings drop constraint if exists venue_bookings_no_overlap;
-alter table public.venue_bookings add constraint venue_bookings_no_overlap
+alter table public.venue_bookings drop constraint if exists venue_bookings_no_overlap_hard;
+alter table public.venue_bookings drop constraint if exists venue_bookings_one_tentative_hold;
+alter table public.venue_bookings add constraint venue_bookings_no_overlap_hard
     exclude using gist (
         venue_id with =,
         tstzrange(start_at, end_at, '[)') with &&
     ) where (status in ('Confirmed', 'Blocked'));
+alter table public.venue_bookings add constraint venue_bookings_one_tentative_hold
+    exclude using gist (
+        venue_id with =,
+        tstzrange(start_at, end_at, '[)') with &&
+    ) where (status in ('Requested', 'Pending'));
 
 alter table public.venue_bookings enable row level security;
 revoke all on public.venue_bookings from anon, authenticated;

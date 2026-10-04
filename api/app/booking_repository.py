@@ -15,11 +15,13 @@ def _client():
 
 
 def find_overlapping_bookings(venue_id: str, start_at: str, end_at: str) -> list[dict]:
-    """Find confirmed or blocked bookings whose half-open slots overlap the request."""
+    """Find active booking states whose half-open slots overlap the request."""
     try:
         result = _client().table("venue_bookings").select(
             "id,venue_id,start_at,end_at,status"
-        ).eq("venue_id", venue_id).in_("status", ["Confirmed", "Blocked"]).lt(
+        ).eq("venue_id", venue_id).in_("status", [
+            "Confirmed", "Blocked", "Requested", "Pending",
+        ]).lt(
             "start_at", end_at
         ).gt("end_at", start_at).execute()
         return result.data or []

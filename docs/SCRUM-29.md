@@ -33,8 +33,8 @@ in one pass:
 
 ```python
 engine = SuitabilityEngine()          # default: all four rules
-engine.add_rule(OverlapRule())        # SCRUM-33 extends without touching this file
 result = engine.evaluate_suitability(event, venue)
+overlap = OverlapEngine()             # SCRUM-33 evaluates booking intervals separately
 ```
 
 `evaluate_suitability` returns:
@@ -47,8 +47,9 @@ result = engine.evaluate_suitability(event, venue)
 }
 ```
 
-`is_suitable` is `true` only when `flags` is empty. `add_rule` lets future
-stories extend the engine without modifying existing code.
+`is_suitable` is `true` only when `flags` is empty. `add_rule` remains available for
+suitability-only extensions; SCRUM-33 uses a separate `OverlapEngine` because overlap
+needs booking interval and status data, not only an event and venue record.
 
 ## 2. Free-text matching
 

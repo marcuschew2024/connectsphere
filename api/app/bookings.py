@@ -17,6 +17,7 @@ from .booking_repository import (
 from .event_repository import create_notification, get_event_by_id
 from .rbac import require_related_user, require_role
 from .supabase_client import get_supabase_client
+from .venue_overlap import OverlapEngine
 from .venue_repository import get_venue
 
 bookings = Blueprint("bookings", __name__, url_prefix="/venues/bookings")
@@ -103,8 +104,16 @@ def submit_booking():
     if not isinstance(special, str) or len(special.strip()) > 2000:
         raise BadRequest("Special requirements must be 2000 characters or fewer.")
 
-    if find_overlapping_bookings(venue_id, start.isoformat(), end.isoformat()):
-        raise Conflict("The venue is already confirmed or blocked for that time slot.")
+    overlap = OverlapEngine().evaluate(
+        venue_id,
+        start,
+        end,
+        find_overlapping_bookings(venue_id, start.isoformat(), end.isoformat()),
+    )
+    if not overlap.can_request:
+        if overlap.hard_conflict is not None:
+            raise Conflict("The venue is already confirmed or blocked for that time slot.")
+        raise Conflict("The venue already has a tentative booking hold for that time slot.")
 
     saved = create_booking({
         "event_id": event_id,
@@ -165,7 +174,21 @@ def decide_booking(booking_id):
     except ValueError as error:
         raise BadRequest(str(error)) from error
 
-    # Approving may trip the DB overlap constraint; the repository turns that into a 409.
+    # Confirmed decisions hard-block only published-slot conflicts. A stale tentative
+    # hold does not beat a confirmed booking (FCFS); the database remains the backstop.
+    if decision.status == "Confirmed":
+        overlap = OverlapEngine().evaluate(
+            booking["venue_id"],
+            booking["start_at"],
+            booking["end_at"],
+            find_overlapping_bookings(
+                booking["venue_id"], booking["start_at"], booking["end_at"]
+            ),
+            exclude_booking_id=booking_id,
+        )
+        if not overlap.can_confirm:
+            raise Conflict("The venue is already confirmed or blocked for that time slot.")
+
     updated = record_booking_decision(
         booking_id, decision.status, decision.reason, decision.alternative, user["id"],
     )
