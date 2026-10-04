@@ -139,12 +139,35 @@ def test_confirmed_or_blocked_overlap_is_rejected(booking_api, monkeypatch):
     client, created, _, _ = booking_api
     monkeypatch.setattr(
         "app.bookings.find_overlapping_bookings",
-        lambda *args: [{"id": "existing", "status": "Confirmed"}],
+        lambda *args: [{
+            "id": "existing", "venue_id": "venue-1",
+            "start_at": payload()["start_at"], "end_at": payload()["end_at"],
+            "status": "Confirmed",
+        }],
     )
 
     response = client.post("/venues/bookings", json=payload(), headers=ORIGIN)
 
     assert response.status_code == 409
+    assert created == []
+
+
+def test_existing_tentative_hold_is_rejected(booking_api, monkeypatch):
+    client, created, _, _ = booking_api
+    requested = payload()
+    monkeypatch.setattr(
+        "app.bookings.find_overlapping_bookings",
+        lambda *args: [{
+            "id": "existing", "venue_id": "venue-1",
+            "start_at": requested["start_at"], "end_at": requested["end_at"],
+            "status": "Requested",
+        }],
+    )
+
+    response = client.post("/venues/bookings", json=requested, headers=ORIGIN)
+
+    assert response.status_code == 409
+    assert "tentative" in response.json["error"]
     assert created == []
 
 

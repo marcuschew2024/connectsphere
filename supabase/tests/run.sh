@@ -9,7 +9,7 @@ for pass in 1 2; do
   done
   echo "Migration pass $pass: PASS"
 done
-for check in drafts assignment venues venue_updates; do
+for check in drafts assignment venues venue_updates venue_overlap; do
   psql -v ON_ERROR_STOP=1 -f "/sql/tests/$check.sql"
   echo "$check database checks: PASS"
 done

@@ -131,7 +131,7 @@ def test_database_failure_never_claims_available(monkeypatch):
         availability({**details(), "id": "venue-1"}, slot())
 
 
-def test_overlap_query_keeps_half_open_boundaries_and_ignores_unconfirmed_requests(monkeypatch):
+def test_overlap_query_keeps_half_open_boundaries_and_includes_tentative_holds(monkeypatch):
     db = MagicMock()
     query = MagicMock()
     db.table.return_value = query
@@ -140,7 +140,9 @@ def test_overlap_query_keeps_half_open_boundaries_and_ignores_unconfirmed_reques
     query.execute.return_value = SimpleNamespace(data=[])
     monkeypatch.setattr("app.booking_repository.get_supabase_client", lambda: db)
     assert find_overlapping_bookings("venue-1", "start", "end") == []
-    query.in_.assert_called_once_with("status", ["Confirmed", "Blocked"])
+    query.in_.assert_called_once_with(
+        "status", ["Confirmed", "Blocked", "Requested", "Pending"]
+    )
     query.lt.assert_called_once_with("start_at", "end")
     query.gt.assert_called_once_with("end_at", "start")
 
