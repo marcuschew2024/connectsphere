@@ -15,6 +15,8 @@ export type Venue = {
   timezone: string;
   created_by: number;
   created_at: string;
+  revision?: number;
+  updated_at?: string | null;
   creator?: { display_name: string } | null;
   is_retired?: boolean;
   search_availability?: "not_checked" | "available" | "retired" | "closed" | "blocked" | "booked";

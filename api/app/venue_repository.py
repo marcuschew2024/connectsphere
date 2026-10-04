@@ -1,7 +1,7 @@
 """Persistence for the shared venue catalogue (SCRUM-24)."""
 
 from postgrest.exceptions import APIError
-from werkzeug.exceptions import Conflict, ServiceUnavailable
+from werkzeug.exceptions import Conflict, Forbidden, NotFound, ServiceUnavailable
 
 from .supabase_client import get_supabase_client
 
@@ -59,3 +59,44 @@ def get_venue(venue_id: str) -> dict | None:
         raise
     except Exception as error:
         raise ServiceUnavailable("Could not load the selected venue. Contact the team.") from error
+
+
+def update_venue(venue_id: str, fields: dict, actor_id: int, revision: int) -> dict:
+    """The database saves the changes and audit record in one transaction."""
+    try:
+        result = (
+            _client()
+            .rpc(
+                "update_venue_details",
+                {
+                    "p_venue_id": venue_id,
+                    "p_details": fields,
+                    "p_actor_id": actor_id,
+                    "p_revision": revision,
+                },
+            )
+            .execute()
+        )
+        if not result.data:
+            raise ServiceUnavailable(
+                "Could not confirm the update. Reload the venue before retrying."
+            )
+        return result.data[0]
+    except APIError as error:
+        if error.code == "PT409":
+            raise Conflict(
+                "Another staff member updated this venue. Reload it and reapply your changes."
+            ) from error
+        if error.code == "PT404":
+            raise NotFound("Venue not found.") from error
+        if error.code == "PT403":
+            raise Forbidden("Only Venue Staff can update a venue.") from error
+        raise ServiceUnavailable(
+            "Could not confirm the update. Reload the venue before retrying."
+        ) from error
+    except ServiceUnavailable:
+        raise
+    except Exception as error:
+        raise ServiceUnavailable(
+            "Could not confirm the update. Reload the venue before retrying."
+        ) from error

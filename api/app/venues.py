@@ -8,7 +8,7 @@ from .auth import get_authenticated_user
 from .booking_repository import list_venue_bookings_in_range
 from .event_repository import get_event_by_id
 from .rbac import require_role
-from .venue_repository import create_venue, get_venue, list_venues
+from .venue_repository import create_venue, get_venue, list_venues, update_venue
 from .venue_search import filter_options, parse_filters, search_venues
 from .venue_suitability import SuitabilityEngine
 from .venue_validation import FIELDS, validate_venue
@@ -35,7 +35,7 @@ def _require_user(*roles):
     if user is None:
         raise Unauthorized("Sign in or select a demo user first.")
     return require_role(user, *roles, action="create_venue" if request.method == "POST"
-                        else "view_venue_catalogue")
+                        else "update_venue" if request.method == "PUT" else "view_venue_catalogue")
 
 
 @venues.post("")
@@ -50,6 +50,28 @@ def add_venue():
     if errors:
         return jsonify({"error": "Please check the highlighted fields.", "fields": errors}), 400
     return jsonify({"venue": create_venue(fields, user["id"])}), 201
+
+
+EDIT_FIELDS = FIELDS - {"name", "location"}
+
+
+@venues.put("/<uuid:venue_id>")
+def edit_venue(venue_id):
+    user = _require_user("Venue Staff")
+    data = request.get_json(silent=True)
+    if not isinstance(data, dict) or set(data) != EDIT_FIELDS | {"revision"}:
+        raise BadRequest("Send the five editable venue fields and its revision only.")
+    if type(data["revision"]) is not int or not 1 <= data["revision"] <= 2147483647:
+        raise BadRequest("Reload the venue before saving your changes.")
+    venue = get_venue(str(venue_id))
+    if venue is None:
+        raise NotFound("Venue not found.")
+    fields, errors = validate_venue({**venue, **{key: data[key] for key in EDIT_FIELDS}})
+    if errors:
+        return jsonify({"error": "Please check the highlighted fields.", "fields": errors}), 400
+    return jsonify({"venue": update_venue(
+        str(venue_id), {key: fields[key] for key in EDIT_FIELDS}, user["id"], data["revision"]
+    )}), 200
 
 
 @venues.get("")

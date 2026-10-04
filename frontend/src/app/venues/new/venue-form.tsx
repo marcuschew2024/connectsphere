@@ -8,8 +8,10 @@ import { defaultOpeningHours, VENUE_DAYS, VENUE_LAYOUTS, type OpeningHours, type
 const INPUT = "w-full rounded-md border border-input bg-background px-3 py-2.5 text-sm text-foreground focus:border-ring focus:outline-none focus:ring-2 focus:ring-ring/30";
 const CARD = "space-y-5 rounded-2xl border border-border bg-card p-5 shadow-sm sm:p-6";
 
-export default function VenueForm() {
-  const [hours, setHours] = useState<OpeningHours>(defaultOpeningHours);
+export default function VenueForm({ venue }: { venue?: Venue }) {
+  const editing = !!venue;
+  const layouts = Array.from(new Set([...VENUE_LAYOUTS, ...(venue?.supported_layouts ?? [])]));
+  const [hours, setHours] = useState<OpeningHours>(() => venue?.operating_hours ?? defaultOpeningHours());
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [fields, setFields] = useState<Record<string, string>>({});
@@ -27,10 +29,10 @@ export default function VenueForm() {
     setBusy(true); setError(""); setFields({});
     const features = (key: string) => String(form.get(key) ?? "").split(",").map((value) => value.trim()).filter(Boolean);
     try {
-      const result = await apiRequest<{ venue: Venue }>("/venues", {
-        method: "POST",
+      const result = await apiRequest<{ venue: Venue }>(editing ? `/venues/${venue.id}` : "/venues", {
+        method: editing ? "PUT" : "POST",
         body: JSON.stringify({
-          name: form.get("name"), location: form.get("location"), capacity: Number(form.get("capacity")),
+          ...(editing ? { revision: venue.revision } : { name: form.get("name"), location: form.get("location") }), capacity: Number(form.get("capacity")),
           facilities: features("facilities"), accessibility: features("accessibility"),
           supported_layouts: form.getAll("supported_layouts"), operating_hours: hours,
         }),
@@ -46,14 +48,14 @@ export default function VenueForm() {
     return fields[field] ? <p id={`${field}-error`} className="mt-2 text-xs text-destructive">{fields[field]}</p> : null;
   }
 
-  if (saved) return <section role="status" className="max-w-2xl rounded-2xl border border-emerald-500/30 bg-emerald-500/5 p-6 sm:p-8">
-    <p className="mb-3 text-2xl text-emerald-600 dark:text-emerald-400" aria-hidden="true">✓</p>
-    <h2 ref={successHeading} tabIndex={-1} className="text-2xl font-semibold outline-none">Venue added</h2>
-    <p className="mt-3 break-words text-sm leading-relaxed text-muted-foreground"><strong className="text-foreground">{saved.name}</strong> is now in the shared catalogue. Coordinators can see its details.</p>
-    <p className="mt-2 text-xs text-muted-foreground">Added {new Date(saved.created_at).toLocaleString()}</p>
+  if (saved) return <section role="status" className="max-w-2xl rounded-2xl border border-primary/30 bg-primary/5 p-6 sm:p-8">
+    <p className="mb-3 text-2xl text-primary" aria-hidden="true">✓</p>
+    <h2 ref={successHeading} tabIndex={-1} className="text-2xl font-semibold outline-none">{editing ? "Venue updated" : "Venue added"}</h2>
+    <p className="mt-3 break-words text-sm leading-relaxed text-muted-foreground"><strong className="text-foreground">{saved.name}</strong> {editing ? "has been updated. Future searches use these details. Confirmed bookings are unchanged." : "is now in the shared catalogue. Coordinators can see its details."}</p>
+    <p className="mt-2 text-xs text-muted-foreground">{editing ? "Updated" : "Added"} {new Date(saved.updated_at ?? saved.created_at).toLocaleString()}</p>
     <div className="mt-6 flex flex-wrap items-center gap-3">
       <Link href="/venues" className="rounded-md bg-primary px-5 py-3 text-sm font-semibold text-primary-foreground hover:bg-primary/90">View catalogue</Link>
-      <button type="button" onClick={() => { setSaved(null); setHours(defaultOpeningHours()); setFormKey(formKey + 1); }} className="rounded-md border border-border px-5 py-3 text-sm text-foreground hover:bg-muted">Add another venue</button>
+      {!editing && <button type="button" onClick={() => { setSaved(null); setHours(defaultOpeningHours()); setFormKey(formKey + 1); }} className="rounded-md border border-border px-5 py-3 text-sm text-foreground hover:bg-muted">Add another venue</button>}
     </div>
   </section>;
 
@@ -63,24 +65,27 @@ export default function VenueForm() {
       <legend className="sr-only">Venue details</legend>
       <div className="space-y-5">
         <section className={CARD}>
-          <div><h2 className="font-semibold">The space</h2><p className="mt-1 text-xs text-muted-foreground">Give the venue a clear name and location. * Required</p></div>
+          <div><h2 className="font-semibold">The space</h2><p className="mt-1 text-xs text-muted-foreground">{editing ? "Update this space’s details. Name and location stay the same. * Required" : "Give the venue a clear name and location. * Required"}</p></div>
           {([['name', 'Venue name', 200, 'e.g. Seminar Room A'], ['location', 'Location', 300, 'e.g. Building B, Level 2']] as const).map(([key, label, limit, placeholder]) => <div key={key}>
-            <label htmlFor={key} className="mb-2 block text-sm font-medium">{label} *</label>
-            <input id={key} name={key} required maxLength={limit} placeholder={placeholder} className={INPUT} aria-invalid={!!fields[key]} aria-describedby={fields[key] ? `${key}-error` : undefined} />
+            <div className="mb-2 flex items-center justify-between gap-3">
+              <label htmlFor={key} className="block text-sm font-medium">{label} *</label>
+              {editing && <span className="rounded-md bg-muted px-2 py-1 text-xs font-medium text-muted-foreground">Read-only</span>}
+            </div>
+            <input id={key} name={key} defaultValue={venue?.[key]} readOnly={editing} required maxLength={limit} placeholder={placeholder} className={editing ? "w-full cursor-not-allowed rounded-md border border-dashed border-border bg-muted px-3 py-2.5 text-sm text-muted-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-ring/30" : INPUT} aria-invalid={!!fields[key]} aria-describedby={fields[key] ? `${key}-error` : undefined} />
             {fieldError(key)}
           </div>)}
-          <div><label htmlFor="capacity" className="mb-2 block text-sm font-medium">Capacity *</label><input id="capacity" name="capacity" type="number" required min="1" max="2147483647" step="1" placeholder="Maximum number of people" className={INPUT} aria-invalid={!!fields.capacity} aria-describedby={fields.capacity ? "capacity-error" : undefined} />{fieldError("capacity")}</div>
+          <div><label htmlFor="capacity" className="mb-2 block text-sm font-medium">Capacity *</label><input id="capacity" name="capacity" defaultValue={venue?.capacity} type="number" required min="1" max="2147483647" step="1" placeholder="Maximum number of people" className={INPUT} aria-invalid={!!fields.capacity} aria-describedby={fields.capacity ? "capacity-error" : undefined} />{fieldError("capacity")}</div>
         </section>
         <section className={CARD}>
           <h2 className="font-semibold">Facilities & layouts</h2>
           {([['facilities', 'Facilities', 'Projector, Wi-Fi, whiteboard'], ['accessibility', 'Accessibility features', 'Step-free access, accessible toilet']] as const).map(([key, label, placeholder]) => <div key={key}>
             <label htmlFor={key} className="mb-2 block text-sm font-medium">{label}</label>
-            <textarea id={key} name={key} rows={2} maxLength={1640} placeholder={placeholder} className={INPUT} aria-invalid={!!fields[key]} aria-describedby={`${key}-help${fields[key] ? ` ${key}-error` : ""}`} />
+            <textarea id={key} name={key} defaultValue={venue?.[key].join(", ")} rows={2} maxLength={1640} placeholder={placeholder} className={INPUT} aria-invalid={!!fields[key]} aria-describedby={`${key}-help${fields[key] ? ` ${key}-error` : ""}`} />
             <p id={`${key}-help`} className="mt-1 text-xs text-muted-foreground">Separate features with commas. Leave blank if none.</p>{fieldError(key)}
           </div>)}
           <fieldset aria-describedby={fields.supported_layouts ? "supported_layouts-error" : undefined}>
             <legend className="mb-3 text-sm font-medium">Supported layouts *</legend>
-            <div className="grid grid-cols-2 gap-2">{VENUE_LAYOUTS.map((layout) => <label key={layout} className="flex cursor-pointer items-center gap-2 rounded-lg border border-border px-3 py-2.5 text-sm text-foreground has-checked:border-primary/50 has-checked:bg-primary/5"><input type="checkbox" name="supported_layouts" value={layout} className="h-4 w-4 accent-primary" />{layout}</label>)}</div>
+            <div className="grid grid-cols-2 gap-2">{layouts.map((layout) => <label key={layout} className="flex cursor-pointer items-center gap-2 rounded-lg border border-border px-3 py-2.5 text-sm text-foreground has-checked:border-primary/50 has-checked:bg-primary/5"><input type="checkbox" name="supported_layouts" value={layout} defaultChecked={venue?.supported_layouts.includes(layout)} className="h-4 w-4 accent-primary" />{layout}</label>)}</div>
             {fieldError("supported_layouts")}
           </fieldset>
         </section>
@@ -96,8 +101,8 @@ export default function VenueForm() {
       </section>
     </fieldset>
     <div className="sticky bottom-0 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-border bg-background/95 px-4 py-3 backdrop-blur-sm">
-      <p className="max-w-md text-xs text-muted-foreground">Saving makes this venue visible to Coordinators.</p>
-      <div className="flex items-center gap-3"><Link href="/venues" className="rounded-lg px-3 py-2 text-sm text-muted-foreground hover:text-foreground">Cancel</Link><button type="submit" disabled={busy} className="rounded-md bg-primary px-5 py-3 text-sm font-semibold text-primary-foreground hover:bg-primary/90 disabled:opacity-50">{busy ? "Saving…" : "Save venue"}</button></div>
+      <p className="max-w-md text-xs text-muted-foreground">{editing ? "Changes apply to future searches. Confirmed bookings stay unchanged." : "Saving makes this venue visible to Coordinators."}</p>
+      <div className="flex items-center gap-3"><Link href="/venues" className="rounded-lg px-3 py-2 text-sm text-muted-foreground hover:text-foreground">Cancel</Link><button type="submit" disabled={busy} className="rounded-md bg-primary px-5 py-3 text-sm font-semibold text-primary-foreground hover:bg-primary/90 disabled:opacity-50">{busy ? "Saving…" : editing ? "Save changes" : "Save venue"}</button></div>
     </div>
   </form>;
 }
