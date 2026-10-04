@@ -142,7 +142,8 @@ def test_search_filters_across_database_pages_and_flags_retirement(live_venues):
 @pytest.mark.parametrize("status,start,end,expected", [
     ("Confirmed", "09:00", "10:00", "booked"),
     ("Blocked", "09:00", "10:00", "blocked"),
-    ("Requested", "09:00", "10:00", "available"),
+    # SCRUM-33: a requested booking is a tentative hold and makes the slot unavailable.
+    ("Requested", "09:00", "10:00", "booked"),
     ("Rejected", "09:00", "10:00", "available"),
     ("Cancelled", "09:00", "10:00", "available"),
     ("Confirmed", "08:00", "09:00", "available"),
