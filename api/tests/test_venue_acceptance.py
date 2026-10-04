@@ -181,3 +181,153 @@ def test_search_availability_with_real_bookings(
         assert stored["status"] == status  # Search never changes booking state.
     finally:
         db.table("venue_bookings").delete().eq("id", booking["id"]).execute()
+
+
+def test_update_is_audited_searches_change_and_confirmed_booking_is_unchanged(
+    live_venues, monkeypatch
+):
+    db, users = live_venues
+    monkeypatch.setattr("app.booking_repository.get_supabase_client", lambda: db)
+    venue = users[3].post("/venues", json=unique_venue(), headers=ORIGIN).json["venue"]
+    event = (
+        db.table("events").insert({"title": "Edit venue test", "organiser_id": 1}).execute().data[0]
+    )
+    booking = (
+        db.table("venue_bookings")
+        .insert(
+            {
+                "venue_id": venue["id"],
+                "event_id": event["id"],
+                "requested_by": 2,
+                "start_at": "2026-10-05T09:00:00+08:00",
+                "end_at": "2026-10-05T10:00:00+08:00",
+                "expected_attendance": 90,
+                "layout": "Classroom",
+                "status": "Confirmed",
+            }
+        )
+        .execute()
+        .data[0]
+    )
+    fields = {
+        key: venue[key]
+        for key in (
+            "capacity",
+            "facilities",
+            "accessibility",
+            "supported_layouts",
+            "operating_hours",
+        )
+    }
+    fields.update(
+        capacity=20,
+        facilities=[f"New facility {uuid4()}"],
+        accessibility=["Lift"],
+        supported_layouts=["Boardroom"],
+        operating_hours={**fields["operating_hours"], "monday": None},
+    )
+    try:
+        response = users[3].put(
+            f"/venues/{venue['id']}", json={**fields, "revision": 1}, headers=ORIGIN
+        )
+        assert response.status_code == 200, response.json
+        saved = response.json["venue"]
+        assert saved["revision"] == 2 and saved["updated_at"]
+        assert (saved["name"], saved["location"], saved["created_at"]) == (
+            venue["name"],
+            venue["location"],
+            venue["created_at"],
+        )
+        history = (
+            db.table("venue_update_history").select("*").eq("venue_id", venue["id"]).execute().data
+        )
+        assert len(history) == 1
+        assert history[0]["actor_id"] == 3
+        assert history[0]["changed_at"] == saved["updated_at"]
+        assert history[0]["before_details"] == venue
+        assert history[0]["after_details"] == saved
+        assert db.table("venue_bookings").select("*").eq("id", booking["id"]).execute().data == [
+            booking
+        ]
+        matches = users[2].get(
+            "/venues", query_string={"facilities": fields["facilities"][0]}, headers=ORIGIN
+        )
+        assert matches.status_code == 200, matches.json
+        assert [row["id"] for row in matches.json["venues"]] == [venue["id"]]
+        assert (
+            users[2]
+            .get(
+                "/venues",
+                query_string={"facilities": fields["facilities"][0], "attendance": 90},
+                headers=ORIGIN,
+            )
+            .json["venues"]
+            == []
+        )
+        available = users[2].get(
+            "/venues",
+            query_string={
+                "facilities": fields["facilities"][0],
+                "date": "2026-10-05",
+                "start_time": "11:00",
+                "end_time": "12:00",
+            },
+            headers=ORIGIN,
+        )
+        assert available.json["venues"][0]["search_availability"] == "closed"
+        options = users[2].get("/venues/filter-options", headers=ORIGIN).json
+        assert fields["facilities"][0] in options["facilities"]
+        # A stale editor cannot overwrite the saved version or create another audit row.
+        stale = users[3].put(
+            f"/venues/{venue['id']}",
+            json={**fields, "capacity": 200, "revision": 1},
+            headers=ORIGIN,
+        )
+        assert stale.status_code == 409
+        assert db.table("venues").select("*").eq("id", venue["id"]).execute().data == [saved]
+        assert (
+            len(
+                db.table("venue_update_history")
+                .select("*")
+                .eq("venue_id", venue["id"])
+                .execute()
+                .data
+            )
+            == 1
+        )
+    finally:
+        db.table("venue_bookings").delete().eq("id", booking["id"]).execute()
+
+
+@pytest.mark.parametrize("actor,capacity,expected_code", [(2, 100, "PT403"), (3, 0, "23514")])
+def test_failed_database_update_leaves_venue_and_audit_unchanged(
+    live_venues, actor, capacity, expected_code
+):
+    db, users = live_venues
+    venue = users[3].post("/venues", json=unique_venue(), headers=ORIGIN).json["venue"]
+    fields = {
+        key: venue[key]
+        for key in (
+            "capacity",
+            "facilities",
+            "accessibility",
+            "supported_layouts",
+            "operating_hours",
+        )
+    }
+    with pytest.raises(APIError) as caught:
+        db.rpc(
+            "update_venue_details",
+            {
+                "p_venue_id": venue["id"],
+                "p_details": {**fields, "capacity": capacity},
+                "p_actor_id": actor,
+                "p_revision": 1,
+            },
+        ).execute()
+    assert caught.value.code == expected_code
+    assert db.table("venues").select("*").eq("id", venue["id"]).execute().data == [venue]
+    assert (
+        db.table("venue_update_history").select("*").eq("venue_id", venue["id"]).execute().data
+        == []
+    )

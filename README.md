@@ -78,6 +78,10 @@ Open **Venue catalogue** and use **Search venues** to filter and check a Singapo
 slot. Time searches use the existing `create_venue_bookings.sql` setup. See the
 [simple walkthrough, matching rules and team integration notes](docs/SCRUM-28.md).
 
+For venue editing (SCRUM-25), apply [`supabase/update_venues.sql`](supabase/update_venues.sql).
+Venue Staff can then choose **Edit venue** from the catalogue. See the
+[setup, testing walkthrough and integration notes](docs/SCRUM-25.md).
+
 ## Prerequisites
 
 For draft submission, on-screen confirmation and coordinator assignment, see the

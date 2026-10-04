@@ -9,15 +9,17 @@ export default function VenueWorkspace({
   title,
   description,
   creating = false,
+  editing = false,
   children,
 }: {
   title: string;
   description: string;
   creating?: boolean;
+  editing?: boolean;
   children: (role: string) => ReactNode;
 }) {
   const [role, updateRole, loading] = useActingRole();
-  const allowed = !loading && (role === "Venue Staff" || (!creating && role === "Coordinator"));
+  const allowed = !loading && (role === "Venue Staff" || (!creating && !editing && role === "Coordinator"));
 
   return (
     <AppShell actingRole={role}>
@@ -43,6 +45,8 @@ export default function VenueWorkspace({
               ? "Checking access…"
               : !role
                 ? "Sign in or select a demo user to continue."
+                : editing
+                  ? "Only Venue Staff can edit a venue."
                 : creating
                   ? "Only Venue Staff can add a venue."
                   : "The venue catalogue is available to Venue Staff and Coordinators."}
