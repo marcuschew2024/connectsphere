@@ -9,6 +9,7 @@ from .booking_repository import list_venue_bookings_in_range
 from .event_repository import get_event_by_id
 from .rbac import require_role
 from .venue_repository import create_venue, get_venue, list_venues
+from .venue_search import filter_options, parse_filters, search_venues
 from .venue_suitability import SuitabilityEngine
 from .venue_validation import FIELDS, validate_venue
 
@@ -54,13 +55,20 @@ def add_venue():
 @venues.get("")
 def catalogue():
     _require_user("Venue Staff", "Coordinator")
+    filters = parse_filters(request.args)
     page = request.args.get("page", "1")
-    if set(request.args) - {"page"} or not page.isascii() or not page.isdecimal():
+    if not page.isascii() or not page.isdecimal():
         raise BadRequest("Choose a catalogue page from 1 to 10000.")
     if len(page) > 5 or not 1 <= int(page) <= 10000:
         raise BadRequest("Choose a catalogue page from 1 to 10000.")
-    rows, has_more = list_venues(int(page))
+    rows, has_more = search_venues(int(page), filters) if filters else list_venues(int(page))
     return jsonify({"venues": rows, "page": int(page), "has_more": has_more}), 200
+
+
+@venues.get("/filter-options")
+def catalogue_filter_options():
+    _require_user("Venue Staff", "Coordinator")
+    return jsonify(filter_options()), 200
 
 
 @venues.get("/<venue_id>")

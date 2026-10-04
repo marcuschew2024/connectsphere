@@ -125,6 +125,8 @@ test("coordinator submits a venue request with timing and requirements", async (
     await route.fulfill({ status: 201, json: { booking: { ...PENDING_BOOKING, status: "Requested" } } });
   });
   await page.goto("/venues/bookings/new");
+  // Options load asynchronously and initialise attendance; wait before editing it.
+  await expect(page.getByRole("combobox", { name: "Venue", exact: true })).toHaveValue(REQUEST_VENUE.id);
   await page.getByLabel("Expected attendance").fill("120");
   await page.getByLabel("Layout").fill("Theatre");
   await page.getByLabel("Special requirements").fill("Step-free access");
@@ -141,6 +143,8 @@ test("venue overlap rejection preserves the booking form", async ({ page }) => {
   await page.route(`${API_ORIGIN}/venues?*`, (route) => route.fulfill({ json: { venues: [REQUEST_VENUE], page: 1, has_more: false } }));
   await page.route(`${API_ORIGIN}/venues/bookings`, (route) => route.fulfill({ status: 409, json: { error: "The venue is already confirmed or blocked for that time slot." } }));
   await page.goto("/venues/bookings/new");
+  // Options load asynchronously and initialise attendance; wait before editing it.
+  await expect(page.getByRole("combobox", { name: "Venue", exact: true })).toHaveValue(REQUEST_VENUE.id);
   await page.getByLabel("Expected attendance").fill("120");
   await page.getByLabel("Layout").fill("Theatre");
   await page.getByLabel("Start").fill("2099-10-20T14:00");
@@ -159,6 +163,8 @@ test("booking form blocks attendance over the selected venue capacity", async ({
   let requests = 0;
   await page.route(`${API_ORIGIN}/venues/bookings`, (route) => { requests += 1; return route.fulfill({ status: 201, json: { booking: PENDING_BOOKING } }); });
   await page.goto("/venues/bookings/new");
+  // Options load asynchronously and initialise attendance; wait before editing it.
+  await expect(page.getByRole("combobox", { name: "Venue", exact: true })).toHaveValue(REQUEST_VENUE.id);
   await page.getByLabel("Expected attendance").fill("51");
   await page.getByLabel("Layout").fill("Theatre");
   await page.getByLabel("Start").fill("2099-10-20T14:00");
@@ -176,6 +182,8 @@ test("booking form blocks an end time before the start time", async ({ page }) =
   let requests = 0;
   await page.route(`${API_ORIGIN}/venues/bookings`, (route) => { requests += 1; return route.fulfill({ status: 201, json: { booking: PENDING_BOOKING } }); });
   await page.goto("/venues/bookings/new");
+  // Options load asynchronously and initialise attendance; wait before editing it.
+  await expect(page.getByRole("combobox", { name: "Venue", exact: true })).toHaveValue(REQUEST_VENUE.id);
   await page.getByLabel("Expected attendance").fill("120");
   await page.getByLabel("Layout").fill("Theatre");
   await page.getByLabel("Start").fill("2099-10-20T16:00");

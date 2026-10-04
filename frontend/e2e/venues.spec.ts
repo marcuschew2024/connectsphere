@@ -13,6 +13,9 @@ const venue = {
 };
 
 test.beforeEach(async ({page}) => {
+  await page.route(API + "/venues/filter-options", (route) => route.fulfill({json:{
+    facilities:["Projector", "Wi-Fi"], accessibility:["Step-free access"],
+  }}));
   await page.route(API + "/session", (route) => route.fulfill({json:{user:{id:3, role:"Venue Staff"}}}));
 });
 
@@ -159,3 +162,158 @@ test("a successful save can start a clean second venue", async ({page}) => {
   await expect(page.getByRole("checkbox", {name:"Classroom", exact:true})).not.toBeChecked();
 });
 
+test("Coordinator can combine filters, paginate results and clear back to page one", async ({page}) => {
+  const queries: URLSearchParams[] = [];
+  await page.route(API + "/session", (route) => route.fulfill({json:{user:{id:2, role:"Coordinator"}}}));
+  await page.route(API + "/venues?*", (route) => {
+    const query = new URL(route.request().url()).searchParams;
+    queries.push(query);
+    return route.fulfill({json:{venues:[{
+      ...venue, name:query.get("page") === "2" ? "Second result" : venue.name,
+      search_availability:query.has("date") ? "available" : "not_checked",
+    }], has_more:query.get("page") === "1"}});
+  });
+  await page.goto("/venues");
+  await page.getByRole("button", {name:"Next", exact:true}).click();
+  await expect(page.getByRole("heading", {name:"Second result"})).toBeVisible();
+  await page.getByText("More requirements", {exact:true}).click();
+  await page.getByLabel("Location", {exact:true}).fill("Building B");
+  await page.getByLabel("Expected attendance", {exact:true}).fill("80");
+  await page.getByLabel("Minimum capacity", {exact:true}).fill("100");
+  await page.getByLabel("Layout", {exact:true}).selectOption("Classroom");
+  await page.getByLabel("Required facilities").fill("Projector, Wi-Fi");
+  await page.getByLabel("Accessibility features", {exact:true}).fill("Step-free access");
+  await page.getByLabel("Date", {exact:true}).fill("2026-10-05");
+  await page.getByLabel("Start time", {exact:true}).fill("09:00");
+  await page.getByLabel("End time", {exact:true}).fill("10:00");
+  await page.getByRole("button", {name:"Search venues", exact:true}).click();
+  await expect(page.getByText("Available for selected time", {exact:true})).toBeVisible();
+  expect(Object.fromEntries(queries.at(-1)!)).toEqual({
+    page:"1", location:"Building B", attendance:"80", capacity:"100", layout:"Classroom",
+    facilities:"Projector, Wi-Fi", accessibility:"Step-free access",
+    date:"2026-10-05", start_time:"09:00", end_time:"10:00",
+  });
+  await page.getByRole("button", {name:"Next", exact:true}).click();
+  await expect(page.getByRole("heading", {name:"Second result"})).toBeVisible();
+  expect(queries.at(-1)!.get("location")).toBe("Building B");
+  await page.getByRole("button", {name:"Clear filters", exact:true}).click();
+  await expect(page.getByRole("heading", {name:venue.name, exact:true})).toBeVisible();
+  expect(Object.fromEntries(queries.at(-1)!)).toEqual({page:"1"});
+  await expect(page.getByLabel("Location", {exact:true})).toHaveValue("");
+  await expect(page.getByLabel("Date", {exact:true})).toHaveValue("");
+});
+
+test("search explains invalid input, unavailable venues and no matching results", async ({page}) => {
+  await page.setViewportSize({width:375, height:812});
+  await page.route(API + "/venues?*", (route) => {
+    const query = new URL(route.request().url()).searchParams;
+    if (query.has("date") && !query.has("start_time")) {
+      return route.fulfill({status:400, json:{error:"Choose a date, start time and end time together (Singapore time)."}});
+    }
+    return route.fulfill({json:{venues:query.has("location") ? [] : [
+      {...venue, id:"retired", name:"Retired hall", is_retired:true},
+      {...venue, id:"closed", name:"Closed hall", search_availability:"closed"},
+      {...venue, id:"blocked", name:"Blocked hall", search_availability:"blocked"},
+      {...venue, id:"booked", name:"Booked hall", search_availability:"booked"},
+    ], has_more:false}});
+  });
+  await page.goto("/venues");
+  for (const label of ["retired venue", "outside opening hours", "blocked for selected time", "confirmed booking"]) {
+    await expect(page.getByText(`Unavailable — ${label}`, {exact:true})).toBeVisible();
+  }
+  await page.getByLabel("Date", {exact:true}).fill("2026-10-05");
+  await page.getByRole("button", {name:"Search venues", exact:true}).click();
+  await expect(page.locator("main").getByRole("alert")).toContainText("start time and end time");
+  await expect(page.getByLabel("Date", {exact:true})).toHaveValue("2026-10-05");
+  await page.getByLabel("Start time", {exact:true}).fill("09:00");
+  await page.getByLabel("End time", {exact:true}).fill("10:00");
+  await page.getByText("More requirements", {exact:true}).click();
+  await page.getByLabel("Location", {exact:true}).fill("Unknown location");
+  await page.getByRole("button", {name:"Search venues", exact:true}).click();
+  await expect(page.getByRole("heading", {name:"No venues match", exact:true})).toBeVisible();
+  await expect(page.locator("main").getByRole("alert")).toHaveCount(0);
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+});
+
+test("a failed availability check can be retried with the same search", async ({page}) => {
+  let failed = false;
+  await page.route(API + "/venues?*", (route) => {
+    const query = new URL(route.request().url()).searchParams;
+    if (query.has("date") && !failed) {
+      failed = true;
+      return route.fulfill({status:503, json:{error:"Could not check venue availability. Contact the team."}});
+    }
+    return route.fulfill({json:{venues:[{...venue, search_availability:query.has("date") ? "available" : "not_checked"}], has_more:false}});
+  });
+  await page.goto("/venues");
+  await page.getByLabel("Date", {exact:true}).fill("2026-10-05");
+  await page.getByLabel("Start time", {exact:true}).fill("09:00");
+  await page.getByLabel("End time", {exact:true}).fill("10:00");
+  await page.getByRole("button", {name:"Search venues", exact:true}).click();
+  await expect(page.locator("main").getByRole("alert")).toContainText("Could not check venue availability");
+  await expect(page.getByText("Available for selected time", {exact:true})).toHaveCount(0);
+  await page.getByRole("button", {name:"Try again", exact:true}).click();
+  await expect(page.getByText("Available for selected time", {exact:true})).toBeVisible();
+});
+
+test("event-first search offers catalogue choices and available-only results", async ({page}, testInfo) => {
+  const queries: URLSearchParams[] = [];
+  await page.route(API + "/venues?*", (route) => {
+    const query = new URL(route.request().url()).searchParams;
+    queries.push(query);
+    return route.fulfill({json:{venues:[{...venue,
+      search_availability: query.has("date") ? "available" : "not_checked",
+    }], has_more:false}});
+  });
+  await page.goto("/venues");
+  await expect(page.getByLabel("Location", {exact:true})).not.toBeVisible();
+  await expect(page.getByLabel("Expected attendance", {exact:true})).toBeVisible();
+  await expect(page.getByLabel("Only show available venues")).toBeDisabled();
+  await page.getByLabel("Date", {exact:true}).fill("2026-10-05");
+  await page.getByLabel("Start time", {exact:true}).fill("09:00");
+  await page.getByLabel("End time", {exact:true}).fill("10:00");
+  await page.getByLabel("Only show available venues").check();
+  await page.getByText("More requirements", {exact:true}).click();
+  await page.getByRole("button", {name:"+ Projector", exact:true}).click();
+  await expect(page.getByLabel("Required facilities")).toHaveValue("Projector");
+  await expect(page.getByRole("button", {name:"✓ Projector", exact:true})).toHaveAttribute("aria-pressed", "true");
+  await page.getByRole("button", {name:"+ Step-free access", exact:true}).click();
+  await page.getByRole("button", {name:"Search venues", exact:true}).click();
+  await expect(page.getByText("Available for selected time", {exact:true})).toBeVisible();
+  expect(queries.at(-1)!.get("available_only")).toBe("true");
+  expect(queries.at(-1)!.get("facilities")).toBe("Projector");
+  expect(queries.at(-1)!.get("accessibility")).toBe("Step-free access");
+  await expect(page.getByLabel("Applied filters")).toContainText("Available venues only");
+  await page.screenshot({path: testInfo.outputPath("search-desktop.png"), fullPage:true});
+  await page.setViewportSize({width:375, height:812});
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+  await page.screenshot({path: testInfo.outputPath("search-mobile.png"), fullPage:true});
+  await page.getByRole("button", {name:"✓ Projector", exact:true}).click();
+  await expect(page.getByLabel("Required facilities")).toHaveValue("");
+  await page.getByRole("button", {name:"Clear filters", exact:true}).click();
+  await expect(page.getByLabel("Only show available venues")).not.toBeChecked();
+  await expect(page.getByLabel("Applied filters")).toHaveCount(0);
+});
+
+test("invalid timing is caught before search and suggestions can fail independently", async ({page}) => {
+  let reads = 0;
+  await page.route(API + "/venues/filter-options", (route) => route.fulfill({status:503, json:{error:"Unavailable"}}));
+  await page.route(API + "/venues?*", (route) => { reads++; return route.fulfill({json:{venues:[], has_more:false}}); });
+  await page.goto("/venues");
+  await expect(page.getByRole("heading", {name:"No venues yet", exact:true})).toBeVisible();
+  await page.getByLabel("Date", {exact:true}).fill("2026-10-05");
+  await page.getByLabel("Start time", {exact:true}).fill("10:00");
+  await page.getByLabel("End time", {exact:true}).fill("09:00");
+  await page.getByRole("button", {name:"Search venues", exact:true}).click();
+  await expect(page.locator("main").getByRole("alert")).toHaveText("End time must be after start time on the same day.");
+  expect(reads).toBe(1);
+  await page.getByLabel("End time", {exact:true}).fill("11:00");
+  await page.getByText("More requirements", {exact:true}).click();
+  await page.getByLabel("Required facilities").fill("Projector");
+  await page.getByRole("button", {name:"Search venues", exact:true}).click();
+  await expect(page.getByRole("heading", {name:"No venues match", exact:true})).toBeVisible();
+  await page.getByRole("button", {name:"Reset search", exact:true}).click();
+  await expect(page.getByRole("heading", {name:"No venues yet", exact:true})).toBeVisible();
+  await expect(page.getByLabel("Required facilities")).toHaveValue("");
+  await expect(page.getByLabel("Date", {exact:true})).toHaveValue("");
+});
