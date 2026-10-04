@@ -73,6 +73,11 @@ Select **Demo Venue Staff**, then **Add a venue** from the home page. Saved venu
 are immediately visible in **Venue catalogue** to Venue Staff and Coordinators.
 See the [SCRUM-24 walkthrough, shared data contract and acceptance checks](docs/SCRUM-24.md).
 
+For venue search (SCRUM-28), also apply [`supabase/venue_search.sql`](supabase/venue_search.sql).
+Open **Venue catalogue** and use **Search venues** to filter and check a Singapore-time
+slot. Time searches use the existing `create_venue_bookings.sql` setup. See the
+[simple walkthrough, matching rules and team integration notes](docs/SCRUM-28.md).
+
 ## Prerequisites
 
 For draft submission, on-screen confirmation and coordinator assignment, see the

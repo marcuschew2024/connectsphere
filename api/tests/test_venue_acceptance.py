@@ -118,3 +118,66 @@ def test_rejected_payload_has_no_partial_record(live_venues):
     response = users[3].post("/venues", json={**values, "capacity": 0}, headers=ORIGIN)
     assert response.status_code == 400
     assert db.table("venues").select("id").eq("name", values["name"]).execute().data == []
+
+
+def test_search_filters_across_database_pages_and_flags_retirement(live_venues):
+    db, users = live_venues
+    location = f"Search location {uuid4()}"
+    rows = [{**unique_venue(), "location": location, "created_by": 3,
+             "capacity": 100 if index < 8 else 10,
+             "is_retired": index == 0, "created_at": f"2099-01-01T00:00:{index:02d}Z"}
+            for index in range(15)]
+    stored = db.table("venues").insert(rows).execute().data
+    query = {"location": location.lower(), "attendance": "100", "layout": "classroom",
+             "facilities": "projector, wi-fi", "accessibility": "step-free access"}
+    first = users[2].get("/venues", query_string=query, headers=ORIGIN).json
+    second = users[2].get("/venues", query_string={**query, "page": "2"}, headers=ORIGIN).json
+    matches = first["venues"] + second["venues"]
+    assert [row["id"] for row in matches] == [row["id"] for row in reversed(stored[:8])]
+    assert first["has_more"] is True and second["has_more"] is False
+    assert matches[-1]["search_availability"] == "retired"
+    assert all(row["search_availability"] == "not_checked" for row in matches[:-1])
+
+
+@pytest.mark.parametrize("status,start,end,expected", [
+    ("Confirmed", "09:00", "10:00", "booked"),
+    ("Blocked", "09:00", "10:00", "blocked"),
+    ("Requested", "09:00", "10:00", "available"),
+    ("Rejected", "09:00", "10:00", "available"),
+    ("Cancelled", "09:00", "10:00", "available"),
+    ("Confirmed", "08:00", "09:00", "available"),
+    ("Confirmed", "10:00", "11:00", "available"),
+])
+def test_search_availability_with_real_bookings(
+    live_venues, monkeypatch, status, start, end, expected,
+):
+    db, users = live_venues
+    monkeypatch.setattr("app.booking_repository.get_supabase_client", lambda: db)
+    location = f"Search time {uuid4()}"
+    venue = db.table("venues").insert({
+        **unique_venue(), "location": location, "created_by": 3,
+    }).execute().data[0]
+    assert venue["is_retired"] is False
+    event = db.table("events").insert({"title": "Search test", "organiser_id": 1}).execute().data[0]
+    booking = db.table("venue_bookings").insert({
+        "venue_id": venue["id"], "event_id": event["id"], "requested_by": 2,
+        "start_at": f"2026-10-05T{start}:00+08:00", "end_at": f"2026-10-05T{end}:00+08:00",
+        "expected_attendance": 50, "layout": "Classroom", "status": status,
+    }).execute().data[0]
+    try:
+        response = users[2].get("/venues", headers=ORIGIN, query_string={
+            "location": location, "date": "2026-10-05", "start_time": "09:00",
+            "end_time": "10:00",
+        })
+        assert response.status_code == 200, response.json
+        assert response.json["venues"][0]["search_availability"] == expected
+        available = users[2].get("/venues", headers=ORIGIN, query_string={
+            "location": location, "date": "2026-10-05", "start_time": "09:00",
+            "end_time": "10:00", "available_only": "true",
+        })
+        assert available.status_code == 200, available.json
+        assert len(available.json["venues"]) == (1 if expected == "available" else 0)
+        stored = db.table("venue_bookings").select("*").eq("id", booking["id"]).execute().data[0]
+        assert stored["status"] == status  # Search never changes booking state.
+    finally:
+        db.table("venue_bookings").delete().eq("id", booking["id"]).execute()
