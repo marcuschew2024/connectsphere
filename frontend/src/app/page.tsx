@@ -7,6 +7,7 @@ import {
   CalendarPlus,
   ClipboardCheck,
   FileText,
+  Package,
   Plus,
   type LucideIcon,
 } from "lucide-react";
@@ -33,11 +34,16 @@ const ROLE_ACTIONS: Record<string, Action[]> = {
     { title: "Review event requests", description: "Approve, reject or return submissions.", href: "/events/review", icon: ClipboardCheck, primary: true },
     { title: "Venue catalogue", description: "Browse venues for an event.", href: "/venues", icon: Building2 },
     { title: "Request a venue", description: "Submit timing and requirements to Venue Staff.", href: "/venues/bookings/new", icon: CalendarPlus },
+    { title: "Equipment catalogue", description: "Browse equipment and usable stock.", href: "/equipment", icon: Package },
   ],
   "Venue Staff": [
     { title: "Add a venue", description: "List a new venue in the catalogue.", href: "/venues/new", icon: Plus, primary: true },
     { title: "Venue catalogue", description: "Browse and manage venues.", href: "/venues", icon: Building2 },
     { title: "Venue booking requests", description: "Review requests submitted by Coordinators.", href: "/venues/bookings", icon: ClipboardCheck },
+  ],
+  "Tech Support": [
+    { title: "Equipment catalogue", description: "Manage equipment, quantities and condition.", href: "/equipment", icon: Package, primary: true },
+    { title: "Add equipment", description: "Record a new stock entry.", href: "/equipment/new", icon: Plus },
   ],
 };
 
