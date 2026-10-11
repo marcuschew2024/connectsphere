@@ -45,7 +45,7 @@ test("support creates equipment, sees it in the catalogue, and edits its conditi
       ? { equipment } : { equipment: [equipment], page: 1, has_more: false } });
   });
   await page.goto("/");
-  await page.getByRole("region", { name: "Quick actions" }).getByRole("link", { name: "Add equipment" }).click();
+  await page.getByRole("link", { name: "Add equipment", exact: true }).click();
   await page.getByLabel("Equipment type", { exact: true }).fill(initial.equipment_type);
   await page.getByLabel("Description", { exact: true }).fill(initial.description);
   await page.getByLabel("Location", { exact: true }).fill(initial.location);

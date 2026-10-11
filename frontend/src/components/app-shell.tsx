@@ -46,7 +46,7 @@ const NAV_BY_ROLE: Record<string, NavItem[]> = {
   "Tech Support": [
     { label: "Home", href: "/", icon: Home },
     { label: "Equipment", href: "/equipment", icon: Package },
-    { label: "Add equipment", href: "/equipment/new", icon: FilePlus2 },
+    { label: "New equipment", href: "/equipment/new", icon: FilePlus2 },
   ],
 };
 
