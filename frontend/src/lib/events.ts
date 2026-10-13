@@ -14,7 +14,7 @@ export type EventRecord = {
   accessibility_requirements: string | null;
   equipment_requirements: string | null;
   registration_requirements: string | null;
-  status: "Draft" | "Submitted" | "Planning" | "Confirmed" | "Completed" | "Rejected" | "Cancelled";
+  status: "Draft" | "Submitted" | "Planning" | "Confirmed" | "Preparation" | "Completed" | "Rejected" | "Cancelled";
   // GET responses keep the existing display status and also expose the stored state.
   request_status?: string;
   organiser_id: number;
@@ -53,11 +53,12 @@ export type EventClarification = {
 };
 
 
-type VisibleStatus = "Planning" | "Confirmed" | "Completed" | "Rejected" | "Cancelled";
+type VisibleStatus = "Planning" | "Confirmed" | "Preparation" | "Completed" | "Rejected" | "Cancelled";
 
 const statusStyles: Record<VisibleStatus, string> = {
   Planning: "bg-blue-100 text-blue-700 border-blue-200 dark:bg-blue-500/15 dark:text-blue-300 dark:border-blue-400/30",
   Confirmed: "bg-emerald-100 text-emerald-700 border-emerald-200 dark:bg-emerald-500/15 dark:text-emerald-300 dark:border-emerald-400/30",
+  Preparation: "bg-amber-100 text-amber-700 border-amber-200 dark:bg-amber-500/15 dark:text-amber-300 dark:border-amber-400/30",
   Completed: "bg-violet-100 text-violet-700 border-violet-200 dark:bg-violet-500/15 dark:text-violet-300 dark:border-violet-400/30",
   Rejected: "bg-red-100 text-red-700 border-red-200 dark:bg-red-500/15 dark:text-red-300 dark:border-red-400/30",
   Cancelled: "bg-slate-100 text-slate-700 border-slate-200 dark:bg-slate-500/15 dark:text-slate-300 dark:border-slate-400/30",

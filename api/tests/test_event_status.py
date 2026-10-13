@@ -293,6 +293,20 @@ def test_status_endpoint_cannot_set_confirmed_directly(app, event_database):
     assert event["status"] == "Planning"
 
 
+# Preparation is gated (SCRUM-128): it cannot be reached through the generic status update.
+def test_status_endpoint_cannot_set_preparation_directly(app, event_database):
+    client = app.test_client()
+    select_user(client, 1)
+    event = _seed_planning_event(event_database, status="Confirmed")
+
+    response = client.patch(
+        f"/events/{event['id']}/status", json={"status": "Preparation"}, headers=ORIGIN
+    )
+
+    assert response.status_code == 409
+    assert event["status"] == "Confirmed"
+
+
 # Stored participants can retrieve history even when they are neither owner nor coordinator.
 def test_event_participant_can_view_event_history(app, event_database):
     client = app.test_client()

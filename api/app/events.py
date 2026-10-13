@@ -29,6 +29,7 @@ from .event_repository import (
 from .event_status import canonical_event_status, customer_event_status
 from .event_validation import TEXT_LIMITS, validate_event
 from .rbac import public_event_view, require_related_user, require_role
+from .safety_decision import SafetyDecision
 
 events = Blueprint("events", __name__, url_prefix="/events")
 
@@ -53,6 +54,11 @@ def event_response(event, user):
     return public_event_view(result) if user["role"] == "Attendee" else result
 
 
+# A Safety Officer reviews events in the safety-review window, so they may read these
+# states without being an organiser/coordinator/participant (SCRUM-128).
+_SAFETY_REVIEW_STATES = {"Confirmed", "Preparation"}
+
+
 def require_event_access(event_id, user):
     event = get_event_by_id(event_id)
     if event is None:
@@ -61,6 +67,8 @@ def require_event_access(event_id, user):
         # Membership never grants access to a private draft, including its history.
         if user["role"] != "Organiser" or event["organiser_id"] != user["id"]:
             raise NotFound("Event not found.")
+    elif user.get("role") == "Safety Officer" and event.get("status") in _SAFETY_REVIEW_STATES:
+        pass  # role-based read access for the operational safety review
     else:
         require_related_user(user, event, action="view_event")
     return event
@@ -189,6 +197,10 @@ def change_event_status(event_id):
         # Confirmation is gated (SCRUM-39): it must go through the confirm step so the
         # "all venue bookings approved" check cannot be bypassed by a direct status set.
         raise Conflict("Confirm an event through its confirmation step, not a status update.")
+    if status == "Preparation":
+        # Preparation is gated (SCRUM-128): only a Safety Officer's approval of the
+        # operational safety check can move an event into preparation.
+        raise Conflict("An event reaches preparation only through the operational safety check.")
     allowed_statuses = {
         "Submitted", "Assigned", "Under review", "Approved", "Planning",
         "Completed", "Rejected", "Cancelled",
@@ -236,6 +248,52 @@ def confirm_event(event_id):
     old_status = event["status"]
     updated = update_event_status(event_id, "Confirmed", user["id"])
     add_status_history(event_id, old_status, "Confirmed", user["id"])
+    updated["status"] = canonical_event_status(updated.get("status"))
+    return jsonify({"event": updated}), 200
+
+
+# Maps each safety decision to the audit action recorded in the status history.
+_SAFETY_ACTIONS = {
+    "approve": "safety_approved",
+    "request_changes": "safety_changes_requested",
+    "reject": "safety_rejected",
+}
+
+
+@events.post("/<event_id>/safety-check")
+def safety_check_event(event_id):
+    """Record a Safety Officer's operational safety decision on a confirmed event (SCRUM-128).
+
+    Week 7 customer change #6. The safety review acts on a Confirmed event: approving it
+    moves it to Preparation (the only path there); requesting changes or rejecting sends
+    it back to Planning with a recorded reason so the arrangements can be re-reviewed.
+    """
+    if request.headers.get("Origin") != current_app.config["FRONTEND_ORIGIN"]:
+        raise Forbidden("Request must come from the configured frontend origin.")
+
+    user = require_acting_user()
+    # Authorisation is by role: the Safety Officer role (SCRUM-127) is the gate, not
+    # organiser/coordinator relatedness.
+    require_role(user, "Safety Officer", action="safety_check_event")
+
+    event = get_event_by_id(event_id)
+    if event is None:
+        raise NotFound("Event not found.")
+
+    if event.get("status") != "Confirmed":
+        raise Conflict("Only a confirmed event can undergo the operational safety check.")
+
+    try:
+        decision = SafetyDecision.from_payload(request.get_json(silent=True))
+    except ValueError as error:
+        raise BadRequest(str(error)) from error
+
+    old_status = event["status"]
+    updated = update_event_status(event_id, decision.status, user["id"])
+    add_status_history(
+        event_id, old_status, decision.status, user["id"],
+        action=_SAFETY_ACTIONS[decision.action], note=decision.reason,
+    )
     updated["status"] = canonical_event_status(updated.get("status"))
     return jsonify({"event": updated}), 200
 
