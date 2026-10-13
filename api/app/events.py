@@ -54,6 +54,11 @@ def event_response(event, user):
     return public_event_view(result) if user["role"] == "Attendee" else result
 
 
+# A Safety Officer reviews events in the safety-review window, so they may read these
+# states without being an organiser/coordinator/participant (SCRUM-128).
+_SAFETY_REVIEW_STATES = {"Confirmed", "Preparation"}
+
+
 def require_event_access(event_id, user):
     event = get_event_by_id(event_id)
     if event is None:
@@ -62,6 +67,8 @@ def require_event_access(event_id, user):
         # Membership never grants access to a private draft, including its history.
         if user["role"] != "Organiser" or event["organiser_id"] != user["id"]:
             raise NotFound("Event not found.")
+    elif user.get("role") == "Safety Officer" and event.get("status") in _SAFETY_REVIEW_STATES:
+        pass  # role-based read access for the operational safety review
     else:
         require_related_user(user, event, action="view_event")
     return event

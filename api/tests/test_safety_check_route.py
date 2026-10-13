@@ -43,8 +43,8 @@ def test_approval_is_recorded_in_history_with_actor(app, event_database, databas
     event = _seed_planning_event(event_database, status="Confirmed")
 
     client.post(f"/events/{event['id']}/safety-check", json={"decision": "approve"}, headers=ORIGIN)
-    # Read the audit trail as the related Coordinator (a Safety Officer is role-authorised
-    # to act but is not a related viewer of the event).
+    # Read the audit trail as the related Coordinator (always permitted, regardless of the
+    # status the decision leaves the event in).
     coordinator = app.test_client()
     select_user(coordinator, 2)
     history = coordinator.get(f"/events/{event['id']}/history", headers=ORIGIN)
@@ -130,3 +130,24 @@ def test_safety_check_rejected_when_event_not_confirmed(app, event_database, dat
 
     assert response.status_code == 409
     assert event["status"] == "Planning"
+
+
+# A Safety Officer can read a Confirmed event to review it, without being related to it.
+def test_safety_officer_can_view_a_confirmed_event(app, event_database, database):
+    client = _as_safety_officer(app, database)
+    event = _seed_planning_event(event_database, status="Confirmed")
+
+    response = client.get(f"/events/{event['id']}", headers=ORIGIN)
+
+    assert response.status_code == 200
+    assert response.json["event"]["id"] == event["id"]
+
+
+# That role-based read is scoped to the safety-review window, not every event.
+def test_safety_officer_cannot_view_a_planning_event(app, event_database, database):
+    client = _as_safety_officer(app, database)
+    event = _seed_planning_event(event_database, status="Planning")
+
+    response = client.get(f"/events/{event['id']}", headers=ORIGIN)
+
+    assert response.status_code == 403

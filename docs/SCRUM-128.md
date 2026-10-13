@@ -1,10 +1,10 @@
 # SCRUM-128: Operational Safety Check before preparation
 
-> Status: **in progress** — increments 1 (pure decision + unit tests) and 2
-> (`POST /events/<id>/safety-check` endpoint + `Preparation` status + integration tests)
-> are complete. Increment 3 (Safety Officer review UI + E2E) is blocked on an access
-> decision — see "Open: Safety Officer view access" below. Builds on SCRUM-39
-> (branch `feature/SCRUM-128-safety-check`).
+> Status: **code complete** — increment 1 (pure decision + unit tests), increment 2
+> (`POST /events/<id>/safety-check` + `Preparation` status + integration tests), and
+> increment 3 (Safety Officer read access + review UI + E2E) are done. Remaining before
+> Done: SCRUM-127 (the Safety Officer role in the seed), your review, PR + green CI, and
+> Jira test-case evidence. Builds on SCRUM-39 (branch `feature/SCRUM-128-safety-check`).
 
 As a Safety Officer, I want to review a confirmed event's operational safety and
 approve / reject / request changes, so unsafe events do not proceed to preparation
@@ -113,14 +113,38 @@ than editing the shared conftest. Full suite: **584 passed, 36 skipped, ruff cle
 > The audit tests read `/history` as the related Coordinator, because — see below — a
 > Safety Officer is not currently a related viewer of the event.
 
-## Open: Safety Officer view access (blocks the UI)
+## Safety Officer view access (resolved)
 
-`require_event_access` (and `GET /events/<id>`, `/history`) require the caller to be
-*related* to the event (organiser / coordinator / participant). A Safety Officer is
-none of these, so they can act on the safety check but **cannot currently load the event
-to review it** — which the review UI (increment 3) needs. Resolving this is a shared
-access-control decision (e.g. grant Safety Officers role-based read access to Confirmed
-events, or add them as event participants when a review is needed). Pending Marcus's call.
+`require_event_access` required the caller to be *related* to the event, so a Safety
+Officer could act on the check but not load the event to review it. **Resolved (PO
+decision):** `require_event_access` now grants a Safety Officer **role-based read access
+to events in `Confirmed`/`Preparation`** (the safety-review window) — see
+`_SAFETY_REVIEW_STATES` in `events.py`. This is additive (no existing role is affected)
+but is a shared access-control change — *flag at standup*. Covered by
+`test_safety_officer_can_view_a_confirmed_event` and
+`test_safety_officer_cannot_view_a_planning_event`.
+
+## Frontend (increment 3)
+
+`frontend/src/app/events/[eventId]/event-safety-check-form.tsx` adds the review panel for a
+Safety Officer on a `Confirmed` event: it surfaces the event's recorded safety-relevant
+details plus a checklist of the aspects to assess (capacity/layout, emergency access,
+accessibility, equipment placement, crowd movement, venue restrictions — change #6), and
+the three decisions. **Approve** proceeds to `Preparation`; **Request changes** / **Reject**
+require a reason (validated client-side, `data-testid="safety-error"`) and send the event
+back to Planning. Wired into `page.tsx`, gated on
+`actingRole === "Safety Officer" && event.status === "Confirmed"`. A `Preparation` badge
+style was added to `lib/events.ts`.
+
+> The app-shell nav has no Safety Officer entry yet (falls back to Home only); a dedicated
+> safety-review queue would be a separate story. Safety Officers reach an event by link.
+
+### E2E coverage
+
+`frontend/e2e/event-safety-check.spec.ts` (3 Playwright tests): a Safety Officer approves
+and the badge becomes `Preparation`; requesting changes without a reason shows the
+validation message and leaves the status `Confirmed`; a Coordinator never sees the action.
+Lint, build, and the full E2E suite (**104 passing**) are green.
 
 ## Dependency
 
