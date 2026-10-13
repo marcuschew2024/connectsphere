@@ -1,8 +1,9 @@
 # SCRUM-39: Confirm an event (change-aware)
 
-> Status: **in progress** — increments 1 (pure gate + unit tests) and 2
-> (`POST /events/<id>/confirm` endpoint + integration tests + status-PATCH lock)
-> are complete. Increment 3 = frontend. This doc grows with each increment.
+> Status: **code complete** — increment 1 (pure gate + unit tests), increment 2
+> (`POST /events/<id>/confirm` endpoint + integration tests + status-PATCH lock), and
+> increment 3 (Coordinator confirm UI + Playwright E2E) are done. Remaining before Done:
+> your review, PR + green CI, and updating the Jira test-case evidence.
 
 As a Coordinator, I want to confirm an event once its essential arrangements are
 complete, so it can proceed to the Operational Safety Check (SCRUM-128). The Week 7
@@ -133,3 +134,25 @@ monkeypatching `app.events.list_bookings_for_event` (the shared event DB fixture
 model `venue_bookings`).
 
 Full suite after increment 2: **552 passed, 36 skipped, ruff clean.**
+
+## Frontend (increment 3)
+
+`frontend/src/app/events/[eventId]/event-confirm-form.tsx` adds a **Confirm event** action
+for a Coordinator on a `Planning` event (mirrors `event-decision-form.tsx`). It POSTs to
+`/events/<id>/confirm`; on success it updates the event (the status badge flips to
+`Confirmed` and the Planning-only sections disappear). On a `409` the API's message — which
+carries the outstanding arrangements — is shown as a clear blocked message
+(`data-testid="confirm-blocked-message"`), satisfying AC "show outstanding arrangements and
+a clear blocked-confirmation message". It is wired into `page.tsx`, gated on
+`actingRole === "Coordinator" && event.status === "Planning"`.
+
+> Note: outstanding arrangements are surfaced on a confirm *attempt* (via the 409), not
+> pre-listed, since this story's API exposes no separate "outstanding" read. A proactive
+> checklist could be a later enhancement.
+
+### E2E coverage
+
+`frontend/e2e/event-confirm.spec.ts` (3 Playwright tests, all passing): a Coordinator
+confirms and the badge becomes `Confirmed`; a blocked confirmation shows the outstanding
+message and leaves the status in `Planning`; an Organiser never sees the confirm action.
+Lint, build/typecheck, and these E2E tests are green.
