@@ -1,0 +1,24 @@
+C4Context
+    title C1 — System Context: ConnectSphere
+
+    Person(organiser, "Event Organiser", "Raises an event request and tracks it through to confirmation")
+    Person(coordinator, "Coordinator", "Reviews, approves, and assigns event requests")
+    Person(venueStaff, "Venue Staff", "Handles venue booking for approved events")
+    Person(techSupport, "Technical Support", "Handles equipment booking and technical setup")
+    Person(attendee, "Attendee", "Registers for events and receives confirmations")
+
+    System(connectSphere, "ConnectSphere", "Manages the event lifecycle: request, review/approve/assign, venue & equipment booking, attendee registration, confirmation")
+
+    System_Ext(supabase, "Supabase", "Managed SaaS: Postgres database + authentication")
+    System_Ext(email, "Email / Notification Service", "Sends confirmation emails and event notifications")
+
+    Rel(organiser, connectSphere, "Raises event requests & tracks status", "HTTPS")
+    Rel(coordinator, connectSphere, "Reviews, approves & assigns events", "HTTPS")
+    Rel(venueStaff, connectSphere, "Books venues for approved events", "HTTPS")
+    Rel(techSupport, connectSphere, "Books equipment & sets up tech support", "HTTPS")
+    Rel(attendee, connectSphere, "Registers for events & gets confirmations", "HTTPS")
+
+    Rel(connectSphere, supabase, "Reads/writes; authenticates users against", "HTTPS/JSON")
+    Rel(connectSphere, email, "Sends confirmations & notifications via", "HTTPS/SMTP")
+
+    UpdateLayoutConfig($c4ShapeInRow="3", $c4BoundaryInRow="2")
