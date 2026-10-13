@@ -1,0 +1,74 @@
+# SCRUM-39: Confirm an event (change-aware)
+
+> Status: **in progress** — increment 1 of 3 (pure gate + unit tests) is complete.
+> Increment 2 = `POST /events/<id>/confirm` endpoint + integration tests;
+> increment 3 = frontend. This doc grows with each increment.
+
+As a Coordinator, I want to confirm an event once its essential arrangements are
+complete, so it can proceed to the Operational Safety Check (SCRUM-128). The Week 7
+customer change #3 makes this a **multi-venue gate**: confirmation requires *all* of
+the event's venue bookings to be approved, not just one.
+
+## Why a separate value object
+
+The confirmation rule is pure business logic — it depends only on the status of the
+event's venue bookings, not on the database or Flask. So it follows the same pattern
+the team already uses for `EventDecision` (`event_decision.py`) and `BookingDecision`
+(`booking_decision.py`): a small DB-independent value object that is **unit-testable in
+isolation** (fast, no Postgres), while the endpoint and repository handle persistence
+and the actual state change. This is the Week 6 testing pyramid in practice — the gate
+is a unit; the endpoint will be an integration test.
+
+The implementation lives in `api/app/event_confirmation.py`.
+
+## The gate rule
+
+An event may be confirmed only when **all** of the following hold:
+
+- **At least one venue booking is `Confirmed`.** A fully-resourced event must have an
+  approved venue, so an event with zero bookings cannot be confirmed (PO decision).
+- **No venue booking is still awaiting approval.** Anything that is not a *settled*
+  `Confirmed`/`Rejected` status — `Requested`, `Pending`, or an unrecognised value —
+  blocks. Unknown statuses block defensively rather than slipping through.
+- **Technical arrangements are resolved.** This is the `technical_resolved` flag — the
+  seam for equipment reservations (SCRUM-37). Until that story lands, the endpoint
+  passes `True`; the gate logic is already complete and unit-tested both ways.
+
+`Rejected` bookings are **settled history and do not block** (PO decision): a declined
+venue request sitting in the log does not stop the event being confirmed, as long as
+there is at least one approved venue and nothing still pending.
+
+Non-essential items (programme, registration setup) are **intentionally not checked**
+— AC2 requires that they must not block confirmation, so the gate never looks at them.
+
+### API
+
+- `EventConfirmation(booking_statuses, technical_resolved=True)` — build from a list of
+  status strings.
+- `EventConfirmation.from_bookings(bookings, technical_resolved=True)` — build from
+  venue-booking rows (dicts with a `status` field), the shape the repository returns.
+- `.can_confirm` → `bool`.
+- `.outstanding` → list of human-readable blocking reasons; **empty exactly when
+  `can_confirm` is `True`**. The endpoint returns these in the 409 body so the UI can
+  show the Coordinator precisely what is still outstanding (AC4).
+
+## Test coverage
+
+`api/tests/test_event_confirmation.py` (12 unit tests). Each test traces to an
+acceptance criterion and is written so a plausible wrong implementation fails it (the
+Week 6 "what would have to break for this to fail?" review), not merely to accept the
+current code:
+
+- **Happy path (AC1):** all `Confirmed` → allowed; a single `Confirmed` → allowed.
+- **Negative (AC4):** a `Requested` or `Pending` booking blocks; an unknown status
+  blocks (defensive).
+- **Boundary (PO decision):** zero bookings → blocked with "No venue…".
+- **Rejected (PO decision):** `Rejected` alongside a `Confirmed` → allowed; `Rejected`
+  alone (no approved venue) → blocked.
+- **Technical seam (AC1):** `technical_resolved=False` blocks; `outstanding` lists every
+  blocking reason when more than one applies.
+- **`from_bookings`:** reads the `status` field off real booking rows.
+
+The endpoint-level ACs (Coordinator role, Planning-only precondition, status-history
+audit, the 409 response body, and the handoff to the safety check) are covered by the
+acceptance suite in increment 2.
