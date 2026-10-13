@@ -75,6 +75,21 @@ def get_booking(booking_id: str) -> dict | None:
         raise ServiceUnavailable("Could not load the booking request. Contact the team.") from error
 
 
+def list_bookings_for_event(event_id: str) -> list[dict]:
+    """All venue bookings for one event (any status), for the confirmation gate (SCRUM-39)."""
+    try:
+        result = _client().table("venue_bookings").select(
+            "id,venue_id,status"
+        ).eq("event_id", event_id).execute()
+        return result.data or []
+    except ServiceUnavailable:
+        raise
+    except Exception as error:
+        raise ServiceUnavailable(
+            "Could not load the event's venue bookings. Contact the team."
+        ) from error
+
+
 def record_booking_decision(
     booking_id: str,
     status: str,

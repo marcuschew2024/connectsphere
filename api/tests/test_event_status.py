@@ -249,11 +249,11 @@ def test_related_user_can_update_status_and_actor_metadata(app, event_database):
     event = _seed_planning_event(event_database, status="Submitted")
 
     response = client.patch(
-        f"/events/{event['id']}/status", json={"status": "Confirmed"}, headers=ORIGIN
+        f"/events/{event['id']}/status", json={"status": "Planning"}, headers=ORIGIN
     )
 
     assert response.status_code == 200
-    assert response.json["event"]["status"] == "Confirmed"
+    assert response.json["event"]["status"] == "Planning"
     assert response.json["event"]["last_status_changed_by"] == 1
     assert response.json["event"]["last_status_changed_at"]
 
@@ -265,7 +265,7 @@ def test_related_user_status_change_is_added_to_history(app, event_database):
     event = _seed_planning_event(event_database, status="Submitted")
 
     update = client.patch(
-        f"/events/{event['id']}/status", json={"status": "Confirmed"}, headers=ORIGIN
+        f"/events/{event['id']}/status", json={"status": "Planning"}, headers=ORIGIN
     )
     history = client.get(f"/events/{event['id']}/history", headers=ORIGIN)
 
@@ -274,9 +274,23 @@ def test_related_user_status_change_is_added_to_history(app, event_database):
     assert len(history.json["history"]) == 1
     assert history.json["history"][0]["event_id"] == event["id"]
     assert history.json["history"][0]["old_status"] == "Submitted"
-    assert history.json["history"][0]["new_status"] == "Confirmed"
+    assert history.json["history"][0]["new_status"] == "Planning"
     assert history.json["history"][0]["changed_by"] == 1
     assert history.json["history"][0]["changed_at"]
+
+
+# Confirmation is gated (SCRUM-39): it cannot be reached through the generic status update.
+def test_status_endpoint_cannot_set_confirmed_directly(app, event_database):
+    client = app.test_client()
+    select_user(client, 1)
+    event = _seed_planning_event(event_database, status="Planning")
+
+    response = client.patch(
+        f"/events/{event['id']}/status", json={"status": "Confirmed"}, headers=ORIGIN
+    )
+
+    assert response.status_code == 409
+    assert event["status"] == "Planning"
 
 
 # Stored participants can retrieve history even when they are neither owner nor coordinator.

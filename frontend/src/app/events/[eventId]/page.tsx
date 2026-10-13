@@ -13,6 +13,7 @@ import {
 import { useActingRole } from "@/lib/use-acting-role";
 import { AppShell } from "@/components/app-shell";
 import { Button } from "@/components/ui/button";
+import EventConfirmForm from "./event-confirm-form";
 import EventDecisionForm from "./event-decision-form";
 import EventEditForm from "./event-edit-form";
 import EventClarificationForm from "./event-clarification-form";
@@ -146,6 +147,7 @@ export default function EventStatusPage() {
           </div>
 
           {actingRole === "Organiser" && clarification && <EventResubmitForm event={event} clarification={clarification} onSaved={(updated) => { setEvent(updated); setClarification(null); }} />}
+          {actingRole === "Coordinator" && event.status === "Planning" && <EventConfirmForm event={event} onSaved={setEvent} />}
           {actingRole === "Coordinator" && event.status === "Planning" && <details className="rounded-2xl border border-border bg-card shadow-sm">
             <summary className="cursor-pointer px-5 py-4 text-sm font-medium text-primary">Edit event details</summary>
             <EventEditForm event={event} onSaved={setEvent} />
