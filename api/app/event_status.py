@@ -13,6 +13,7 @@ class EventStatus:
         "Approved": "Planning",
         "Planning": "Planning",
         "Confirmed": "Confirmed",
+        "Preparation": "Preparation",
         "Completed": "Completed",
         "Rejected": "Rejected",
         "Cancelled": "Cancelled",
