@@ -13,6 +13,7 @@ import {
   Home,
   LogOut,
   Menu,
+  Package,
   X,
   type LucideIcon,
 } from "lucide-react";
@@ -34,12 +35,18 @@ const NAV_BY_ROLE: Record<string, NavItem[]> = {
     { label: "Review requests", href: "/events/review", icon: ClipboardCheck },
     { label: "Venues", href: "/venues", icon: Building2 },
     { label: "Request venue", href: "/venues/bookings/new", icon: CalendarPlus },
+    { label: "Equipment", href: "/equipment", icon: Package },
   ],
   "Venue Staff": [
     { label: "Home", href: "/", icon: Home },
     { label: "Add venue", href: "/venues/new", icon: FilePlus2 },
     { label: "Venues", href: "/venues", icon: Building2 },
     { label: "Booking requests", href: "/venues/bookings", icon: ClipboardCheck },
+  ],
+  "Tech Support": [
+    { label: "Home", href: "/", icon: Home },
+    { label: "Equipment", href: "/equipment", icon: Package },
+    { label: "New equipment", href: "/equipment/new", icon: FilePlus2 },
   ],
 };
 
