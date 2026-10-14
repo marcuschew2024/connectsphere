@@ -6,6 +6,8 @@ from flask import Blueprint, current_app, jsonify, request
 from werkzeug.exceptions import BadRequest, Conflict, Forbidden, HTTPException, NotFound
 
 from .acting_user import require_acting_user
+from .booking_repository import list_bookings_for_event
+from .event_confirmation import EventConfirmation
 from .event_decision import EventDecision
 from .event_repository import (
     add_event_participant,
@@ -27,6 +29,7 @@ from .event_repository import (
 from .event_status import canonical_event_status, customer_event_status
 from .event_validation import TEXT_LIMITS, validate_event
 from .rbac import public_event_view, require_related_user, require_role
+from .safety_decision import SafetyDecision
 
 events = Blueprint("events", __name__, url_prefix="/events")
 
@@ -51,6 +54,11 @@ def event_response(event, user):
     return public_event_view(result) if user["role"] == "Attendee" else result
 
 
+# A Safety Officer reviews events in the safety-review window, so they may read these
+# states without being an organiser/coordinator/participant (SCRUM-128).
+_SAFETY_REVIEW_STATES = {"Confirmed", "Preparation"}
+
+
 def require_event_access(event_id, user):
     event = get_event_by_id(event_id)
     if event is None:
@@ -59,6 +67,8 @@ def require_event_access(event_id, user):
         # Membership never grants access to a private draft, including its history.
         if user["role"] != "Organiser" or event["organiser_id"] != user["id"]:
             raise NotFound("Event not found.")
+    elif user.get("role") == "Safety Officer" and event.get("status") in _SAFETY_REVIEW_STATES:
+        pass  # role-based read access for the operational safety review
     else:
         require_related_user(user, event, action="view_event")
     return event
@@ -183,9 +193,17 @@ def change_event_status(event_id):
         raise BadRequest("Send a JSON object containing only status.")
 
     status = data["status"]
+    if status == "Confirmed":
+        # Confirmation is gated (SCRUM-39): it must go through the confirm step so the
+        # "all venue bookings approved" check cannot be bypassed by a direct status set.
+        raise Conflict("Confirm an event through its confirmation step, not a status update.")
+    if status == "Preparation":
+        # Preparation is gated (SCRUM-128): only a Safety Officer's approval of the
+        # operational safety check can move an event into preparation.
+        raise Conflict("An event reaches preparation only through the operational safety check.")
     allowed_statuses = {
         "Submitted", "Assigned", "Under review", "Approved", "Planning",
-        "Confirmed", "Completed", "Rejected", "Cancelled",
+        "Completed", "Rejected", "Cancelled",
     }
     if status not in allowed_statuses:
         raise BadRequest("Choose a valid event status.")
@@ -193,6 +211,89 @@ def change_event_status(event_id):
     old_status = event.get("status")
     updated = update_event_status(event_id, status, user["id"])
     add_status_history(event_id, old_status, status, user["id"])
+    updated["status"] = canonical_event_status(updated.get("status"))
+    return jsonify({"event": updated}), 200
+
+
+@events.post("/<event_id>/confirm")
+def confirm_event(event_id):
+    """Confirm an event once all its venue bookings are approved (SCRUM-39).
+
+    The Week 7 multi-venue gate (change #3): a Coordinator may move an event from
+    Planning to Confirmed only when every venue booking is approved and the technical
+    arrangements are resolved. A confirmed event then awaits the Operational Safety
+    Check (SCRUM-128) before it can proceed to preparation.
+    """
+    if request.headers.get("Origin") != current_app.config["FRONTEND_ORIGIN"]:
+        raise Forbidden("Request must come from the configured frontend origin.")
+
+    user = require_acting_user()
+    require_role(user, "Coordinator", action="confirm_event")
+
+    event = get_event_by_id(event_id)
+    if event is None:
+        raise NotFound("Event not found.")
+
+    require_related_user(user, event, action="confirm_event")
+
+    if event.get("status") != "Planning":
+        raise Conflict("Only an event in Planning can be confirmed.")
+
+    # Technical arrangements (equipment reservations, SCRUM-37) are not built yet, so
+    # the seam is passed as resolved for now; the gate already enforces it either way.
+    gate = EventConfirmation.from_bookings(list_bookings_for_event(event_id))
+    if not gate.can_confirm:
+        raise Conflict("This event cannot be confirmed yet. " + " ".join(gate.outstanding))
+
+    old_status = event["status"]
+    updated = update_event_status(event_id, "Confirmed", user["id"])
+    add_status_history(event_id, old_status, "Confirmed", user["id"])
+    updated["status"] = canonical_event_status(updated.get("status"))
+    return jsonify({"event": updated}), 200
+
+
+# Maps each safety decision to the audit action recorded in the status history.
+_SAFETY_ACTIONS = {
+    "approve": "safety_approved",
+    "request_changes": "safety_changes_requested",
+    "reject": "safety_rejected",
+}
+
+
+@events.post("/<event_id>/safety-check")
+def safety_check_event(event_id):
+    """Record a Safety Officer's operational safety decision on a confirmed event (SCRUM-128).
+
+    Week 7 customer change #6. The safety review acts on a Confirmed event: approving it
+    moves it to Preparation (the only path there); requesting changes or rejecting sends
+    it back to Planning with a recorded reason so the arrangements can be re-reviewed.
+    """
+    if request.headers.get("Origin") != current_app.config["FRONTEND_ORIGIN"]:
+        raise Forbidden("Request must come from the configured frontend origin.")
+
+    user = require_acting_user()
+    # Authorisation is by role: the Safety Officer role (SCRUM-127) is the gate, not
+    # organiser/coordinator relatedness.
+    require_role(user, "Safety Officer", action="safety_check_event")
+
+    event = get_event_by_id(event_id)
+    if event is None:
+        raise NotFound("Event not found.")
+
+    if event.get("status") != "Confirmed":
+        raise Conflict("Only a confirmed event can undergo the operational safety check.")
+
+    try:
+        decision = SafetyDecision.from_payload(request.get_json(silent=True))
+    except ValueError as error:
+        raise BadRequest(str(error)) from error
+
+    old_status = event["status"]
+    updated = update_event_status(event_id, decision.status, user["id"])
+    add_status_history(
+        event_id, old_status, decision.status, user["id"],
+        action=_SAFETY_ACTIONS[decision.action], note=decision.reason,
+    )
     updated["status"] = canonical_event_status(updated.get("status"))
     return jsonify({"event": updated}), 200
 
