@@ -4,6 +4,28 @@ An assigned Coordinator records multiple catalogue items, quantities and technic
 notes for a Planning event. Tech Support sees the saved request in its queue with
 status **Requested**, the event reference, requester and submission time.
 
+## Explain it in one minute
+
+“The Coordinator chooses an event and lists the equipment it needs. Our API checks
+who is signed in and whether the quantities are valid. The database then checks
+that the Coordinator owns that Planning event and saves the whole request. Tech
+Support sees it in its request queue, including who submitted it and when.”
+
+For example, one request can contain **2 microphones with spare batteries** and
+**1 projector with HDMI**. The database stores one request header for the event,
+then two item rows linked to that header. This avoids repeating the event, person
+and submission time for every item.
+
+```text
+Coordinator form
+    → Flask: check sign-in, role and input
+    → Database: check event assignment/status; save header + all items together
+    → Tech Support queue: read and display the saved request
+```
+
+This uses the existing equipment workspace, login checks and database connection.
+Each part has one job; no new framework or class hierarchy is needed for this story.
+
 ## Setup and demo
 
 1. Apply `supabase/create_equipment_requests.sql` after the existing event/user
@@ -22,6 +44,38 @@ status **Requested**, the event reference, requester and submission time.
    focus an error summary with the invalid quantity identified.
 7. Try another Coordinator's event through the API: denied. Other roles cannot
    submit. A cancelled event cannot receive new equipment requests.
+
+### Shared demo handoff
+
+Marcus applies the migration in the team's Supabase SQL Editor, following the
+existing working agreement. Use the complete
+[`create_equipment_requests.sql`](../supabase/create_equipment_requests.sql) file;
+the `supabase/tests/` scripts are only for disposable test databases.
+
+After running it, this read-only query should return three non-null names:
+
+```sql
+select
+    to_regclass('public.equipment_requests') as request_table,
+    to_regclass('public.equipment_request_items') as item_table,
+    to_regprocedure('public.record_equipment_request(uuid,jsonb,integer)') as save_function;
+```
+
+That confirms the objects exist. Complete steps 2–7 above to check the actual
+shared application; the existence check alone is not a passing demo. If the API
+still reports a missing table/function, check that it points to the same Supabase
+project and that the full migration completed successfully.
+
+Record the commit, date, demonstrator, reviewer, actual outcome and evidence link
+for TC-35-01/02/03 in the
+[Sprint 3 execution record](https://spm-g6t4.atlassian.net/wiki/spaces/CS/pages/11141162).
+Only check these off after the team performs them:
+
+- [ ] A human reviewer can explain the request flow and has approved the PR.
+- [ ] Shared migration completed and the two-item request survives a reload.
+- [ ] Tech Support sees the correct event, notes, Requested status and actor/time.
+- [ ] Invalid quantities and unauthorised requests fail without creating a request.
+- [ ] Required CI is green and the approved PR is merged before Jira moves to Done.
 
 ## Simple code walkthrough
 
@@ -44,6 +98,33 @@ or status update cannot slip between validation and persistence.
 have no direct table/RPC access. The backend can read these tables and call the
 creation function, but cannot directly insert, update or delete their rows.
 Test-only cleanup grants exist exclusively in the disposable test bootstrap.
+
+### Read the code in this order
+
+1. **Form `submit()`** builds `{ event_id, items }` from the user's entries. A failed
+   submission keeps those entries so the user can correct them.
+2. **Route `submit_request()`** gets the signed-in Coordinator, validates the input,
+   and passes the cleaned content and trusted user ID to the repository.
+3. **Repository `record_request()`** calls the database function and converts its
+   errors into useful messages. The `rpc` call means “run this database function.”
+4. **SQL `record_equipment_request()`** checks event ownership and Planning status,
+   inserts the header, then loops through the items. An error rolls back the entire
+   call, including any earlier item: there is no half-saved request.
+5. **Queue `list_requests()`** reads saved requests. It filters a Coordinator's
+   events before choosing a page; Tech Support can read the whole team queue.
+
+### Questions Jerome should be able to answer
+
+| Question | Plain-language answer |
+| --- | --- |
+| Why check permissions in the API when the page already hides the form? | Someone can call the API directly. The server must check access independently of the screen. |
+| Why validate in both Python and SQL? | Python provides helpful field errors. SQL protects the stored data and saves the whole request together. |
+| Why use `type(quantity) is int`? | Python otherwise treats `True` as an integer. A yes/no value is not a valid equipment quantity. |
+| Why does SQL lock the event with `FOR SHARE`? | Its assignment and status must stay stable while the request is being saved. Reads and other shared locks can still proceed. |
+| Where do the person and time come from? | The API gets the person from the signed session; the database generates the time. Neither is accepted from the form. |
+| Does Requested mean equipment is reserved? | It records what the event needs. SCRUM-36 checks availability and SCRUM-37 makes reservations. |
+| Does routing send a message? | The saved request appears in the shared Tech Support queue. This story does not send email. |
+| What do the tests prove? | API tests check rules; real database tests check persistence and rollback; browser tests check the form and queue using controlled responses. The team still performs the shared demo. |
 
 ## API and data contract
 
