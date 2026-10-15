@@ -82,6 +82,16 @@ For venue editing (SCRUM-25), apply [`supabase/update_venues.sql`](supabase/upda
 Venue Staff can then choose **Edit venue** from the catalogue. See the
 [setup, testing walkthrough and integration notes](docs/SCRUM-25.md).
 
+## Equipment catalogue (SCRUM-34)
+
+Apply [`supabase/create_equipment.sql`](supabase/create_equipment.sql) after the user
+setup. Tech Support can open **Equipment catalogue** from the home page to add and
+edit stock. Coordinators can browse the catalogue. Damaged equipment and equipment
+under maintenance contribute zero usable stock; event/time reservations are handled
+by the separate availability stories.
+
+See the [code walkthrough, shared data contract, demo and acceptance checks](docs/SCRUM-34.md).
+
 ## Prerequisites
 
 For draft submission, on-screen confirmation and coordinator assignment, see the
