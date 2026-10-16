@@ -68,12 +68,12 @@ export default function EquipmentAvailabilityModal({
           startIso
         )}&end_at=${encodeURIComponent(endIso)}&quantity=${encodeURIComponent(quantity)}`
       );
-      setResult(res.availability);
-    } catch (err: any) {
-      setError(err.message || "Failed to check equipment availability.");
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : "Failed to check equipment availability.");
     } finally {
       setLoading(false);
     }
+
   }
 
   return (
