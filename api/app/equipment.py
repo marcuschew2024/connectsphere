@@ -85,3 +85,59 @@ def equipment_detail(equipment_id):
     if row is None:
         raise NotFound("Equipment not found.")
     return jsonify({"equipment": row})
+
+
+@equipment.get("/<uuid:equipment_id>/availability")
+def equipment_availability(equipment_id):
+    _require_user("Tech Support", "Coordinator")
+    row = get_equipment(str(equipment_id))
+    if row is None:
+        raise NotFound("Equipment not found.")
+
+    start_at = request.args.get("start_at")
+    end_at = request.args.get("end_at")
+    quantity_str = request.args.get("quantity", "1")
+
+    if not start_at or not end_at:
+        raise BadRequest("start_at and end_at query parameters are required.")
+
+    try:
+        quantity = int(quantity_str)
+        if quantity < 0 or quantity > MAX_QUANTITY:
+            raise ValueError
+    except (ValueError, TypeError) as err:
+        raise BadRequest("Quantity must be a non-negative integer.") from err
+
+    try:
+        from .equipment_availability import EquipmentAvailabilityEngine
+        from .equipment_repository import get_reservations_for_window
+
+        reservations = get_reservations_for_window(start_at, end_at, str(equipment_id))
+        engine = EquipmentAvailabilityEngine()
+        result = engine.check_availability(
+            row,
+            start_at,
+            end_at,
+            reservations,
+            requested_quantity=quantity,
+        )
+    except ValueError as val_err:
+        raise BadRequest(str(val_err)) from val_err
+
+    return jsonify({
+        "availability": {
+            "equipment_id": result.equipment_id,
+            "equipment_type": result.equipment_type,
+            "total_quantity": result.total_quantity,
+            "operational_status": result.operational_status,
+            "usable_quantity": result.usable_quantity,
+            "reserved_quantity": result.reserved_quantity,
+            "available_quantity": result.available_quantity,
+            "requested_quantity": quantity,
+            "is_sufficient": result.is_sufficient,
+            "overlapping_reservations_count": result.overlapping_reservations_count,
+            "start_at": start_at,
+            "end_at": end_at,
+        }
+    })
+

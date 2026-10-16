@@ -101,3 +101,32 @@ def save_equipment(
         raise ServiceUnavailable(
             "Could not confirm the save. Check the catalogue before retrying."
         ) from error
+
+
+def get_reservations_for_window(
+    start_at: str, end_at: str, equipment_id: str | None = None
+) -> list[dict]:
+    """Retrieve reservations potentially active during a time window.
+
+    Half-open interval overlap [start, end) means:
+    start_at < window_end AND end_at > window_start.
+    """
+    try:
+        query = (
+            _client()
+            .table("equipment_reservations")
+            .select("id, equipment_id, quantity, start_at, end_at, status")
+            .in_("status", ["Reserved", "Pending"])
+            .lt("start_at", end_at)
+            .gt("end_at", start_at)
+        )
+        if equipment_id:
+            query = query.eq("equipment_id", equipment_id)
+        return query.execute().data
+    except ServiceUnavailable:
+        raise
+    except Exception as error:
+        raise ServiceUnavailable(
+            "Could not check equipment reservations. Please try again."
+        ) from error
+

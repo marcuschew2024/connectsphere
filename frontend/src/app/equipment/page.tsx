@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { apiRequest } from "@/lib/api";
 import { type Equipment, equipmentTimestamp } from "@/lib/equipment";
+import EquipmentAvailabilityModal from "./equipment-availability-modal";
 import EquipmentWorkspace from "./equipment-workspace";
 
 type CatalogueResponse = { equipment: Equipment[]; page: number; has_more: boolean };
@@ -22,6 +23,7 @@ function CatalogueResults({
   const [data, setData] = useState<CatalogueResponse | null>(null);
   const [error, setError] = useState("");
   const [retry, setRetry] = useState(0);
+  const [selectedItem, setSelectedItem] = useState<Equipment | null>(null);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -63,8 +65,8 @@ function CatalogueResults({
               <p className="mt-1 break-words text-sm text-muted-foreground">{item.location}</p>
               <p className="my-4 whitespace-pre-wrap break-words text-sm">{item.description}</p>
               <dl className="mt-auto grid grid-cols-2 gap-3 rounded-xl bg-muted p-3 text-sm">
-                <div><dt className="text-muted-foreground">Total quantity</dt><dd className="mt-1 text-xl font-semibold">{item.total_quantity}</dd></div>
-                <div><dt className="text-muted-foreground">Usable stock</dt><dd className="mt-1 text-xl font-semibold">{item.usable_quantity}</dd></div>
+                <div><dt className="text-muted-foreground">Total Quantity</dt><dd className="mt-1 text-xl font-semibold">{item.total_quantity}</dd></div>
+                <div><dt className="text-muted-foreground">Usable Stock</dt><dd className="mt-1 text-xl font-semibold">{item.usable_quantity}</dd></div>
               </dl>
               {item.operational_status !== "Operational" && (
                 <p className="mt-3 text-sm text-destructive">Excluded from usable stock until operational.</p>
@@ -73,16 +75,39 @@ function CatalogueResults({
                 Updated by {item.editor?.display_name ?? `user ${item.updated_by}`}<br />
                 <time dateTime={item.updated_at}>{equipmentTimestamp(item.updated_at)} SGT</time>
               </p>
-              {role === "Tech Support" && (
-                <Button asChild variant="outline" className="mt-4 w-full">
-                  <Link href={`/equipment/${item.id}/edit`} aria-label={`Edit ${item.equipment_type} at ${item.location}`}>Edit equipment</Link>
+              <div className="mt-4 grid grid-cols-1 gap-2 pt-2 sm:grid-cols-2">
+                <Button
+                  variant="secondary"
+                  className="w-full text-xs sm:text-sm"
+                  onClick={() => setSelectedItem(item)}
+                  aria-label={`Check availability for ${item.equipment_type}`}
+                >
+                  Check Availability
                 </Button>
-              )}
+                {role === "Tech Support" && (
+                  <Button asChild variant="outline" className="w-full text-xs sm:text-sm">
+                    <Link href={`/equipment/${item.id}/edit`} aria-label={`Edit ${item.equipment_type} at ${item.location}`}>
+                      Edit
+                    </Link>
+                  </Button>
+                )}
+              </div>
+
             </article>
           ))}
         </div>
+
+      )}
+      {selectedItem && (
+        <EquipmentAvailabilityModal
+          equipmentId={selectedItem.id}
+          equipmentType={selectedItem.equipment_type}
+          isOpen={Boolean(selectedItem)}
+          onClose={() => setSelectedItem(null)}
+        />
       )}
       <nav aria-label="Equipment catalogue pages" className="flex items-center justify-center gap-4">
+
         <Button variant="outline" disabled={page === 1} onClick={() => onPageChange(page - 1)}>Previous</Button>
         <span className="text-sm text-muted-foreground">Page {page}</span>
         <Button variant="outline" disabled={!data.has_more} onClick={() => onPageChange(page + 1)}>Next</Button>
@@ -95,24 +120,42 @@ function Catalogue({ role }: { role: string }) {
   const [page, setPage] = useState(1);
   const [operationalOnly, setOperationalOnly] = useState(false);
   return (
-    <div className="space-y-5">
-      <div className="flex flex-wrap items-center justify-between gap-4">
-        <label className="flex items-center gap-2 text-sm">
-          <input type="checkbox" checked={operationalOnly} className="size-4 accent-primary"
-            onChange={(event) => { setOperationalOnly(event.target.checked); setPage(1); }} />
-          Show usable stock only
+    <div className="space-y-6">
+      <div className="flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-border bg-card p-4 shadow-sm">
+        <label className="flex cursor-pointer items-center gap-3 text-sm font-medium select-none text-foreground">
+          <input
+            type="checkbox"
+            checked={operationalOnly}
+            className="size-4.5 rounded border-border text-primary accent-primary focus:ring-2 focus:ring-ring"
+            onChange={(event) => { setOperationalOnly(event.target.checked); setPage(1); }}
+          />
+          <span>Show Usable Stock Only</span>
         </label>
-        {role === "Tech Support" && <Button asChild><Link href="/equipment/new"><Plus aria-hidden="true" />Add equipment</Link></Button>}
+        {role === "Tech Support" && (
+          <Button asChild>
+            <Link href="/equipment/new">
+              <Plus aria-hidden="true" className="mr-1.5 size-4" />
+              Add Equipment
+            </Link>
+          </Button>
+        )}
       </div>
-      <p className="rounded-xl bg-muted px-4 py-3 text-sm text-muted-foreground">
+
+      <p className="rounded-xl border border-border/60 bg-muted/50 px-4 py-3 text-sm text-muted-foreground">
         Usable stock excludes damaged equipment and equipment under maintenance.
         It does not account for reservations for a particular event or time.
       </p>
-      <CatalogueResults key={`${page}-${operationalOnly}`} role={role} page={page}
-        operationalOnly={operationalOnly} onPageChange={setPage} />
+      <CatalogueResults
+        key={`${page}-${operationalOnly}`}
+        role={role}
+        page={page}
+        operationalOnly={operationalOnly}
+        onPageChange={setPage}
+      />
     </div>
   );
 }
+
 
 export default function EquipmentPage() {
   return (

@@ -239,3 +239,31 @@ def test_missing_equipment_returns_404(equipment_api, monkeypatch):
     client, _, _ = equipment_api
     monkeypatch.setattr("app.equipment.get_equipment", lambda _: None)
     assert client.get(f"/equipment/{ID}", headers=ORIGIN).status_code == 404
+
+
+def test_availability_endpoint_success(equipment_api, monkeypatch):
+    client, save, _ = equipment_api
+    monkeypatch.setattr("app.equipment_repository.get_reservations_for_window", lambda s, e, eq: [])
+    query = "?start_at=2099-10-20T10:00:00Z&end_at=2099-10-20T12:00:00Z&quantity=2"
+    response = client.get(f"/equipment/{ID}/availability{query}", headers=ORIGIN)
+    assert response.status_code == 200
+    avail = response.json["availability"]
+    assert avail["equipment_id"] == ID
+    assert avail["available_quantity"] == 8
+    assert avail["is_sufficient"] is True
+
+
+def test_availability_endpoint_missing_params(equipment_api):
+    client, _, _ = equipment_api
+    response = client.get(f"/equipment/{ID}/availability", headers=ORIGIN)
+    assert response.status_code == 400
+    assert "start_at and end_at query parameters are required" in response.json["error"]
+
+
+def test_availability_endpoint_invalid_quantity(equipment_api):
+    client, _, _ = equipment_api
+    query = "?start_at=2099-10-20T10:00:00Z&end_at=2099-10-20T12:00:00Z&quantity=-5"
+    response = client.get(f"/equipment/{ID}/availability{query}", headers=ORIGIN)
+    assert response.status_code == 400
+    assert "Quantity must be a non-negative integer" in response.json["error"]
+
