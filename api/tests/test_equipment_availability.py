@@ -242,3 +242,82 @@ def test_naive_datetime_raises_value_error():
 
     with pytest.raises(ValueError, match="must include a time zone"):
         engine.check_availability(eq, naive_dt, END, [])
+
+
+# ==============================================================================
+# SCRUM-37 Unit Tests: Reservation Policy & Decisions (OOP)
+# ==============================================================================
+def test_scrum37_reserve_available_equipment_permitted():
+    """AC1: Reserving available equipment within capacity succeeds."""
+    from app.equipment_availability import EquipmentReservationEngine
+
+    engine = EquipmentReservationEngine()
+    eq = sample_equipment(total_quantity=10, operational_status="Operational")
+
+    decision = engine.evaluate_reservation(
+        equipment=eq,
+        start_at=START,
+        end_at=END,
+        requested_quantity=4,
+        existing_reservations=[],
+    )
+
+    assert decision.is_allowed is True
+    assert decision.available_quantity == 10
+    assert decision.reason is None
+
+
+def test_scrum37_over_reservation_blocked():
+    """AC2: Over-reservation beyond available stock is blocked."""
+    from app.equipment_availability import EquipmentReservationEngine
+
+    engine = EquipmentReservationEngine()
+    eq = sample_equipment(total_quantity=5, operational_status="Operational")
+    # 3 units already reserved in this slot
+    existing = [sample_reservation(quantity=3)]
+
+    # Trying to reserve 3 more when only 2 remain
+    decision = engine.evaluate_reservation(
+        equipment=eq,
+        start_at=START,
+        end_at=END,
+        requested_quantity=3,
+        existing_reservations=existing,
+    )
+
+    assert decision.is_allowed is False
+    assert decision.available_quantity == 2
+    assert "Cannot reserve 3 unit(s)" in decision.reason
+
+
+def test_scrum37_damaged_or_maintenance_cannot_be_reserved():
+    """AC1: Damaged or Under Maintenance equipment cannot be reserved."""
+    from app.equipment_availability import EquipmentReservationEngine
+
+    engine = EquipmentReservationEngine()
+    damaged = sample_equipment(total_quantity=5, operational_status="Damaged")
+    maintenance = sample_equipment(total_quantity=5, operational_status="Under Maintenance")
+
+    d1 = engine.evaluate_reservation(damaged, START, END, 1, [])
+    assert d1.is_allowed is False
+    assert "currently Damaged" in d1.reason
+
+    d2 = engine.evaluate_reservation(maintenance, START, END, 1, [])
+    assert d2.is_allowed is False
+    assert "currently Under Maintenance" in d2.reason
+
+
+def test_scrum37_invalid_quantities_rejected():
+    """Zero or negative requested quantities are denied."""
+    from app.equipment_availability import EquipmentReservationEngine
+
+    engine = EquipmentReservationEngine()
+    eq = sample_equipment(total_quantity=5)
+
+    d_zero = engine.evaluate_reservation(eq, START, END, 0, [])
+    assert d_zero.is_allowed is False
+    assert "at least 1" in d_zero.reason
+
+    d_neg = engine.evaluate_reservation(eq, START, END, -2, [])
+    assert d_neg.is_allowed is False
+

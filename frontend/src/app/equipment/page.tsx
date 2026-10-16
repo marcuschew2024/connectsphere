@@ -103,9 +103,11 @@ function CatalogueResults({
           equipmentId={selectedItem.id}
           equipmentType={selectedItem.equipment_type}
           isOpen={Boolean(selectedItem)}
+          role={role}
           onClose={() => setSelectedItem(null)}
         />
       )}
+
       <nav aria-label="Equipment catalogue pages" className="flex items-center justify-center gap-4">
 
         <Button variant="outline" disabled={page === 1} onClick={() => onPageChange(page - 1)}>Previous</Button>

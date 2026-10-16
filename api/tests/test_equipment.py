@@ -267,3 +267,72 @@ def test_availability_endpoint_invalid_quantity(equipment_api):
     assert response.status_code == 400
     assert "Quantity must be a non-negative integer" in response.json["error"]
 
+
+def test_reserve_equipment_endpoint_success(equipment_api, monkeypatch):
+    client, _, _ = equipment_api
+    monkeypatch.setattr("app.equipment_repository.get_reservations_for_window", lambda s, e, eq: [])
+    created = {
+        "id": "res-111",
+        "equipment_id": ID,
+        "quantity": 2,
+        "start_at": "2099-10-20T10:00:00Z",
+        "end_at": "2099-10-20T12:00:00Z",
+        "status": "Reserved",
+    }
+    monkeypatch.setattr(
+        "app.equipment_repository.create_equipment_reservation",
+        lambda **kwargs: created,
+    )
+    payload = {
+        "start_at": "2099-10-20T10:00:00Z",
+        "end_at": "2099-10-20T12:00:00Z",
+        "quantity": 2,
+    }
+    response = client.post(f"/equipment/{ID}/reservations", json=payload, headers=ORIGIN)
+    assert response.status_code == 201
+    assert response.json["reservation"]["id"] == "res-111"
+    assert "Successfully reserved 2 unit(s)" in response.json["message"]
+
+
+def test_reserve_equipment_over_reservation_returns_409(equipment_api, monkeypatch):
+    client, _, _ = equipment_api
+    # 8 available total, but 7 already reserved
+    existing = [{
+        "id": "res-existing",
+        "equipment_id": ID,
+        "quantity": 7,
+        "start_at": "2099-10-20T10:00:00Z",
+        "end_at": "2099-10-20T12:00:00Z",
+        "status": "Reserved",
+    }]
+    monkeypatch.setattr(
+        "app.equipment_repository.get_reservations_for_window",
+        lambda s, e, eq: existing,
+    )
+    payload = {
+
+        "start_at": "2099-10-20T10:00:00Z",
+        "end_at": "2099-10-20T12:00:00Z",
+        "quantity": 3,  # 8 - 7 = 1 available, requesting 3
+    }
+    response = client.post(f"/equipment/{ID}/reservations", json=payload, headers=ORIGIN)
+    assert response.status_code == 409
+    assert "Only 1 available" in response.json["error"]
+
+
+def test_reserve_equipment_requires_tech_support(app, monkeypatch):
+    monkeypatch.setattr("app.equipment.get_authenticated_user", lambda: None)
+    monkeypatch.setattr("app.rbac.get_supabase_client", lambda: None)
+    client = app.test_client()
+    # User 2 is Coordinator, not Tech Support
+    from .conftest import select_user
+    select_user(client, 2)
+    payload = {
+        "start_at": "2099-10-20T10:00:00Z",
+        "end_at": "2099-10-20T12:00:00Z",
+        "quantity": 1,
+    }
+    response = client.post(f"/equipment/{ID}/reservations", json=payload, headers=ORIGIN)
+    assert response.status_code == 403
+
+

@@ -162,3 +162,119 @@ class EquipmentAvailabilityEngine(AvailabilityCalculator):
             is_sufficient=available >= requested_quantity,
             overlapping_reservations_count=overlapping_count,
         )
+
+
+@dataclass(frozen=True)
+class ReservationDecision:
+    """Immutable value object representing the outcome of a reservation attempt (SCRUM-37)."""
+
+    is_allowed: bool
+    equipment_id: str
+    requested_quantity: int
+    available_quantity: int
+    reason: str | None = None
+
+    @classmethod
+    def permit(
+        cls, equipment_id: str, requested_quantity: int, available_quantity: int
+    ) -> "ReservationDecision":
+        return cls(
+            is_allowed=True,
+            equipment_id=equipment_id,
+            requested_quantity=requested_quantity,
+            available_quantity=available_quantity,
+            reason=None,
+        )
+
+    @classmethod
+    def deny(
+        cls, equipment_id: str, requested_quantity: int, available_quantity: int, reason: str
+    ) -> "ReservationDecision":
+        return cls(
+            is_allowed=False,
+            equipment_id=equipment_id,
+            requested_quantity=requested_quantity,
+            available_quantity=available_quantity,
+            reason=reason,
+        )
+
+
+class ReservationPolicy(ABC):
+    """Abstract strategy interface for validating and creating equipment reservations."""
+
+    @abstractmethod
+    def evaluate_reservation(
+        self,
+        equipment: dict[str, Any],
+        start_at: str | datetime,
+        end_at: str | datetime,
+        requested_quantity: int,
+        existing_reservations: list[dict[str, Any]],
+        *,
+        exclude_reservation_id: str | None = None,
+    ) -> ReservationDecision:
+        """Evaluate if reserving the requested units violates stock, condition or overlaps."""
+        pass  # pragma: no cover
+
+
+class EquipmentReservationEngine(ReservationPolicy):
+    """SCRUM-37 OOP reservation policy reusing the SCRUM-36 availability engine.
+
+    Rules:
+    1. Only available equipment (not Damaged or Under Maintenance) can be reserved.
+    2. Reserving reduces available quantity; over-reservation beyond available stock is blocked.
+    3. Positive quantity check (quantity > 0).
+    4. Valid time window check (end_at > start_at).
+    """
+
+    def __init__(self, availability_calculator: AvailabilityCalculator | None = None):
+        self._calculator = availability_calculator or EquipmentAvailabilityEngine()
+
+    def evaluate_reservation(
+        self,
+        equipment: dict[str, Any],
+        start_at: str | datetime,
+        end_at: str | datetime,
+        requested_quantity: int,
+        existing_reservations: list[dict[str, Any]],
+        *,
+        exclude_reservation_id: str | None = None,
+    ) -> ReservationDecision:
+        eq_id = str(equipment.get("id", ""))
+        eq_status = str(equipment.get("operational_status", "Operational"))
+
+        if requested_quantity <= 0:
+            return ReservationDecision.deny(
+                eq_id, requested_quantity, 0, "Requested quantity must be at least 1."
+            )
+
+        if eq_status != "Operational":
+            return ReservationDecision.deny(
+                eq_id,
+                requested_quantity,
+                0,
+                f"Equipment cannot be reserved because it is currently {eq_status}.",
+            )
+
+        availability = self._calculator.check_availability(
+            equipment,
+            start_at,
+            end_at,
+            existing_reservations,
+            requested_quantity=requested_quantity,
+            exclude_reservation_id=exclude_reservation_id,
+        )
+
+        if not availability.is_sufficient:
+            return ReservationDecision.deny(
+                eq_id,
+                requested_quantity,
+                availability.available_quantity,
+                f"Cannot reserve {requested_quantity} unit(s). "
+                f"Only {availability.available_quantity} available for the selected time slot.",
+            )
+
+        return ReservationDecision.permit(
+            eq_id, requested_quantity, availability.available_quantity
+        )
+

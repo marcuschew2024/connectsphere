@@ -130,3 +130,81 @@ def get_reservations_for_window(
             "Could not check equipment reservations. Please try again."
         ) from error
 
+
+def create_equipment_reservation(
+    equipment_id: str,
+    event_id: str | None,
+    quantity: int,
+    start_at: str,
+    end_at: str,
+    actor_id: int,
+) -> dict:
+    """Persist a new equipment reservation recorded with actor and timestamp."""
+    try:
+        data = {
+            "equipment_id": equipment_id,
+            "event_id": event_id,
+            "quantity": quantity,
+            "start_at": start_at,
+            "end_at": end_at,
+            "status": "Reserved",
+            "created_by": actor_id,
+        }
+        rows = (
+            _client()
+            .table("equipment_reservations")
+            .insert(data)
+            .execute()
+            .data
+        )
+        if not rows:
+            raise ServiceUnavailable("Could not confirm equipment reservation.")
+        return rows[0]
+    except ServiceUnavailable:
+        raise
+    except Exception as error:
+        raise ServiceUnavailable(
+            "Could not create equipment reservation. Please try again."
+        ) from error
+
+
+def list_event_equipment_reservations(event_id: str) -> list[dict]:
+    """List all equipment reservations linked to a specific event."""
+    try:
+        return (
+            _client()
+            .table("equipment_reservations")
+            .select("*, equipment:equipment_items(equipment_type, location)")
+            .eq("event_id", event_id)
+            .order("created_at", desc=True)
+            .execute()
+            .data
+        )
+    except ServiceUnavailable:
+        raise
+    except Exception as error:
+        raise ServiceUnavailable(
+            "Could not load event equipment reservations. Please try again."
+        ) from error
+
+
+def release_equipment_reservations_for_event(event_id: str) -> list[dict]:
+    """Release all active reservations for an event when cancelled."""
+    try:
+        return (
+            _client()
+            .table("equipment_reservations")
+            .update({"status": "Released"})
+            .eq("event_id", event_id)
+            .in_("status", ["Reserved", "Pending"])
+            .execute()
+            .data
+        )
+    except ServiceUnavailable:
+        raise
+    except Exception as error:
+        raise ServiceUnavailable(
+            "Could not release equipment reservations. Please try again."
+        ) from error
+
+
