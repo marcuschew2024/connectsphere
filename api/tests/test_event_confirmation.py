@@ -69,6 +69,20 @@ def test_only_rejected_bookings_blocks_for_no_approved_venue():
     assert any("No venue" in reason for reason in gate.outstanding)
 
 
+def test_cancelled_booking_does_not_block_remaining_approved_venue():
+    gate = EventConfirmation.from_bookings([
+        {"status": "Confirmed"}, {"status": "Cancelled"},
+    ])
+    assert gate.can_confirm is True
+    assert gate.outstanding == []
+
+
+def test_only_cancelled_bookings_still_requires_an_approved_venue():
+    gate = EventConfirmation(["Cancelled"])
+    assert gate.can_confirm is False
+    assert gate.outstanding == ["No venue has been booked and approved yet."]
+
+
 # --- AC1 technical-arrangements seam (equipment, SCRUM-37, plugs in here) ---
 
 def test_unresolved_technical_arrangements_block_confirmation():
