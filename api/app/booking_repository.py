@@ -75,6 +75,65 @@ def get_booking(booking_id: str) -> dict | None:
         raise ServiceUnavailable("Could not load the booking request. Contact the team.") from error
 
 
+def list_bookings_for_event_detail(event_id: str) -> list[dict]:
+    """Return every venue arrangement belonging to one event."""
+    try:
+        result = _client().table("venue_bookings").select(
+            "*,venue:venues(name,location),event:events(title,event_datetime,expected_attendance)"
+        ).eq("event_id", event_id).order("requested_at").execute()
+        return result.data or []
+    except ServiceUnavailable:
+        raise
+    except Exception as error:
+        raise ServiceUnavailable(
+            "Could not load the event's venue bookings. Contact the team."
+        ) from error
+
+
+def update_requested_booking(booking_id: str, fields: dict, user_id: int) -> dict:
+    """Change only one Coordinator-owned Requested booking."""
+    try:
+        result = _client().table("venue_bookings").update({
+            **fields,
+            "updated_at": datetime.now(UTC).isoformat(),
+            "last_changed_by": user_id,
+            "last_changed_at": datetime.now(UTC).isoformat(),
+        }).eq("id", booking_id).eq("requested_by", user_id).eq(
+            "status", "Requested"
+        ).execute()
+        if not result.data:
+            raise Conflict("Only your Requested booking can be changed.")
+        return result.data[0]
+    except (Conflict, ServiceUnavailable):
+        raise
+    except Exception as error:
+        if getattr(error, "code", None) in {"23P01", "23505"}:
+            raise Conflict("The venue is no longer available for that time slot.") from error
+        raise ServiceUnavailable(
+            "Could not change the booking request. Contact the team."
+        ) from error
+
+
+def cancel_booking(booking_id: str, user_id: int) -> dict:
+    """Cancel one Coordinator-owned booking without touching sibling bookings."""
+    try:
+        result = _client().table("venue_bookings").update({
+            "status": "Cancelled",
+            "updated_at": datetime.now(UTC).isoformat(),
+            "last_changed_by": user_id,
+            "last_changed_at": datetime.now(UTC).isoformat(),
+        }).eq("id", booking_id).eq("requested_by", user_id).in_(
+            "status", ["Requested", "Confirmed"]
+        ).execute()
+        if not result.data:
+            raise Conflict("Only your Requested or Confirmed booking can be cancelled.")
+        return result.data[0]
+    except (Conflict, ServiceUnavailable):
+        raise
+    except Exception as error:
+        raise ServiceUnavailable("Could not cancel the booking. Contact the team.") from error
+
+
 def list_bookings_for_event(event_id: str) -> list[dict]:
     """All venue bookings for one event (any status), for the confirmation gate (SCRUM-39)."""
     try:

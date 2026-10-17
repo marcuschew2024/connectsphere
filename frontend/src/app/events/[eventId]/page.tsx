@@ -19,6 +19,7 @@ import EventDecisionForm from "./event-decision-form";
 import EventEditForm from "./event-edit-form";
 import EventClarificationForm from "./event-clarification-form";
 import EventResubmitForm from "./event-resubmit-form";
+import EventBookingsPanel from "./event-bookings-panel";
 
 export default function EventStatusPage() {
   const params = useParams<{ eventId: string }>();
@@ -149,6 +150,9 @@ export default function EventStatusPage() {
 
           {actingRole === "Organiser" && clarification && <EventResubmitForm event={event} clarification={clarification} onSaved={(updated) => { setEvent(updated); setClarification(null); }} />}
           {actingRole === "Coordinator" && event.status === "Planning" && <EventConfirmForm event={event} onSaved={setEvent} />}
+            {(actingRole === "Coordinator" || actingRole === "Organiser" || actingRole === "Venue Staff") && (
+              <EventBookingsPanel eventId={event.id} canManage={actingRole === "Coordinator"} />
+            )}
           {actingRole === "Safety Officer" && event.status === "Confirmed" && <EventSafetyCheckForm event={event} onSaved={setEvent} />}
           {actingRole === "Coordinator" && event.status === "Planning" && <details className="rounded-2xl border border-border bg-card shadow-sm">
             <summary className="cursor-pointer px-5 py-4 text-sm font-medium text-primary">Edit event details</summary>
