@@ -9,15 +9,18 @@ export default function EquipmentWorkspace({
   title,
   description,
   editing = false,
+  requesting = false,
   children,
 }: {
   title: string;
   description: string;
   editing?: boolean;
+  requesting?: boolean;
   children: (role: string) => ReactNode;
 }) {
   const [role, updateRole, loading] = useActingRole();
-  const allowed = !loading && (role === "Tech Support" || (!editing && role === "Coordinator"));
+  const allowed = !loading && (requesting ? role === "Coordinator"
+    : role === "Tech Support" || (!editing && role === "Coordinator"));
 
   return (
     <AppShell actingRole={role}>
@@ -34,6 +37,7 @@ export default function EquipmentWorkspace({
           <p role="status" className="rounded-2xl border border-border bg-card p-6 text-sm text-muted-foreground">
             {loading ? "Checking access…" : !role
               ? "Sign in or select a demo user to continue."
+              : requesting ? "Only Coordinators can request equipment."
               : editing ? "Only Tech Support can maintain equipment."
               : "The equipment catalogue is available to Tech Support and Coordinators."}
           </p>

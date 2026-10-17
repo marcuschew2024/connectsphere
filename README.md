@@ -92,6 +92,16 @@ by the separate availability stories.
 
 See the [code walkthrough, shared data contract, demo and acceptance checks](docs/SCRUM-34.md).
 
+## Equipment requests (SCRUM-35)
+
+After the event and equipment migrations, apply
+[`supabase/create_equipment_requests.sql`](supabase/create_equipment_requests.sql).
+Coordinators can open **Request equipment** from Home for their assigned Planning
+events. Tech Support opens **Review equipment requests** to see quantities, notes,
+event references and the recorded requester/time. Requests do not reserve stock.
+
+See the [SCRUM-35 walkthrough, API contract and test evidence](docs/SCRUM-35.md).
+
 ## Prerequisites
 
 For draft submission, on-screen confirmation and coordinator assignment, see the
