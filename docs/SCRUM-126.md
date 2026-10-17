@@ -32,3 +32,10 @@ columns used by independent booking changes.
 - `api/tests/test_venue_overlap.py` and booking decision tests: suitability/availability
   and conflict regression coverage.
 - `frontend/e2e/bookings.spec.ts` and event browser suites: booking UI regression.
+## Confirmation after cancellation
+
+Cancelling one venue arrangement leaves it as `Cancelled` history. It must not
+prevent confirmation once another venue booking is approved. The confirmation gate
+therefore treats `Cancelled` as settled, like `Rejected`, while still requiring at
+least one `Confirmed` venue. Cancelling every booking does not allow confirmation.
+Regression coverage is in `api/tests/test_event_confirmation.py`.
