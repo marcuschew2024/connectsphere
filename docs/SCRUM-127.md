@@ -55,7 +55,7 @@ The existing safety decision endpoint is reused, including its reason and audit 
 | TC-127-02 | All five original roles receive 403 for safety decisions without a status change; real database denial logs record their actors. Safety Officer approval, rejection and request-changes persist correctly. |
 | TC-127-03 | Existing API and browser regression suites pass. Tests deny other workflow writes and generic status changes to Safety Officer, even with a previous event relationship. Drafts and events outside the review window remain private. |
 
-Local validation: **721 API tests**, including 21 new permission/route tests and
+Local validation after incorporating the merged SCRUM-126 work: **725 API tests**, including 21 new permission/route tests and
 5 new real database tests; **121 browser tests**, including 4 new Safety Officer
 checks; **16 frontend unit tests**. Ruff, ESLint, production Webpack build, base
 migration repeat checks and Safety Officer SQL identity/permission checks pass.
