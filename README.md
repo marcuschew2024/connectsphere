@@ -10,7 +10,7 @@ A mono-repo with two deployable parts:
 - `api/` - Python Flask REST API.
 - Data is stored in Supabase PostgreSQL. Flask manages application login sessions and the local demo role selector. Supabase is not run locally.
 
-The five roles are: Organiser, Coordinator, Venue Staff, Tech Support, and Attendee.
+The six roles are: Organiser, Coordinator, Venue Staff, Tech Support, Attendee, and Safety Officer.
 
 ## Development users (SCRUM-83)
 
@@ -91,6 +91,19 @@ under maintenance contribute zero usable stock; event/time reservations are hand
 by the separate availability stories.
 
 See the [code walkthrough, shared data contract, demo and acceptance checks](docs/SCRUM-34.md).
+
+## Safety Officer access (SCRUM-127)
+
+After the user/event and request-clarification migrations, apply
+[`20261017074746_scrum_127_safety_officer.sql`](supabase/migrations/20261017074746_scrum_127_safety_officer.sql).
+It adds **Demo Safety Officer** without overwriting existing user IDs and enables
+the `Preparation` database status used by the operational safety check.
+
+Select **Demo Safety Officer** in the development role switcher, then open
+**Review operational safety** on Home. Only confirmed events appear in the queue.
+The role can review safety and read Confirmed/Preparation events; it cannot create
+events, manage venues/equipment, or use generic status changes.
+See the [SCRUM-127 setup, code guide and test evidence](docs/SCRUM-127.md).
 
 ## Prerequisites
 
