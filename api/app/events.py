@@ -19,6 +19,7 @@ from .event_repository import (
     get_pending_clarification,
     get_status_history,
     insert_event,
+    list_safety_review_events,
     log_event_edit,
     mark_clarification_resubmitted,
     record_event_decision,
@@ -28,7 +29,7 @@ from .event_repository import (
 )
 from .event_status import canonical_event_status, customer_event_status
 from .event_validation import TEXT_LIMITS, validate_event
-from .rbac import public_event_view, require_related_user, require_role
+from .rbac import log_access_denied, public_event_view, require_related_user, require_role
 from .safety_decision import SafetyDecision
 
 events = Blueprint("events", __name__, url_prefix="/events")
@@ -67,8 +68,11 @@ def require_event_access(event_id, user):
         # Membership never grants access to a private draft, including its history.
         if user["role"] != "Organiser" or event["organiser_id"] != user["id"]:
             raise NotFound("Event not found.")
-    elif user.get("role") == "Safety Officer" and event.get("status") in _SAFETY_REVIEW_STATES:
-        pass  # role-based read access for the operational safety review
+    elif user.get("role") == "Safety Officer":
+        if event.get("status") not in _SAFETY_REVIEW_STATES:
+            log_access_denied(user, action="view_event", event_id=event_id,
+                              reason="outside the safety-review window")
+            raise Forbidden("This event is not available for safety review.")
     else:
         require_related_user(user, event, action="view_event")
     return event
@@ -118,6 +122,8 @@ def list_events():
         raise Forbidden("Request must come from the configured frontend origin.")
 
     user = require_acting_user()
+    require_role(user, "Organiser", "Coordinator", "Venue Staff", "Tech Support", "Attendee",
+                 action="list_events")
     status = request.args.get("status")
     if status not in (None, "Draft"):
         raise BadRequest("The supported status filter is Draft.")
@@ -127,6 +133,21 @@ def list_events():
     event_list = [event for event in event_list
                   if event["status"] != "Draft" or user["role"] == "Organiser"]
     return jsonify({"events": [event_response(event, user) for event in event_list]}), 200
+
+
+@events.get("/safety-review")
+def safety_review_queue():
+    """Only confirmed events await an operational safety decision (SCRUM-127)."""
+    if request.headers.get("Origin") != current_app.config["FRONTEND_ORIGIN"]:
+        raise Forbidden("Request must come from the configured frontend origin.")
+    user = require_acting_user()
+    require_role(user, "Safety Officer", action="list_safety_reviews")
+    page = request.args.get("page", "1")
+    if not page.isascii() or not page.isdecimal() or len(page) > 5 or not 1 <= int(page) <= 10000:
+        raise BadRequest("Choose a review page from 1 to 10000.")
+    rows, has_more = list_safety_review_events(int(page))
+    return jsonify({"events": [event_response(row, user) for row in rows],
+                    "page": int(page), "has_more": has_more})
 
 
 @events.get("/<event_id>")
@@ -183,6 +204,8 @@ def change_event_status(event_id):
         raise Forbidden("Request must come from the configured frontend origin.")
 
     user = require_acting_user()
+    require_role(user, "Organiser", "Coordinator", "Venue Staff", "Tech Support", "Attendee",
+                 action="change_status")
     event = require_event_access(event_id, user)
     if event["status"] == "Draft":
         raise Conflict("Complete and submit this request through the draft form first.")
