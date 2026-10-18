@@ -15,6 +15,9 @@ create table if not exists public.venue_bookings (
     status text not null default 'Requested' check (status in ('Requested', 'Confirmed', 'Rejected', 'Blocked', 'Cancelled')),
     requested_by integer not null references public.app_users(id),
     requested_at timestamptz not null default now(),
+    updated_at timestamptz not null default now(),
+    last_changed_by integer references public.app_users(id),
+    last_changed_at timestamptz,
     decided_by integer references public.app_users(id),
     decision_at timestamptz,
     decision_reason text check (char_length(decision_reason) <= 2000),
@@ -25,6 +28,10 @@ create table if not exists public.venue_bookings (
 alter table public.venue_bookings
     add column if not exists suggested_alternative text
         check (char_length(suggested_alternative) <= 2000);
+alter table public.venue_bookings
+    add column if not exists updated_at timestamptz not null default now(),
+    add column if not exists last_changed_by integer references public.app_users(id),
+    add column if not exists last_changed_at timestamptz;
 
 create index if not exists venue_bookings_requested_idx
     on public.venue_bookings (status, requested_at desc);
