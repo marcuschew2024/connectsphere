@@ -148,6 +148,8 @@ Lint, build, and the full E2E suite (**104 passing**) are green.
 
 ## Dependency
 
-The **Safety Officer role (SCRUM-127, Jerome)** is not yet in the seed/`app_users`. The
-endpoint requires that role; tests inject a demo Safety Officer. Real use needs SCRUM-127
-merged so the role exists and can be assigned.
+The **Safety Officer role (SCRUM-127, Jerome)** now has a rerunnable identity migration,
+review queue and navigation. Apply the migration and follow the
+[SCRUM-127 setup](SCRUM-127.md) before using the workflow. It also fixes the database
+`Preparation` constraint and the event page's unrelated clarification request.
+Historical mock tests use user 6; real deployments allocate a free ID instead.

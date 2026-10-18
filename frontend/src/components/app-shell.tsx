@@ -24,6 +24,10 @@ type NavItem = { label: string; href: string; icon: LucideIcon };
 
 // Navigation is role-aware: each role only sees what it can act on.
 const NAV_BY_ROLE: Record<string, NavItem[]> = {
+  "Safety Officer": [
+    { label: "Home", href: "/", icon: Home },
+    { label: "Safety reviews", href: "/events/safety", icon: ClipboardCheck },
+  ],
   Organiser: [
     { label: "Home", href: "/", icon: Home },
     { label: "New request", href: "/events/new", icon: FilePlus2 },

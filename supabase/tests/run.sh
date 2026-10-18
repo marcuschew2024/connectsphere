@@ -26,4 +26,9 @@ grant delete on public.events to service_role;
 grant delete on public.equipment_reservations to service_role;
 notify pgrst, 'reload schema';
 SQL
+for pass in 1 2; do
+  psql -v ON_ERROR_STOP=1 -f /sql/migrations/20261017074746_scrum_127_safety_officer.sql > /tmp/migration-output.txt
+  echo "Safety Officer migration pass $pass: PASS"
+done
+psql -v ON_ERROR_STOP=1 -f /sql/tests/safety_officer.sql
 

@@ -23,7 +23,7 @@ import EventBookingsPanel from "./event-bookings-panel";
 
 export default function EventStatusPage() {
   const params = useParams<{ eventId: string }>();
-  const [actingRole] = useActingRole();
+  const [actingRole, , roleLoading] = useActingRole();
   const [event, setEvent] = useState<EventRecord | null>(null);
   const [history, setHistory] = useState<EventStatusHistory[]>([]);
   const [clarification, setClarification] = useState<EventClarification | null>(null);
@@ -31,6 +31,7 @@ export default function EventStatusPage() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    if (roleLoading) return;
     const controller = new AbortController();
     let timedOut = false;
     const timeout = window.setTimeout(() => {
@@ -45,7 +46,9 @@ export default function EventStatusPage() {
       apiRequest<{ history: EventStatusHistory[] }>(`/events/${params.eventId}/history`, {
         signal: controller.signal,
       }),
-      apiRequest<{ clarification: EventClarification | null }>(
+      actingRole === "Safety Officer"
+        ? Promise.resolve({ clarification: null })
+        : apiRequest<{ clarification: EventClarification | null }>(
         `/events/${params.eventId}/clarification`, { signal: controller.signal },
       ),
     ])
@@ -78,7 +81,7 @@ export default function EventStatusPage() {
       window.clearTimeout(timeout);
       controller.abort();
     };
-  }, [params.eventId]);
+  }, [params.eventId, actingRole, roleLoading]);
 
   const canReview = actingRole === "Coordinator" && event?.status === "Submitted" && !clarification;
   const accepted = event?.decision_at && event.decision_by != null && event.decision_reason == null
@@ -86,6 +89,7 @@ export default function EventStatusPage() {
 
   return (
     <AppShell actingRole={actingRole}>
+      {actingRole === "Safety Officer" && <div className="mx-auto max-w-6xl px-5 pt-6 sm:px-8"><Link href="/events/safety" className="text-sm text-primary hover:underline">Back to safety reviews</Link></div>}
       <div className="mx-auto max-w-6xl space-y-6 px-5 py-8 sm:px-8 sm:py-10">
         {actingRole === "Coordinator" && (
           <Link href="/events/review" className="inline-flex items-center gap-2 text-sm text-muted-foreground transition-colors hover:text-foreground">

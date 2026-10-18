@@ -80,6 +80,24 @@ def get_events_for_user(user_id: int, *, drafts_only: bool = False) -> list[dict
         ) from error
 
 
+def list_safety_review_events(page: int = 1) -> tuple[list[dict], bool]:
+    """Bounded queue; no draft or planning details are returned to Safety Officers."""
+    try:
+        client = get_supabase_client()
+        if client is None:
+            raise ServiceUnavailable("The database is not configured. Contact the team.")
+        start = (page - 1) * 25
+        rows = (client.table("events")
+                .select("id,title,category,event_datetime,status")
+                .eq("status", "Confirmed").order("event_datetime").order("id")
+                .range(start, start + 25).execute().data or [])
+        return rows[:25], len(rows) > 25
+    except ServiceUnavailable:
+        raise
+    except Exception as error:
+        raise ServiceUnavailable("Could not load safety reviews. Please try again.") from error
+
+
 def save_event_draft(event_id: str, user_id: int, fields: dict, *, submitting: bool) -> dict:
     """Save the same draft; SQL makes submission and its history entry atomic."""
     try:
