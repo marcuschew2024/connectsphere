@@ -85,3 +85,136 @@ def equipment_detail(equipment_id):
     if row is None:
         raise NotFound("Equipment not found.")
     return jsonify({"equipment": row})
+
+
+@equipment.get("/<uuid:equipment_id>/availability")
+def equipment_availability(equipment_id):
+    _require_user("Tech Support", "Coordinator")
+    row = get_equipment(str(equipment_id))
+    if row is None:
+        raise NotFound("Equipment not found.")
+
+    start_at = request.args.get("start_at")
+    end_at = request.args.get("end_at")
+    quantity_str = request.args.get("quantity", "1")
+
+    if not start_at or not end_at:
+        raise BadRequest("start_at and end_at query parameters are required.")
+
+    try:
+        quantity = int(quantity_str)
+        if quantity < 0 or quantity > MAX_QUANTITY:
+            raise ValueError
+    except (ValueError, TypeError) as err:
+        raise BadRequest("Quantity must be a non-negative integer.") from err
+
+    try:
+        from .equipment_availability import EquipmentAvailabilityEngine
+        from .equipment_repository import get_reservations_for_window
+
+        reservations = get_reservations_for_window(start_at, end_at, str(equipment_id))
+        engine = EquipmentAvailabilityEngine()
+        result = engine.check_availability(
+            row,
+            start_at,
+            end_at,
+            reservations,
+            requested_quantity=quantity,
+        )
+    except ValueError as val_err:
+        raise BadRequest(str(val_err)) from val_err
+
+    return jsonify({
+        "availability": {
+            "equipment_id": result.equipment_id,
+            "equipment_type": result.equipment_type,
+            "total_quantity": result.total_quantity,
+            "operational_status": result.operational_status,
+            "usable_quantity": result.usable_quantity,
+            "reserved_quantity": result.reserved_quantity,
+            "available_quantity": result.available_quantity,
+            "requested_quantity": quantity,
+            "is_sufficient": result.is_sufficient,
+            "overlapping_reservations_count": result.overlapping_reservations_count,
+            "start_at": start_at,
+            "end_at": end_at,
+        }
+    })
+
+
+@equipment.post("/<uuid:equipment_id>/reservations")
+def reserve_equipment(equipment_id):
+    """Reserve available equipment for an event (SCRUM-37)."""
+    user = _require_user("Tech Support")
+    row = get_equipment(str(equipment_id))
+    if row is None:
+        raise NotFound("Equipment not found.")
+
+    data = request.get_json(silent=True)
+    if not isinstance(data, dict):
+        raise BadRequest("Send reservation details as a JSON object.")
+
+    expected = {"start_at", "end_at", "quantity", "event_id"}
+    if set(data) - expected or not {"start_at", "end_at", "quantity"}.issubset(set(data)):
+        raise BadRequest("Provide start_at, end_at, and quantity.")
+
+    start_at = data.get("start_at")
+    end_at = data.get("end_at")
+    event_id = data.get("event_id")
+
+    try:
+        quantity = int(data.get("quantity", 0))
+        if quantity <= 0 or quantity > MAX_QUANTITY:
+            raise ValueError
+    except (ValueError, TypeError) as err:
+        raise BadRequest("Quantity must be a positive integer.") from err
+
+    from .equipment_availability import EquipmentReservationEngine
+    from .equipment_repository import (
+        create_equipment_reservation,
+        get_reservations_for_window,
+    )
+
+    existing = get_reservations_for_window(start_at, end_at, str(equipment_id))
+    engine = EquipmentReservationEngine()
+
+    try:
+        decision = engine.evaluate_reservation(
+            row,
+            start_at,
+            end_at,
+            quantity,
+            existing,
+        )
+    except ValueError as val_err:
+        raise BadRequest(str(val_err)) from val_err
+
+    if not decision.is_allowed:
+        from werkzeug.exceptions import Conflict
+        raise Conflict(decision.reason or "Equipment cannot be reserved for this slot.")
+
+    reservation = create_equipment_reservation(
+        equipment_id=str(equipment_id),
+        event_id=str(event_id) if event_id else None,
+        quantity=quantity,
+        start_at=start_at,
+        end_at=end_at,
+        actor_id=user["id"],
+    )
+
+    return jsonify({
+        "reservation": reservation,
+        "message": f"Successfully reserved {quantity} unit(s).",
+    }), 201
+
+
+@equipment.get("/reservations/event/<uuid:event_id>")
+def event_reservations(event_id):
+    """View equipment reservations associated with an event."""
+    _require_user("Tech Support", "Coordinator")
+    from .equipment_repository import list_event_equipment_reservations
+
+    reservations = list_event_equipment_reservations(str(event_id))
+    return jsonify({"reservations": reservations}), 200
+
+

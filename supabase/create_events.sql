@@ -18,7 +18,7 @@ create table if not exists public.events (
     status text not null default 'Draft' check (
         status in (
             'Draft', 'Submitted', 'Assigned', 'Under review', 'Approved',
-            'Planning', 'Confirmed', 'Completed', 'Rejected', 'Cancelled'
+            'Planning', 'Confirmed', 'Preparation', 'Completed', 'Rejected', 'Cancelled'
         )
     ),
     -- Our app_users IDs are integers. These are NOT Supabase Auth IDs.
@@ -52,7 +52,7 @@ alter table public.events drop constraint if exists events_status_check;
 alter table public.events add constraint events_status_check check (
     status in (
         'Draft', 'Submitted', 'Assigned', 'Under review', 'Approved',
-        'Planning', 'Confirmed', 'Completed', 'Rejected', 'Cancelled'
+        'Planning', 'Confirmed', 'Preparation', 'Completed', 'Rejected', 'Cancelled'
     )
 );
 

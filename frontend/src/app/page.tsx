@@ -26,6 +26,9 @@ type Action = {
 };
 
 const ROLE_ACTIONS: Record<string, Action[]> = {
+  "Safety Officer": [
+    { title: "Review operational safety", description: "Assess confirmed events before preparation.", href: "/events/safety", icon: ClipboardCheck, primary: true },
+  ],
   Organiser: [
     { title: "Create an event request", description: "Start a new request for approval.", href: "/events/new", icon: Plus, primary: true },
     { title: "My drafts", description: "Pick up a private draft where you left off.", href: "/events/drafts", icon: FileText },
@@ -35,6 +38,7 @@ const ROLE_ACTIONS: Record<string, Action[]> = {
     { title: "Venue catalogue", description: "Browse venues for an event.", href: "/venues", icon: Building2 },
     { title: "Request a venue", description: "Submit timing and requirements to Venue Staff.", href: "/venues/bookings/new", icon: CalendarPlus },
     { title: "Equipment catalogue", description: "Browse equipment and usable stock.", href: "/equipment", icon: Package },
+    { title: "Request equipment", description: "Send event requirements to Tech Support.", href: "/equipment/requests/new", icon: Plus },
   ],
   "Venue Staff": [
     { title: "Add a venue", description: "List a new venue in the catalogue.", href: "/venues/new", icon: Plus, primary: true },
@@ -44,6 +48,7 @@ const ROLE_ACTIONS: Record<string, Action[]> = {
   "Tech Support": [
     { title: "Equipment catalogue", description: "Manage equipment, quantities and condition.", href: "/equipment", icon: Package, primary: true },
     { title: "Add equipment", description: "Record a new stock entry.", href: "/equipment/new", icon: Plus },
+    { title: "Review equipment requests", description: "View event requirements from Coordinators.", href: "/equipment/requests", icon: ClipboardCheck },
   ],
 };
 
