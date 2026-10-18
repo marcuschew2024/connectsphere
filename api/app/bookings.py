@@ -8,11 +8,14 @@ from werkzeug.exceptions import BadRequest, Conflict, Forbidden, HTTPException, 
 from .acting_user import require_acting_user
 from .booking_decision import BookingDecision
 from .booking_repository import (
+    cancel_booking,
     create_booking,
     find_overlapping_bookings,
     get_booking,
+    list_bookings_for_event_detail,
     list_requested_bookings,
     record_booking_decision,
+    update_requested_booking,
 )
 from .event_repository import create_notification, get_event_by_id
 from .rbac import require_related_user, require_role
@@ -26,6 +29,61 @@ BOOKING_TEXT_LIMITS = {
     "layout": 100,
     "special_requirements": 2000,
 }
+
+
+def _validated_booking_fields(data, event: dict, existing: dict | None = None) -> dict:
+    """Validate one booking payload for both create and independent change operations."""
+    if not isinstance(data, dict):
+        raise BadRequest("Send booking details as a JSON object.")
+    source = existing or {}
+    venue_id = data.get("venue_id", source.get("venue_id"))
+    venue = get_venue(venue_id) if isinstance(venue_id, str) else None
+    if venue is None:
+        raise BadRequest("Choose a valid venue.")
+    start_value = data.get("start_at", source.get("start_at"))
+    end_value = data.get("end_at", source.get("end_at"))
+    try:
+        start = datetime.fromisoformat(start_value).astimezone(UTC)
+        end = datetime.fromisoformat(end_value).astimezone(UTC)
+    except (TypeError, ValueError, OverflowError):
+        raise BadRequest("Enter valid start and end times including a time zone.") from None
+    if end <= start:
+        raise BadRequest("The booking end time must be after the start time.")
+    if start < datetime.now(UTC):
+        raise BadRequest("The booking cannot start in the past.")
+    attendance = data.get(
+        "expected_attendance",
+        source.get("expected_attendance", event.get("expected_attendance")),
+    )
+    if type(attendance) is not int or not 1 <= attendance <= 2_147_483_647:
+        raise BadRequest("Enter a positive whole-number attendance.")
+    if attendance > venue["capacity"]:
+        raise BadRequest(
+            f"Expected attendance cannot exceed this venue's capacity of {venue['capacity']}."
+        )
+    layout = data.get("layout", source.get("layout"))
+    if not isinstance(layout, str) or not layout.strip() or len(layout.strip()) > 100:
+        raise BadRequest("Choose a layout of 1 to 100 characters.")
+    special = data.get("special_requirements", source.get("special_requirements") or "")
+    if not isinstance(special, str) or len(special.strip()) > 2000:
+        raise BadRequest("Special requirements must be 2000 characters or fewer.")
+    conflicts = find_overlapping_bookings(venue_id, start.isoformat(), end.isoformat())
+    overlap = OverlapEngine().evaluate(
+        venue_id, start, end, conflicts,
+        exclude_booking_id=source.get("id"),
+    )
+    if not overlap.can_request:
+        if overlap.hard_conflict is not None:
+            raise Conflict("The venue is already confirmed or blocked for that time slot.")
+        raise Conflict("The venue already has a tentative booking hold for that time slot.")
+    return {
+        "venue_id": venue_id,
+        "start_at": start.isoformat(),
+        "end_at": end.isoformat(),
+        "expected_attendance": attendance,
+        "layout": layout.strip(),
+        "special_requirements": special.strip() or None,
+    }
 
 
 def _origin_check():
@@ -154,6 +212,53 @@ def booking_detail(booking_id):
         require_role(user, "Coordinator", action="view_venue_booking")
         require_related_user(user, event or booking, action="view_venue_booking")
     return jsonify({"booking": booking}), 200
+
+
+@bookings.get("/event/<event_id>")
+def event_bookings(event_id):
+    """Return all venue arrangements for an event to its related internal users."""
+    _origin_check()
+    user = require_acting_user()
+    event = get_event_by_id(event_id)
+    if event is None:
+        raise NotFound("Event not found.")
+    if user.get("role") != "Venue Staff":
+        require_role(user, "Coordinator", "Organiser", action="view_event_bookings")
+        require_related_user(user, event, action="view_event_bookings")
+    else:
+        require_role(user, "Venue Staff", action="view_event_bookings")
+    return jsonify({"bookings": list_bookings_for_event_detail(event_id)}), 200
+
+
+@bookings.patch("/<booking_id>")
+def change_booking(booking_id):
+    """Change one Requested booking; sibling bookings and the event are untouched."""
+    _origin_check()
+    user = require_acting_user()
+    require_role(user, "Coordinator", action="change_venue_booking")
+    booking = get_booking(booking_id)
+    if booking is None:
+        raise NotFound("Booking request not found.")
+    if booking.get("requested_by") != user["id"] or booking.get("status") != "Requested":
+        raise Conflict("Only your Requested booking can be changed.")
+    event = get_event_by_id(booking["event_id"])
+    if event is None:
+        raise NotFound("Event not found.")
+    data = request.get_json(silent=True)
+    fields = _validated_booking_fields(data, event, booking)
+    return jsonify({"booking": update_requested_booking(booking_id, fields, user["id"])}), 200
+
+
+@bookings.post("/<booking_id>/cancel")
+def cancel_one_booking(booking_id):
+    """Cancel one booking arrangement without removing the event or its siblings."""
+    _origin_check()
+    user = require_acting_user()
+    require_role(user, "Coordinator", action="cancel_venue_booking")
+    booking = get_booking(booking_id)
+    if booking is None:
+        raise NotFound("Booking request not found.")
+    return jsonify({"booking": cancel_booking(booking_id, user["id"])}), 200
 
 
 @bookings.post("/<booking_id>/decision")
