@@ -104,6 +104,15 @@ Select **Demo Safety Officer** in the development role switcher, then open
 The role can review safety and read Confirmed/Preparation events; it cannot create
 events, manage venues/equipment, or use generic status changes.
 See the [SCRUM-127 setup, code guide and test evidence](docs/SCRUM-127.md).
+## Equipment requests (SCRUM-35)
+
+After the event and equipment migrations, apply
+[`supabase/create_equipment_requests.sql`](supabase/create_equipment_requests.sql).
+Coordinators can open **Request equipment** from Home for their assigned Planning
+events. Tech Support opens **Review equipment requests** to see quantities, notes,
+event references and the recorded requester/time. Requests do not reserve stock.
+
+See the [SCRUM-35 walkthrough, API contract and test evidence](docs/SCRUM-35.md).
 
 ## Prerequisites
 

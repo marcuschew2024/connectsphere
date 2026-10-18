@@ -234,8 +234,17 @@ def change_event_status(event_id):
     old_status = event.get("status")
     updated = update_event_status(event_id, status, user["id"])
     add_status_history(event_id, old_status, status, user["id"])
+
+    if status == "Cancelled":
+        try:
+            from .equipment_repository import release_equipment_reservations_for_event
+            release_equipment_reservations_for_event(event_id)
+        except Exception:
+            pass
+
     updated["status"] = canonical_event_status(updated.get("status"))
     return jsonify({"event": updated}), 200
+
 
 
 @events.post("/<event_id>/confirm")

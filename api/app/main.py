@@ -15,6 +15,7 @@ from .auth import auth, get_authenticated_user
 from .bookings import bookings
 from .dev_auth import dev_auth
 from .equipment import equipment
+from .equipment_requests import equipment_requests
 from .events import events
 from .notifications import notifications
 from .venues import venues
@@ -53,6 +54,7 @@ def create_app(config: dict | None = None) -> Flask:
     app.register_blueprint(venues)
     app.register_blueprint(bookings)
     app.register_blueprint(equipment)
+    app.register_blueprint(equipment_requests)
 
     # Allow the frontend origin. Defaults to the local Next.js dev server.
     CORS(
