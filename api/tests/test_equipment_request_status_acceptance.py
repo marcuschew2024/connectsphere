@@ -30,7 +30,7 @@ def create_request(users, event, items):
     return response.json["request"]
 
 
-def update(client, saved, status="Reserved", notes="Arrangements recorded", revision=None):
+def update(client, saved, status="Unavailable", notes="Arrangements recorded", revision=None):
     return client.patch(
         f"/equipment/requests/{saved['id']}/status",
         headers=ORIGIN,
@@ -48,7 +48,7 @@ def test_all_statuses_persist_for_coordinator_with_complete_audit(live_requests)
     original = saved.copy()
     path = f"/equipment/requests/{saved['id']}"
     assert users[2].get(path + "/history", headers=ORIGIN).json["history"] == []
-    expected = ["Reserved", "Partially fulfilled", "Unavailable", "Requested"]
+    expected = ["Unavailable", "Requested"]
     for number, status in enumerate(expected, start=2):
         response = update(users[4], saved, status, "  Follow-up with AV team  ")
         assert response.status_code == 200, response.json
@@ -101,7 +101,7 @@ def test_other_roles_and_unrelated_coordinator_cannot_mutate_or_read(live_reques
                 "update_equipment_request_status",
                 {
                     "p_request_id": saved["id"],
-                    "p_status": "Reserved",
+                    "p_status": "Unavailable",
                     "p_notes": "",
                     "p_revision": 1,
                     "p_actor_id": actor,
@@ -151,7 +151,7 @@ def test_stale_or_unchanged_status_adds_no_history(live_requests):
     stale = update(users[4], saved, "Unavailable")
     assert stale.status_code == 409 and "Someone else" in stale.json["error"]
     path = f"/equipment/requests/{saved['id']}"
-    assert users[2].get(path, headers=ORIGIN).json["request"]["status"] == "Reserved"
+    assert users[2].get(path, headers=ORIGIN).json["request"]["status"] == "Unavailable"
     assert len(users[2].get(path + "/history", headers=ORIGIN).json["history"]) == 1
 
 
@@ -179,7 +179,7 @@ def test_competing_updates_cannot_overwrite_each_other(live_requests):
                 return error.code
 
     with ThreadPoolExecutor(max_workers=2) as pool:
-        outcomes = list(pool.map(attempt, ["Reserved", "Unavailable"]))
+        outcomes = list(pool.map(attempt, ["Unavailable", "Unavailable"]))
     assert sorted(outcomes) == ["PT409", "saved"]
     path = f"/equipment/requests/{saved['id']}"
     detail = users[2].get(path, headers=ORIGIN).json["request"]
@@ -192,7 +192,7 @@ def test_history_is_bounded_and_ordered_by_revision(live_requests):
     _, users, event, items, _ = live_requests
     saved = create_request(users, event, items)
     for index in range(21):
-        response = update(users[4], saved, "Reserved" if index % 2 == 0 else "Requested")
+        response = update(users[4], saved, "Unavailable" if index % 2 == 0 else "Requested")
         assert response.status_code == 200
         saved = response.json["request"]
     path = f"/equipment/requests/{saved['id']}/history"
@@ -224,7 +224,7 @@ def test_database_validates_direct_rpc_input_without_partial_write(live_requests
             "update_equipment_request_status",
             {
                 "p_request_id": saved["id"],
-                "p_status": "Reserved",
+                "p_status": "Unavailable",
                 "p_notes": "",
                 "p_revision": 1,
                 "p_actor_id": 4,

@@ -7,6 +7,7 @@ const initial = {
   id: ID, event_id: "11111111-1111-4111-8111-111111111111",
   status: "Requested", revision: 1, update_notes: "", updated_by: null as number | null,
   updated_at: null as string | null, requested_by: 2, requested_at: "2026-10-18T06:00:00Z",
+  reservation_start_at: null as string | null, reservation_end_at: null as string | null,
   routed_to: "Tech Support", requester: { display_name: "Demo Coordinator" },
   event: { id: "11111111-1111-4111-8111-111111111111", title: "Community workshop", event_datetime: "2099-10-20T06:00:00Z", status: "Planning" },
   items: [{ equipment_id: "22222222-2222-4222-8222-222222222222", equipment_type: "Wireless microphone", location: "AV store", quantity: 2, position: 1, technical_notes: "Spare batteries" }],
@@ -36,7 +37,7 @@ test("Tech Support updates arrangements; Coordinator sees status and audit after
   await page.getByRole("link", { name: "Review request", exact: true }).click();
   await expect(page.getByRole("region", { name: "Request details" })).toContainText("Spare batteries");
   await expect(page.getByRole("button", { name: "Save status" })).toBeDisabled();
-  for (const status of ["Reserved", "Partially fulfilled", "Unavailable", "Requested"]) {
+  for (const status of ["Unavailable", "Requested"]) {
     await page.getByLabel("New status").selectOption(status);
     await page.getByLabel("Update notes (optional)").fill(`Arrangement: ${status}`);
     await page.getByRole("button", { name: "Save status" }).click();
@@ -52,7 +53,7 @@ test("Tech Support updates arrangements; Coordinator sees status and audit after
   await session(page, "Coordinator");
   await page.reload();
   await expect(page.getByRole("region", { name: "Status history" })).toContainText("Demo Tech Support");
-  await expect(page.getByRole("region", { name: "Status history" }).getByRole("listitem")).toHaveCount(4);
+  await expect(page.getByRole("region", { name: "Status history" }).getByRole("listitem")).toHaveCount(2);
   await expect(page.getByRole("form", { name: "Update request status" })).toHaveCount(0);
   await page.getByRole("button", { name: "Refresh request" }).click();
   await expect(page.getByRole("region", { name: "Request details" })).toContainText("Arrangement: Requested");
@@ -71,7 +72,7 @@ test("stale edit preserves input and requires reload before another write", asyn
     await route.fulfill({ status: 409, json: { error: "Someone else updated this request. Reload it before saving." } });
   });
   await page.goto(PATH);
-  await page.getByLabel("New status").selectOption("Reserved");
+  await page.getByLabel("New status").selectOption("Unavailable");
   await page.getByLabel("Update notes (optional)").fill("Do not lose my notes");
   await page.getByRole("button", { name: "Save status" }).click();
   await expect(page.getByRole("main").getByRole("alert")).toBeFocused();
@@ -132,4 +133,62 @@ test("an unrelated Coordinator gets no details or history", async ({ page }) => 
   await expect(page.getByRole("main").getByRole("alert")).toContainText("Equipment request not found.");
   await expect(page.getByRole("region", { name: "Request details" })).toHaveCount(0);
   expect(historyReads).toBe(0);
+});
+
+
+test("reserve quantities sets partial/full automatically and Coordinator sees remaining", async ({ page }, testInfo) => {
+  await session(page);
+  let saved = { ...initial, items: initial.items.map(item => ({ ...item, reserved_quantity: 0 })) };
+  await page.route(API + PATH, route => route.fulfill({ json: { request: saved } }));
+  await page.route(API + PATH + "/history?*", route => route.fulfill({ json: { history: [], has_more: false } }));
+  await page.route(API + PATH + "/reservations", async route => {
+    const body = route.request().postDataJSON();
+    expect(route.request().method()).toBe("PUT");
+    expect(body.revision).toBe(saved.revision);
+    expect(body.start_at).toBe("2099-10-20T06:00:00.000Z");
+    expect(body.end_at).toBe("2099-10-20T07:00:00.000Z");
+    saved = { ...saved, status: body.items[0].quantity === 2 ? "Reserved" : "Partially fulfilled",
+      revision: saved.revision + 1, reservation_start_at: body.start_at, reservation_end_at: body.end_at, items: saved.items.map(item => ({ ...item, reserved_quantity: body.items[0].quantity })) };
+    await route.fulfill({ json: { request: saved } });
+  });
+  await page.goto(PATH);
+  await expect(page.getByLabel("New status").getByRole("option")).toHaveText(["Requested", "Unavailable"]);
+  for (const [quantity, status] of [[1, "Partially fulfilled"], [2, "Reserved"]] as const) {
+    await page.getByLabel("Reservation start (SGT)").fill("2099-10-20T14:00");
+    await page.getByLabel("Reservation end (SGT)").fill("2099-10-20T15:00");
+    await page.getByLabel("Reserved quantity — Wireless microphone").fill(String(quantity));
+    await page.getByRole("button", { name: "Save reservations" }).click();
+    await expect(page.getByRole("region", { name: "Request details" })).toContainText(`Current status: ${status}`);
+    await expect(page.getByRole("region", { name: "Request details" })).toContainText(`Reserved ${quantity} · Remaining ${2 - quantity}`);
+  }
+  await expect(page.getByLabel("New status")).toHaveCount(0);
+  await page.setViewportSize({ width: 390, height: 844 });
+  await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+  await testInfo.attach("request-reservations-mobile.png", { body: await page.screenshot({ fullPage: true }), contentType: "image/png" });
+  await session(page, "Coordinator");
+  await page.reload();
+  await expect(page.getByRole("region", { name: "Request details" })).toContainText("Reserved 2 · Remaining 0");
+  await expect(page.getByRole("button", { name: "Save reservations" })).toHaveCount(0);
+});
+
+test("existing event booking can be linked without a second catalogue reservation", async ({ page }) => {
+  await session(page);
+  const booking = { id: "33333333-3333-4333-8333-333333333333", equipment_id: initial.items[0].equipment_id, quantity: 1,
+    start_at: "2099-10-20T06:00:00Z", end_at: "2099-10-20T07:00:00Z", status: "Reserved" };
+  await page.route(API + PATH, route => route.fulfill({ json: { request: { ...initial, existing_reservations: [booking] } } }));
+  await page.route(API + PATH + "/history?*", route => route.fulfill({ json: { history: [], has_more: false } }));
+  let writes = 0;
+  await page.route(API + PATH + "/reservations", route => {
+    writes++;
+    expect(route.request().postDataJSON().items).toEqual([{ equipment_id: booking.equipment_id, quantity: 1, reservation_id: booking.id }]);
+    return route.fulfill({ status: 409, json: { error: "That existing booking no longer matches. Reload the request before linking it." } });
+  });
+  await page.goto(PATH);
+  await page.getByLabel("Existing booking — Wireless microphone").selectOption(booking.id);
+  await expect(page.getByLabel("Reserved quantity — Wireless microphone")).toHaveValue("1");
+  await expect(page.getByLabel("Reservation end (SGT)")).toHaveValue("2099-10-20T15:00");
+  await page.getByRole("button", { name: "Save reservations" }).click();
+  await expect(page.getByRole("main").getByRole("alert")).toBeFocused();
+  await expect(page.getByRole("button", { name: "Save reservations" })).toBeDisabled();
+  expect(writes).toBe(1);
 });

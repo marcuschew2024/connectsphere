@@ -4,9 +4,10 @@ import Link from "next/link";
 import { use, useEffect, useRef, useState } from "react";
 import { ApiError, apiRequest } from "@/lib/api";
 import { equipmentTimestamp } from "@/lib/equipment";
-import { REQUEST_STATUSES, type EquipmentRequest, type EquipmentRequestHeader, type RequestHistory, type RequestStatus } from "@/lib/equipment-requests";
+import { type EquipmentRequest, type EquipmentRequestHeader, type RequestHistory, type RequestStatus } from "@/lib/equipment-requests";
 import { Button } from "@/components/ui/button";
 import EquipmentWorkspace from "../../equipment-workspace";
+import ReservationForm from "./reservation-form";
 
 const fieldClass = "w-full rounded-lg border border-input bg-background px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring";
 
@@ -41,14 +42,14 @@ function StatusForm({ request, onSaved, onReload }: {
 
   return <form onSubmit={submit} className="space-y-4 rounded-2xl border border-border bg-card p-5 sm:p-6" aria-label="Update request status">
     <div><h2 className="text-lg font-semibold">Update request status</h2>
-      <p className="mt-1 text-sm text-muted-foreground">Record the current arrangements for the Coordinator. Reserve stock through the equipment catalogue before marking it Reserved.</p></div>
+      <p className="mt-1 text-sm text-muted-foreground">Use Requested while arranging equipment, or Unavailable if it cannot be supplied. Saving reserved quantities above sets Reserved or Partially fulfilled automatically.</p></div>
     {error && <div ref={alert} tabIndex={-1} role="alert" className="space-y-3 rounded-lg border border-destructive/30 p-4 text-sm text-destructive">
       <p>{error}</p>
       {needsReload && <Button type="button" variant="outline" onClick={onReload}>Reload latest request</Button>}
     </div>}
     <div><label htmlFor="request-status" className="mb-2 block text-sm font-medium">New status</label>
       <select id="request-status" className={fieldClass} value={status} disabled={busy || needsReload} onChange={event => setStatus(event.target.value as RequestStatus)}>
-        {REQUEST_STATUSES.map(value => <option key={value}>{value}</option>)}
+        {["Requested", "Unavailable"].map(value => <option key={value}>{value}</option>)}
       </select></div>
     <div><label htmlFor="update-notes" className="mb-2 block text-sm font-medium">Update notes (optional)</label>
       <textarea id="update-notes" className={fieldClass} rows={3} maxLength={2000} value={notes} disabled={busy} onChange={event => setNotes(event.target.value)} aria-describedby="notes-help" />
@@ -81,6 +82,8 @@ function StatusHistory({ requestId }: { requestId: string }) {
             <p className="text-sm font-medium">{entry.from_status} → {entry.status}</p>
             <p className="text-xs text-muted-foreground">{entry.actor_name} · {equipmentTimestamp(entry.changed_at)} SGT</p>
             <p className="whitespace-pre-wrap break-words text-sm text-muted-foreground">{entry.notes || "No update notes."}</p>
+            {entry.reservation_snapshot && <div className="text-xs text-muted-foreground"><p>{equipmentTimestamp(entry.reservation_snapshot.start_at)} – {equipmentTimestamp(entry.reservation_snapshot.end_at)} SGT</p>
+              {entry.reservation_snapshot.items.map((item, index) => <p key={index}>{item.equipment_type}: {item.quantity} reserved</p>)}</div>}
           </li>)}
         </ol>}
         <nav aria-label="History pages" className="flex flex-wrap items-center justify-between gap-3">
@@ -119,10 +122,13 @@ function RequestDetails({ requestId, role }: { requestId: string; role: string }
             <Button variant="outline" onClick={reload}>Refresh request</Button>
           </div>
           <p className="text-sm">Current status: <strong>{request.status}</strong></p>
+          {request.reported_status && <p className="text-sm text-muted-foreground">Previously recorded as {request.reported_status}. The current status reflects active bookings linked to this request.</p>}
+          {request.reservation_start_at && request.reservation_end_at && <p className="text-sm text-muted-foreground">Reservation slot: {equipmentTimestamp(request.reservation_start_at)} – {equipmentTimestamp(request.reservation_end_at)} SGT</p>}
           {request.update_notes && <p className="whitespace-pre-wrap break-words rounded-lg bg-muted p-4 text-sm">{request.update_notes}</p>}
           <ul className="divide-y divide-border rounded-xl border border-border">
             {request.items.map(item => <li key={item.equipment_id} className="space-y-2 p-4">
               <div className="flex items-start justify-between gap-4"><div className="min-w-0"><h3 className="break-words text-sm font-semibold">{item.equipment_type}</h3><p className="break-words text-xs text-muted-foreground">{item.location}</p></div><span className="shrink-0 text-sm font-semibold">Qty {item.quantity}</span></div>
+              <p className="text-sm">Reserved {item.reserved_quantity ?? 0} · Remaining {Math.max(0, item.quantity - (item.reserved_quantity ?? 0))}</p>
               <p className="whitespace-pre-wrap break-words text-sm text-muted-foreground">{item.technical_notes || "No technical notes."}</p>
             </li>)}
           </ul>
@@ -132,10 +138,16 @@ function RequestDetails({ requestId, role }: { requestId: string; role: string }
             <p className="break-all">Request reference: {request.id}</p>
           </div>
         </section>
-        {role === "Tech Support" && !closed ? <StatusForm key={request.revision} request={request} onReload={reload} onSaved={saved => {
+        {role === "Tech Support" && !closed ? <>
+          <ReservationForm key={`reservations-${request.revision}`} request={request} onReload={reload} onSaved={() => {
+            reload(); setMessage("Reservations saved. Availability and request status now reflect the reserved quantities.");
+          }} />
+          {request.items.some(item => (item.reserved_quantity ?? 0) > 0)
+            ? <p className="text-sm text-muted-foreground">Status is calculated from reserved quantities. Release all units before marking this request Unavailable.</p>
+            : <StatusForm key={request.revision} request={request} onReload={reload} onSaved={saved => {
           setRequest(current => current ? { ...current, ...saved } : current);
           setMessage("Status updated. The Coordinator can see the new status and notes.");
-        }} /> : <p className="text-sm text-muted-foreground">{closed ? "This event is closed. Its equipment request and history are read-only." : "Tech Support updates these arrangements. Refresh this page to see the latest status."}</p>}
+        }} />}</> : <p className="text-sm text-muted-foreground">{closed ? "This event is closed. Its equipment request and history are read-only." : "Tech Support updates these arrangements. Refresh this page to see the latest status."}</p>}
         <StatusHistory key={`${request.revision}-${retry}`} requestId={request.id} />
       </>}
   </div>;

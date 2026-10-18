@@ -160,6 +160,14 @@ def create_equipment_reservation(
         if not rows:
             raise ServiceUnavailable("Could not confirm equipment reservation.")
         return rows[0]
+    except APIError as error:
+        if error.code == "PT409":
+            raise Conflict(
+                "Stock or event availability changed. Check availability again."
+            ) from error
+        raise ServiceUnavailable(
+            "Could not create equipment reservation. Please try again."
+        ) from error
     except ServiceUnavailable:
         raise
     except Exception as error:

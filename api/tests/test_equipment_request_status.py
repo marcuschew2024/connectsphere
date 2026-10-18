@@ -16,7 +16,7 @@ PATH = f"/equipment/requests/{ID}"
 
 
 def change(**fields):
-    return {"status": "Reserved", "revision": 1, "notes": "  Arranged with AV team  ", **fields}
+    return {"status": "Unavailable", "revision": 1, "notes": "  Arranged with AV team  ", **fields}
 
 
 @pytest.fixture
@@ -31,7 +31,9 @@ def status_api(app, monkeypatch, database):
     )
     monkeypatch.setattr("app.equipment_requests.get_authenticated_user", lambda: None)
     monkeypatch.setattr("app.rbac.get_supabase_client", lambda: None)
-    saved = MagicMock(return_value={"id": ID, "status": "Reserved", "revision": 2, "updated_by": 4})
+    saved = MagicMock(
+        return_value={"id": ID, "status": "Unavailable", "revision": 2, "updated_by": 4}
+    )
     detail = MagicMock(return_value={"id": ID, "status": "Requested", "revision": 1})
     history = MagicMock(return_value=([{"status": "Requested"}], False))
     monkeypatch.setattr("app.equipment_requests.update_request_status", saved, raising=False)
@@ -42,7 +44,7 @@ def status_api(app, monkeypatch, database):
     return client, saved, detail, history
 
 
-@pytest.mark.parametrize("status", ["Requested", "Reserved", "Partially fulfilled", "Unavailable"])
+@pytest.mark.parametrize("status", ["Requested", "Unavailable"])
 def test_status_update_uses_session_actor_and_trims_notes(status_api, status):
     client, saved, _, _ = status_api
     result = client.patch(PATH + "/status", json=change(status=status), headers=ORIGIN)
@@ -63,6 +65,8 @@ def test_other_roles_cannot_update(status_api, actor):
     "fields",
     [
         {"status": "Confirmed"},
+        {"status": "Reserved"},
+        {"status": "Partially fulfilled"},
         {"status": None},
         {"status": []},
         {"revision": True},
@@ -176,7 +180,7 @@ def test_database_errors_are_safe_and_correctly_classified(monkeypatch, code, ex
     db.rpc.side_effect = APIError({"code": code, "message": "private database detail"})
     monkeypatch.setattr("app.equipment_request_repository.get_supabase_client", lambda: db)
     with pytest.raises(exception) as caught:
-        update_request_status(ID, "Reserved", "", 1, 4)
+        update_request_status(ID, "Unavailable", "", 1, 4)
     assert "private database detail" not in caught.value.description
 
 
@@ -185,4 +189,4 @@ def test_unconfirmed_save_is_not_reported_as_success(monkeypatch):
     db.rpc.return_value.execute.return_value = SimpleNamespace(data=[])
     monkeypatch.setattr("app.equipment_request_repository.get_supabase_client", lambda: db)
     with pytest.raises(ServiceUnavailable, match="Reload the request"):
-        update_request_status(ID, "Reserved", "", 1, 4)
+        update_request_status(ID, "Unavailable", "", 1, 4)

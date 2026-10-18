@@ -10,7 +10,8 @@ HISTORY_PAGE_SIZE = 20
 READ_FIELDS = (
     "*,event:events!inner(id,title,event_datetime,coordinator_id,status),"
     "requester:app_users!equipment_requests_requested_by_fkey(display_name),"
-    "items:equipment_request_items(*)"
+    "items:equipment_request_items(*),"
+    "reservations:equipment_reservations!equipment_reservations_request_id_fkey(*)"
 )
 
 
@@ -19,6 +20,28 @@ def _client():
     if client is None:
         raise ServiceUnavailable("The database is not configured. Contact the team.")
     return client
+
+
+def _summarize_reservations(row: dict) -> None:
+    """Use real linked bookings, including releases from the event-cancel trigger."""
+    active = {
+        r["equipment_id"]: r["quantity"]
+        for r in row.get("reservations", [])
+        if r["status"] in {"Reserved", "Pending"}
+    }
+    row["items"].sort(key=lambda item: item["position"])
+    for item in row["items"]:
+        item["reserved_quantity"] = active.get(item["equipment_id"], 0)
+    if row["items"] and all(i["reserved_quantity"] >= i["quantity"] for i in row["items"]):
+        status = "Reserved"
+    elif any(active.values()):
+        status = "Partially fulfilled"
+    else:
+        status = "Unavailable" if row["status"] == "Unavailable" else "Requested"
+    # Preserve old manually recorded labels in history; never invent a booking.
+    if row["status"] != status:
+        row["reported_status"] = row["status"]
+    row["status"] = status
 
 
 def list_requests(user: dict, page: int) -> tuple[list[dict], bool]:
@@ -35,7 +58,7 @@ def list_requests(user: dict, page: int) -> tuple[list[dict], bool]:
             .data
         )
         for row in rows:
-            row["items"].sort(key=lambda item: item["position"])
+            _summarize_reservations(row)
         return rows[:PAGE_SIZE], len(rows) > PAGE_SIZE
     except Exception as error:
         raise ServiceUnavailable("Could not load equipment requests. Please try again.") from error
@@ -71,8 +94,21 @@ def get_request(request_id: str, user: dict) -> dict:
         rows = query.limit(1).execute().data
         if not rows:
             raise NotFound("Equipment request not found.")
-        rows[0]["items"].sort(key=lambda item: item["position"])
-        return rows[0]
+        row = rows[0]
+        _summarize_reservations(row)
+        # Read candidates only after checking access to this request's event.
+        row["existing_reservations"] = (
+            _client()
+            .table("equipment_reservations")
+            .select("*")
+            .eq("event_id", row["event_id"])
+            .is_("request_id", "null")
+            .in_("status", ["Reserved", "Pending"])
+            .order("start_at")
+            .execute()
+            .data
+        )
+        return row
     except NotFound:
         raise
     except Exception as error:
@@ -85,7 +121,8 @@ def list_request_history(request_id: str, user: dict, page: int) -> tuple[list[d
     get_request(request_id, user)
     try:
         query = (
-            _client().table("equipment_request_history")
+            _client()
+            .table("equipment_request_history")
             .select("*,request:equipment_requests!inner(event:events!inner(coordinator_id))")
             .eq("request_id", request_id)
         )
@@ -95,7 +132,9 @@ def list_request_history(request_id: str, user: dict, page: int) -> tuple[list[d
         start = (page - 1) * HISTORY_PAGE_SIZE
         rows = (
             query.order("revision", desc=True)
-            .range(start, start + HISTORY_PAGE_SIZE).execute().data
+            .range(start, start + HISTORY_PAGE_SIZE)
+            .execute()
+            .data
         )
         for row in rows:
             row.pop("request", None)
@@ -105,13 +144,38 @@ def list_request_history(request_id: str, user: dict, page: int) -> tuple[list[d
 
 
 def update_request_status(
-    request_id: str, status: str, notes: str, revision: int, actor_id: int,
+    request_id: str,
+    status: str,
+    notes: str,
+    revision: int,
+    actor_id: int,
 ) -> dict:
+    return _write_request(
+        "update_equipment_request_status",
+        {
+            "p_request_id": request_id,
+            "p_status": status,
+            "p_notes": notes,
+            "p_revision": revision,
+            "p_actor_id": actor_id,
+        },
+    )
+
+
+def save_request_reservations(request_id: str, details: dict, actor_id: int) -> dict:
+    return _write_request(
+        "save_equipment_request_reservations",
+        {
+            "p_request_id": request_id,
+            "p_actor_id": actor_id,
+            **{"p_" + key: value for key, value in details.items()},
+        },
+    )
+
+
+def _write_request(function: str, parameters: dict) -> dict:
     try:
-        rows = _client().rpc("update_equipment_request_status", {
-            "p_request_id": request_id, "p_status": status, "p_notes": notes,
-            "p_revision": revision, "p_actor_id": actor_id,
-        }).execute().data
+        rows = _client().rpc(function, parameters).execute().data
         if not rows:
             raise ServiceUnavailable(
                 "Could not confirm the update. Reload the request before retrying."
@@ -124,17 +188,33 @@ def update_request_status(
             raise NotFound("Equipment request not found.") from error
         if error.code == "PT409":
             messages = {
+                "insufficient_equipment": (
+                    "Not enough available equipment for that time slot. "
+                    "Reduce the reserved quantity or choose another slot."
+                ),
+                "booking_changed": (
+                    "That existing booking no longer matches. "
+                    "Reload the request before linking it."
+                ),
+                "linked_reservations": (
+                    "Release the linked units before marking this request "
+                    "Requested or Unavailable."
+                ),
                 "stale_request": "Someone else updated this request. Reload it before saving.",
                 "unchanged_status": "Choose a different status to record an update.",
                 "closed_event": (
                     "Requests for cancelled, completed or rejected events are read-only."
                 ),
             }
-            raise Conflict(messages.get(
-                error.message, "This request cannot be updated. Reload it before trying again."
-            )) from error
-        if error.code in {"22023", "22P02", "23514"}:
-            raise BadRequest("Check the status and update notes, then try again.") from error
+            raise Conflict(
+                messages.get(
+                    error.message, "This request cannot be updated. Reload it before trying again."
+                )
+            ) from error
+        if error.code in {"22023", "22P02", "22003", "23514"}:
+            raise BadRequest(
+                "Check the quantities, time slot, status and notes, then try again."
+            ) from error
         raise ServiceUnavailable(
             "Could not confirm the update. Reload the request before retrying."
         ) from error

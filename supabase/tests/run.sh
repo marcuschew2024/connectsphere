@@ -33,3 +33,10 @@ for pass in 1 2; do
 done
 psql -v ON_ERROR_STOP=1 -f /sql/tests/safety_officer.sql
 
+
+# Check the original status migration above, then the reservation integration twice.
+for pass in 1 2; do
+  psql -v ON_ERROR_STOP=1 -f /sql/migrations/20261018134736_link_equipment_request_reservations.sql > /tmp/migration-output.txt
+  echo "Request reservations migration pass $pass: PASS"
+done
+psql -v ON_ERROR_STOP=1 -f /sql/tests/equipment_request_reservations.sql
