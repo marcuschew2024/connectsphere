@@ -36,6 +36,7 @@ const NAV_BY_ROLE: Record<string, NavItem[]> = {
     { label: "Venues", href: "/venues", icon: Building2 },
     { label: "Request venue", href: "/venues/bookings/new", icon: CalendarPlus },
     { label: "Equipment", href: "/equipment", icon: Package },
+    { label: "Equipment requests", href: "/equipment/requests", icon: ClipboardCheck },
   ],
   "Venue Staff": [
     { label: "Home", href: "/", icon: Home },
@@ -47,6 +48,7 @@ const NAV_BY_ROLE: Record<string, NavItem[]> = {
     { label: "Home", href: "/", icon: Home },
     { label: "Equipment", href: "/equipment", icon: Package },
     { label: "New equipment", href: "/equipment/new", icon: FilePlus2 },
+    { label: "Equipment requests", href: "/equipment/requests", icon: ClipboardCheck },
   ],
 };
 
@@ -88,7 +90,9 @@ export function AppShell({
 
       <nav className="flex-1 space-y-1 px-3">
         {nav.map(({ label, href, icon: Icon }) => {
-          const active = href === "/" ? pathname === "/" : pathname.startsWith(href);
+          const matches = (path: string) => pathname === path || pathname.startsWith(`${path}/`);
+          const active = href === "/" ? pathname === "/"
+            : matches(href) && !nav.some(item => item.href.length > href.length && matches(item.href));
           return (
             <Link
               key={href}
