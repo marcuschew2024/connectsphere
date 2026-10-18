@@ -1,5 +1,6 @@
 """Record Coordinator equipment requests and expose the Tech Support queue."""
 
+from datetime import datetime
 from uuid import UUID
 
 from flask import Blueprint, current_app, jsonify, request
@@ -7,7 +8,15 @@ from werkzeug.exceptions import BadRequest, Forbidden, HTTPException, Unauthoriz
 
 from .acting_user import get_acting_user
 from .auth import get_authenticated_user
-from .equipment_request_repository import list_request_events, list_requests, record_request
+from .equipment_request_repository import (
+    get_request,
+    list_request_events,
+    list_request_history,
+    list_requests,
+    record_request,
+    save_request_reservations,
+    update_request_status,
+)
 from .rbac import require_role
 
 equipment_requests = Blueprint("equipment_requests", __name__, url_prefix="/equipment/requests")
@@ -122,3 +131,94 @@ def request_events():
     page = _page()
     rows, more = list_request_events(user["id"], page)
     return jsonify({"events": rows, "page": page, "has_more": more})
+
+
+@equipment_requests.get("/<uuid:request_id>")
+def request_detail(request_id):
+    user = _user("Coordinator", "Tech Support")
+    return jsonify({"request": get_request(str(request_id), user)})
+
+
+@equipment_requests.get("/<uuid:request_id>/history")
+def request_history(request_id):
+    user = _user("Coordinator", "Tech Support")
+    page = _page()
+    rows, more = list_request_history(str(request_id), user, page)
+    return jsonify({"history": rows, "page": page, "has_more": more})
+
+
+@equipment_requests.patch("/<uuid:request_id>/status")
+def change_request_status(request_id):
+    user = _user("Tech Support")
+    data = request.get_json(silent=True)
+    if not isinstance(data, dict) or set(data) != {"status", "notes", "revision"}:
+        raise BadRequest(
+            "Send status, notes and revision only. Attribution is recorded automatically."
+        )
+    if not isinstance(data["status"], str) or data["status"] not in {
+        "Requested",
+        "Unavailable",
+    }:
+        raise BadRequest(
+            "Choose Requested or Unavailable. "
+            "Save reserved quantities to set Reserved or Partially fulfilled."
+        )
+    if type(data["revision"]) is not int or not 1 <= data["revision"] <= 2_147_483_647:
+        raise BadRequest("Reload the request before updating its status.")
+    if not isinstance(data["notes"], str) or len(data["notes"].strip()) > 2000:
+        raise BadRequest("Use no more than 2000 characters for update notes.")
+    saved = update_request_status(
+        str(request_id), data["status"], data["notes"].strip(), data["revision"], user["id"]
+    )
+    return jsonify({"request": saved})
+
+
+@equipment_requests.put("/<uuid:request_id>/reservations")
+def save_reservations(request_id):
+    user = _user("Tech Support")
+    data = request.get_json(silent=True)
+    if not isinstance(data, dict) or set(data) != {
+        "start_at",
+        "end_at",
+        "items",
+        "notes",
+        "revision",
+    }:
+        raise BadRequest("Send start_at, end_at, items, notes and revision only.")
+    try:
+        start, end = (
+            datetime.fromisoformat(data[key].replace("Z", "+00:00"))
+            for key in ("start_at", "end_at")
+        )
+        if start.tzinfo is None or end.tzinfo is None or end <= start:
+            raise ValueError
+    except (ValueError, TypeError, AttributeError) as error:
+        raise BadRequest("Choose a valid start and later end, including the time zone.") from error
+    if type(data["revision"]) is not int or not 1 <= data["revision"] <= 2_147_483_647:
+        raise BadRequest("Reload the request before saving reservations.")
+    if not isinstance(data["notes"], str) or len(data["notes"].strip()) > 2000:
+        raise BadRequest("Use no more than 2000 characters for update notes.")
+    items = data["items"]
+    if not isinstance(items, list) or not 1 <= len(items) <= 50:
+        raise BadRequest("Include each requested equipment item.")
+    seen = set()
+    for item in items:
+        if (
+            not isinstance(item, dict)
+            or not {"equipment_id", "quantity"} <= set(item)
+            or set(item) - {"equipment_id", "quantity", "reservation_id"}
+        ):
+            raise BadRequest(
+                "Each item needs equipment_id, quantity and an optional reservation_id."
+            )
+        equipment_id = _uuid(item["equipment_id"])
+        if not equipment_id or equipment_id in seen:
+            raise BadRequest("Include each requested equipment item once.")
+        if type(item["quantity"]) is not int or not 0 <= item["quantity"] <= 2_147_483_647:
+            raise BadRequest("Reserved quantities must be whole numbers from zero upwards.")
+        if "reservation_id" in item and not _uuid(item["reservation_id"]):
+            raise BadRequest("Choose an existing reservation from this event.")
+        item["equipment_id"] = equipment_id
+        seen.add(equipment_id)
+    data["notes"] = data["notes"].strip()
+    return jsonify({"request": save_request_reservations(str(request_id), data, user["id"])})

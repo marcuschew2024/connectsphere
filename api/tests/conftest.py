@@ -6,9 +6,20 @@ from unittest.mock import MagicMock
 import pytest
 
 from app import create_app
+from app.supabase_client import get_supabase_client
 
 ORIGIN = {"Origin": "http://localhost:3000"}
 ROLES = ["Organiser", "Coordinator", "Venue Staff", "Tech Support", "Attendee"]
+
+
+@pytest.fixture(autouse=True)
+def isolate_database_credentials(monkeypatch):
+    """Local .env credentials must never leak into an unmocked test path."""
+    for key in ("SUPABASE_URL", "SUPABASE_SECRET_KEY", "SUPABASE_KEY"):
+        monkeypatch.setenv(key, "")
+    get_supabase_client.cache_clear()
+    yield
+    get_supabase_client.cache_clear()
 
 
 @pytest.fixture

@@ -55,7 +55,11 @@ function RequestList({ role }: { role: string }) {
           <p>Requested by {request.requester.display_name} · {equipmentTimestamp(request.requested_at)} SGT</p>
           <p className="break-all">Request reference: {request.id}</p>
           <p className="break-all">Event reference: {request.event_id}</p>
+          {request.updated_at && <p>Last status update: {equipmentTimestamp(request.updated_at)} SGT</p>}
         </footer>
+        <Link href={`/equipment/requests/${request.id}`} className="inline-flex rounded-md border border-border px-4 py-2 text-sm font-medium hover:bg-muted">
+          {role === "Tech Support" ? "Review request" : "View request"}
+        </Link>
       </article>)}
       <nav aria-label="Request pages" className="flex items-center justify-between gap-3">
         <Button variant="outline" disabled={page === 1} onClick={() => changePage(page - 1)}>Previous</Button>
