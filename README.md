@@ -114,6 +114,15 @@ event references and the recorded requester/time. Requests do not reserve stock.
 
 See the [SCRUM-35 walkthrough, API contract and test evidence](docs/SCRUM-35.md).
 
+## Equipment request status (SCRUM-38)
+
+After the SCRUM-35 migration, apply
+[`20261018111728_scrum_38_equipment_request_status.sql`](supabase/migrations/20261018111728_scrum_38_equipment_request_status.sql).
+Tech Support opens an equipment request with **Review request**, selects its new
+status and records optional update notes. Coordinators use **View request** to see
+the latest status and who changed it, without editing controls. Stock reservations
+remain a separate operation. See the [setup, status rules and test evidence](docs/SCRUM-38.md).
+
 ## Prerequisites
 
 For draft submission, on-screen confirmation and coordinator assignment, see the

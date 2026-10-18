@@ -7,7 +7,14 @@ from werkzeug.exceptions import BadRequest, Forbidden, HTTPException, Unauthoriz
 
 from .acting_user import get_acting_user
 from .auth import get_authenticated_user
-from .equipment_request_repository import list_request_events, list_requests, record_request
+from .equipment_request_repository import (
+    get_request,
+    list_request_events,
+    list_request_history,
+    list_requests,
+    record_request,
+    update_request_status,
+)
 from .rbac import require_role
 
 equipment_requests = Blueprint("equipment_requests", __name__, url_prefix="/equipment/requests")
@@ -122,3 +129,39 @@ def request_events():
     page = _page()
     rows, more = list_request_events(user["id"], page)
     return jsonify({"events": rows, "page": page, "has_more": more})
+
+
+@equipment_requests.get("/<uuid:request_id>")
+def request_detail(request_id):
+    user = _user("Coordinator", "Tech Support")
+    return jsonify({"request": get_request(str(request_id), user)})
+
+
+@equipment_requests.get("/<uuid:request_id>/history")
+def request_history(request_id):
+    user = _user("Coordinator", "Tech Support")
+    page = _page()
+    rows, more = list_request_history(str(request_id), user, page)
+    return jsonify({"history": rows, "page": page, "has_more": more})
+
+
+@equipment_requests.patch("/<uuid:request_id>/status")
+def change_request_status(request_id):
+    user = _user("Tech Support")
+    data = request.get_json(silent=True)
+    if not isinstance(data, dict) or set(data) != {"status", "notes", "revision"}:
+        raise BadRequest(
+            "Send status, notes and revision only. Attribution is recorded automatically."
+        )
+    if not isinstance(data["status"], str) or data["status"] not in {
+        "Requested", "Reserved", "Partially fulfilled", "Unavailable",
+    }:
+        raise BadRequest("Choose Requested, Reserved, Partially fulfilled or Unavailable.")
+    if type(data["revision"]) is not int or not 1 <= data["revision"] <= 2_147_483_647:
+        raise BadRequest("Reload the request before updating its status.")
+    if not isinstance(data["notes"], str) or len(data["notes"].strip()) > 2000:
+        raise BadRequest("Use no more than 2000 characters for update notes.")
+    saved = update_request_status(
+        str(request_id), data["status"], data["notes"].strip(), data["revision"], user["id"]
+    )
+    return jsonify({"request": saved})

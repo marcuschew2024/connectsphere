@@ -167,8 +167,9 @@ may exceed current stock and non-operational catalogue entries remain requestabl
 the form captures demand for Tech Support to assess. It neither promises availability
 nor changes stock. SCRUM-36 checks time-based availability; SCRUM-37 handles actual
 reservations. They should use the existing equipment IDs and positive quantities.
-SCRUM-38 will need a separate migration and audited API to extend the current
-Requested-only status constraint; this story does not implement status changes.
+[SCRUM-38](SCRUM-38.md) extends the initial Requested-only constraint through a
+separate migration and audited status API. Apply that migration after this story's
+setup to enable Tech Support updates and the Coordinator's status history.
 
 A failed or uncertain submission retains the form and links to the queue so the
 Coordinator can check for an existing request before retrying. The endpoint does
