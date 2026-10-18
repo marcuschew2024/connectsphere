@@ -10,11 +10,11 @@ Gate (Week 7 change #3, multi-venue). An event may be confirmed only when:
   * at least one venue booking is Confirmed - a fully-resourced event must have
     an approved venue (PO decision: zero bookings cannot be confirmed), AND
   * no venue booking is still awaiting approval - any status that is not a
-    settled Confirmed/Rejected (Requested, Pending, or an unrecognised value)
+    settled Confirmed/Rejected/Cancelled (Requested, Pending, or an unrecognised value)
     blocks, AND
   * the technical arrangements are resolved.
 
-Rejected bookings are settled history and do not block (PO decision). The
+Rejected and cancelled bookings are settled history and do not block. The
 `technical_resolved` flag is the seam for equipment reservations (SCRUM-37);
 until that story lands the endpoint passes it as True. Non-essential items
 (programme, registration setup) are intentionally not part of the gate - AC2
@@ -26,7 +26,7 @@ class EventConfirmation:
     """Decides whether an event's arrangements allow it to be confirmed."""
 
     # A booking in one of these states is settled - no further action is pending.
-    _SETTLED = {"Confirmed", "Rejected"}
+    _SETTLED = {"Confirmed", "Rejected", "Cancelled"}
 
     def __init__(self, booking_statuses, technical_resolved: bool = True):
         statuses = [self._clean(status) for status in booking_statuses]
