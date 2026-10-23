@@ -6,7 +6,8 @@ DAYS = ("monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sun
 TEXT_LIMITS = {"name": 200, "location": 300}
 LIST_FIELDS = ("facilities", "accessibility", "supported_layouts")
 TIME = re.compile(r"(?:[01][0-9]|2[0-3]):[0-5][0-9]\Z")
-FIELDS = {*TEXT_LIMITS, *LIST_FIELDS, "capacity", "operating_hours"}
+BUFFER_FIELDS = {"setup_time_minutes", "turnaround_time_minutes"}
+FIELDS = {*TEXT_LIMITS, *LIST_FIELDS, "capacity", "operating_hours", *BUFFER_FIELDS}
 
 
 def validate_venue(data: dict) -> tuple[dict, dict]:
@@ -26,6 +27,17 @@ def validate_venue(data: dict) -> tuple[dict, dict]:
         errors["capacity"] = "Enter a whole number between 1 and 2,147,483,647."
     else:
         clean["capacity"] = capacity
+
+    # SCRUM-129: Configurable setup and turnaround time (in minutes, >= 0, default 0)
+    for buf in ("setup_time_minutes", "turnaround_time_minutes"):
+        if buf in data:
+            buf_val = data[buf]
+            if buf_val is None:
+                buf_val = 0
+            if type(buf_val) is not int or buf_val < 0 or buf_val > 1440:
+                errors[buf] = "Enter a non-negative whole number of minutes (0 to 1440)."
+            else:
+                clean[buf] = buf_val
 
     for field in LIST_FIELDS:
         values = data.get(field)
