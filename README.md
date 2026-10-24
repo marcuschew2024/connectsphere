@@ -43,6 +43,13 @@ For the confirmed request clarification workflow, run
 event and notification migrations. Coordinators can return submitted requests with a
 note; organisers revise and resubmit them before they return to the review queue.
 
+For organiser change requests after submission or confirmation, run
+[`supabase/migrations/20261025000000_scrum_46_change_requests.sql`](supabase/migrations/20261025000000_scrum_46_change_requests.sql).
+This is also included in the current `create_events.sql`, so rerunning that safe
+setup script repairs an existing project that was created before SCRUM-46. Organisers
+cannot edit submitted events directly; requests are routed to the assigned Coordinator
+and can be raised at any time.
+
 For venue booking requests, run
 [`supabase/create_venue_bookings.sql`](supabase/create_venue_bookings.sql) after the
 event, venue, and notification migrations. Coordinators can request a venue from a

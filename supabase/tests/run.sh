@@ -7,6 +7,7 @@ for pass in 1 2; do
   for migration in seed_users create_events login_auth rbac edit_planning event_decision_notifications auto_assign_coordinator request_clarification create_venues create_venue_bookings venue_search update_venues create_equipment create_equipment_requests create_equipment_reservations; do
     psql -v ON_ERROR_STOP=1 -f "/sql/$migration.sql" > /tmp/migration-output.txt
   done
+  psql -v ON_ERROR_STOP=1 -f /sql/migrations/20261025000000_scrum_46_change_requests.sql > /tmp/migration-output.txt
   psql -v ON_ERROR_STOP=1 -f /sql/migrations/20261018111728_scrum_38_equipment_request_status.sql > /tmp/migration-output.txt
   echo "Migration pass $pass: PASS"
 done

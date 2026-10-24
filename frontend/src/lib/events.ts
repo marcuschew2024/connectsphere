@@ -52,6 +52,18 @@ export type EventClarification = {
   responded_at: string | null;
 };
 
+export type EventChangeRequest = {
+  id: number;
+  event_id: string;
+  requested_by: number;
+  description: string;
+  status: "Pending" | "Under Review" | "Approved" | "Rejected" | "Implemented";
+  reviewed_by: number | null;
+  review_note: string | null;
+  requested_at: string;
+  reviewed_at: string | null;
+};
+
 
 type VisibleStatus = "Planning" | "Confirmed" | "Preparation" | "Completed" | "Rejected" | "Cancelled";
 
@@ -76,5 +88,24 @@ export function StatusBadge({ status }: { status: string }) {
       className: `inline-flex items-center rounded-full border px-2.5 py-1 text-xs font-semibold ${statusStyles[safeStatus] ?? fallbackStyle}`,
     },
     safeStatus,
+  );
+}
+
+const changeRequestStatusStyles: Record<EventChangeRequest["status"], string> = {
+  Pending: "bg-amber-100 text-amber-700 border-amber-200 dark:bg-amber-500/15 dark:text-amber-300 dark:border-amber-400/30",
+  "Under Review": "bg-blue-100 text-blue-700 border-blue-200 dark:bg-blue-500/15 dark:text-blue-300 dark:border-blue-400/30",
+  Approved: "bg-emerald-100 text-emerald-700 border-emerald-200 dark:bg-emerald-500/15 dark:text-emerald-300 dark:border-emerald-400/30",
+  Rejected: "bg-red-100 text-red-700 border-red-200 dark:bg-red-500/15 dark:text-red-300 dark:border-red-400/30",
+  Implemented: "bg-violet-100 text-violet-700 border-violet-200 dark:bg-violet-500/15 dark:text-violet-300 dark:border-violet-400/30",
+};
+
+export function ChangeRequestStatusBadge({ status }: { status: EventChangeRequest["status"] }) {
+  return createElement(
+    "span",
+    {
+      "data-testid": "change-request-status-badge",
+      className: `inline-flex items-center rounded-full border px-2.5 py-1 text-xs font-semibold ${changeRequestStatusStyles[status]}`,
+    },
+    status,
   );
 }
