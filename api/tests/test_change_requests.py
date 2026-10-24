@@ -140,7 +140,16 @@ def test_legacy_review_is_visible_in_status_history(app, monkeypatch):
                 "select": lambda self, *_: self,
                 "eq": lambda self, *_: self,
                 "order": lambda self, *_args, **_kwargs: self,
-                "execute": lambda self: type("Result", (), {"data": []})(),
+                "execute": lambda self: type("Result", (), {"data": [{
+                    "id": 1,
+                    "event_id": "event-46",
+                    "old_status": "Planning",
+                    "new_status": "Planning",
+                    "changed_by": 1,
+                    "changed_at": "2026-10-24T23:00:00+00:00",
+                    "action": "change_requested",
+                    "note": "Move the event start time",
+                }]})(),
             })(),
         })(),
     )

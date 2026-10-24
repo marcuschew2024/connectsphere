@@ -208,24 +208,26 @@ def get_status_history(event_id: str) -> list[dict]:
             if row.get("action")
         }
         # Older reviews were persisted before review actions were added to the
-        # status-history write path. Project their current state until repaired
-        # rows are backfilled, without duplicating already recorded actions.
-        change_requests = get_change_requests(event_id)
-        for change_request in change_requests:
-            status = change_request.get("status")
-            if status in {"Under Review", "Approved", "Rejected", "Implemented"}:
-                action = f"change_request_{status.lower().replace(' ', '_')}"
-                if action not in history_actions:
-                    history.append({
-                        "id": -int(change_request["id"]),
-                        "event_id": event_id,
-                        "old_status": None,
-                        "new_status": "Planning",
-                        "changed_by": change_request.get("reviewed_by"),
-                        "changed_at": change_request.get("reviewed_at"),
-                        "action": action,
-                        "note": change_request.get("review_note"),
-                    })
+        # status-history write path. Only query change requests for events that
+        # already have a change-request history entry; this keeps history reads
+        # compatible with deployments that predate the SCRUM-46 table.
+        if "change_requested" in history_actions:
+            change_requests = get_change_requests(event_id)
+            for change_request in change_requests:
+                status = change_request.get("status")
+                if status in {"Under Review", "Approved", "Rejected", "Implemented"}:
+                    action = f"change_request_{status.lower().replace(' ', '_')}"
+                    if action not in history_actions:
+                        history.append({
+                            "id": -int(change_request["id"]),
+                            "event_id": event_id,
+                            "old_status": None,
+                            "new_status": "Planning",
+                            "changed_by": change_request.get("reviewed_by"),
+                            "changed_at": change_request.get("reviewed_at"),
+                            "action": action,
+                            "note": change_request.get("review_note"),
+                        })
         return sorted(history, key=lambda row: row.get("changed_at") or "")
     except ServiceUnavailable:
         raise
