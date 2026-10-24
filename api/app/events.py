@@ -12,8 +12,10 @@ from .event_decision import EventDecision
 from .event_repository import (
     add_event_participant,
     add_status_history,
+    create_change_request,
     create_clarification,
     create_notification,
+    get_change_requests,
     get_event_by_id,
     get_events_for_user,
     get_pending_clarification,
@@ -24,6 +26,7 @@ from .event_repository import (
     mark_clarification_resubmitted,
     record_event_decision,
     save_event_draft,
+    update_change_request,
     update_event_fields,
     update_event_status,
 )
@@ -421,6 +424,106 @@ def get_clarification(event_id):
         raise NotFound("Event not found.")
     require_related_user(user, event, action="view_clarification")
     return jsonify({"clarification": get_pending_clarification(event_id)}), 200
+
+
+@events.route("/<event_id>/change-requests", methods=["GET", "POST"])
+def change_requests(event_id):
+    """List or create organiser change requests for a submitted event."""
+    if request.headers.get("Origin") != current_app.config["FRONTEND_ORIGIN"]:
+        raise Forbidden("Request must come from the configured frontend origin.")
+
+    user = require_acting_user()
+    event = get_event_by_id(event_id)
+    if event is None:
+        raise NotFound("Event not found.")
+    require_event_access(event_id, user)
+
+    if request.method == "GET":
+        require_role(user, "Organiser", "Coordinator", action="view_change_requests")
+        return jsonify({"change_requests": get_change_requests(event_id)}), 200
+
+    require_role(user, "Organiser", action="create_change_request")
+    if event.get("organiser_id") != user["id"]:
+        raise Forbidden("Only the Organiser who owns this request can raise a change request.")
+    if event.get("status") in {"Draft", "Rejected", "Cancelled"}:
+        raise Conflict("Change requests are only available after an event is submitted.")
+    if event.get("coordinator_id") is None:
+        raise Conflict("This event has no assigned Coordinator yet.")
+
+    data = request.get_json(silent=True)
+    if not isinstance(data, dict) or set(data) != {"description"}:
+        raise BadRequest("Send a JSON object containing only description.")
+    description = data["description"]
+    if not isinstance(description, str) or not 1 <= len(description.strip()) <= 2000:
+        raise BadRequest("A change description of 1 to 2000 characters is required.")
+    saved = create_change_request(event_id, user["id"], description.strip())
+    add_status_history(
+        event_id, event["status"], event["status"], user["id"],
+        action="change_requested", note=description.strip(),
+    )
+    create_notification(
+        event["coordinator_id"], event_id, "event_change_request",
+        "The organiser submitted a change request for your event.",
+    )
+    return jsonify({"change_request": saved}), 201
+
+
+@events.patch("/<event_id>/change-requests/<int:request_id>")
+def review_change_request(event_id, request_id):
+    """Allow only the assigned Coordinator to record a first review decision."""
+    if request.headers.get("Origin") != current_app.config["FRONTEND_ORIGIN"]:
+        raise Forbidden("Request must come from the configured frontend origin.")
+    user = require_acting_user()
+    require_role(user, "Coordinator", action="review_change_request")
+    event = get_event_by_id(event_id)
+    if event is None:
+        raise NotFound("Event not found.")
+    require_related_user(user, event, action="review_change_request")
+    if event.get("coordinator_id") != user["id"]:
+        raise Forbidden("Only the assigned Coordinator can review this request.")
+
+    data = request.get_json(silent=True)
+    if not isinstance(data, dict) or set(data) - {"status", "review_note"} or "status" not in data:
+        raise BadRequest("Send status and an optional review_note.")
+    status = data["status"]
+    if status not in {"Under Review", "Approved", "Rejected", "Implemented"}:
+        raise BadRequest("Choose a valid change request status.")
+    review_note = data.get("review_note")
+    if review_note is not None and (
+        not isinstance(review_note, str) or len(review_note.strip()) > 2000
+    ):
+        raise BadRequest("The review note must be at most 2000 characters.")
+    existing = next(
+        (item for item in get_change_requests(event_id) if item.get("id") == request_id),
+        None,
+    )
+    if existing is None:
+        raise NotFound("Change request not found.")
+    current_status = existing.get("status")
+    allowed_transitions = {
+        "Pending": {"Under Review", "Approved", "Rejected"},
+        "Under Review": {"Approved", "Rejected"},
+        "Approved": {"Implemented"},
+    }
+    if status not in allowed_transitions.get(current_status, set()):
+        raise Conflict("This change request cannot move to that status.")
+    updated = update_change_request(
+        event_id, request_id, current_status, status, user["id"],
+        review_note.strip() if isinstance(review_note, str) and review_note.strip() else None,
+    )
+    add_status_history(
+        event_id,
+        event["status"],
+        event["status"],
+        user["id"],
+        action=f"change_request_{status.lower().replace(' ', '_')}",
+        note=review_note.strip() if isinstance(review_note, str) and review_note.strip() else None,
+    )
+    create_notification(
+        event["organiser_id"], event_id, "event_change_request_updated",
+        f"Your change request status is now {status}.",
+    )
+    return jsonify({"change_request": updated}), 200
 
 
 @events.post("/<event_id>/resubmit")
