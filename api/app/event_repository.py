@@ -193,7 +193,7 @@ def add_status_history(
 
 
 def get_status_history(event_id: str) -> list[dict]:
-    """Return an event's status changes from oldest to newest."""
+    """Return status changes, including legacy change-request review entries."""
     try:
         client = get_supabase_client()
         if client is None:
@@ -201,7 +201,34 @@ def get_status_history(event_id: str) -> list[dict]:
         result = client.table("event_status_history").select("*").eq(
             "event_id", event_id
         ).order("changed_at").execute()
-        return result.data or []
+        history = result.data or []
+        history_actions = {
+            row.get("action")
+            for row in history
+            if row.get("action")
+        }
+        # Older reviews were persisted before review actions were added to the
+        # status-history write path. Only query change requests for events that
+        # already have a change-request history entry; this keeps history reads
+        # compatible with deployments that predate the SCRUM-46 table.
+        if "change_requested" in history_actions:
+            change_requests = get_change_requests(event_id)
+            for change_request in change_requests:
+                status = change_request.get("status")
+                if status in {"Under Review", "Approved", "Rejected", "Implemented"}:
+                    action = f"change_request_{status.lower().replace(' ', '_')}"
+                    if action not in history_actions:
+                        history.append({
+                            "id": -int(change_request["id"]),
+                            "event_id": event_id,
+                            "old_status": None,
+                            "new_status": "Planning",
+                            "changed_by": change_request.get("reviewed_by"),
+                            "changed_at": change_request.get("reviewed_at"),
+                            "action": action,
+                            "note": change_request.get("review_note"),
+                        })
+        return sorted(history, key=lambda row: row.get("changed_at") or "")
     except ServiceUnavailable:
         raise
     except Exception as error:
@@ -289,6 +316,79 @@ def mark_clarification_resubmitted(event_id: str, user_id: int) -> dict:
     except Exception as error:
         raise ServiceUnavailable(
             "Could not record the resubmission. Contact the team."
+        ) from error
+
+
+def create_change_request(event_id: str, user_id: int, description: str) -> dict:
+    """Record a change request without changing the event itself."""
+    try:
+        client = get_supabase_client()
+        if client is None:
+            raise ServiceUnavailable("The database is not configured. Contact the team.")
+        result = client.table("event_change_requests").insert({
+            "event_id": event_id,
+            "requested_by": user_id,
+            "description": description,
+            "status": "Pending",
+        }).execute()
+        if not result.data:
+            raise ServiceUnavailable("The database did not confirm the change request.")
+        return result.data[0]
+    except ServiceUnavailable:
+        raise
+    except Exception as error:
+        raise ServiceUnavailable(
+            "Could not save the change request. Contact the team."
+        ) from error
+
+
+def get_change_requests(event_id: str) -> list[dict]:
+    """Return all change requests for an event, newest first."""
+    try:
+        client = get_supabase_client()
+        if client is None:
+            raise ServiceUnavailable("The database is not configured. Contact the team.")
+        result = client.table("event_change_requests").select("*").eq(
+            "event_id", event_id
+        ).order("requested_at", desc=True).execute()
+        return result.data or []
+    except ServiceUnavailable:
+        raise
+    except Exception as error:
+        raise ServiceUnavailable(
+            "Could not load the event change requests. Contact the team."
+        ) from error
+
+
+def update_change_request(
+    event_id: str,
+    request_id: int,
+    current_status: str,
+    status: str,
+    reviewer_id: int,
+    review_note: str | None,
+) -> dict:
+    """Record a coordinator review, guarded by event and request identity."""
+    try:
+        client = get_supabase_client()
+        if client is None:
+            raise ServiceUnavailable("The database is not configured. Contact the team.")
+        result = client.table("event_change_requests").update({
+            "status": status,
+            "reviewed_by": reviewer_id,
+            "review_note": review_note,
+            "reviewed_at": datetime.now(UTC).isoformat(),
+        }).eq("event_id", event_id).eq("id", request_id).eq(
+            "status", current_status
+        ).execute()
+        if not result.data:
+            raise Conflict("This change request has already been reviewed.")
+        return result.data[0]
+    except (Conflict, ServiceUnavailable):
+        raise
+    except Exception as error:
+        raise ServiceUnavailable(
+            "Could not update the change request. Contact the team."
         ) from error
 
 

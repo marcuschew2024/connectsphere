@@ -7,6 +7,7 @@ import { ApiError, apiRequest } from "@/lib/api";
 import {
   StatusBadge,
   type EventClarification,
+  type EventChangeRequest,
   type EventRecord,
   type EventStatusHistory,
 } from "@/lib/events";
@@ -20,6 +21,15 @@ import EventEditForm from "./event-edit-form";
 import EventClarificationForm from "./event-clarification-form";
 import EventResubmitForm from "./event-resubmit-form";
 import EventBookingsPanel from "./event-bookings-panel";
+import EventChangeRequests from "./event-change-requests";
+
+const historyActionLabels: Record<string, string> = {
+  change_requested: "Change Request Pending",
+  change_request_under_review: "Change Request Under Review",
+  change_request_approved: "Change Request Approved",
+  change_request_rejected: "Change Request Rejected",
+  change_request_implemented: "Change Request Implemented",
+};
 
 export default function EventStatusPage() {
   const params = useParams<{ eventId: string }>();
@@ -27,6 +37,8 @@ export default function EventStatusPage() {
   const [event, setEvent] = useState<EventRecord | null>(null);
   const [history, setHistory] = useState<EventStatusHistory[]>([]);
   const [clarification, setClarification] = useState<EventClarification | null>(null);
+  const [changeRequests, setChangeRequests] = useState<EventChangeRequest[]>([]);
+  const [changeRequestsUnavailable, setChangeRequestsUnavailable] = useState(false);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(true);
 
@@ -46,15 +58,27 @@ export default function EventStatusPage() {
       apiRequest<{ history: EventStatusHistory[] }>(`/events/${params.eventId}/history`, {
         signal: controller.signal,
       }),
+      // Only Organisers and Coordinators may list change requests (SCRUM-46).
+      // They are secondary to the event, so a failed load must not hide the page.
+      actingRole === "Organiser" || actingRole === "Coordinator"
+        ? apiRequest<{ change_requests: EventChangeRequest[] }>(
+          `/events/${params.eventId}/change-requests`, { signal: controller.signal },
+        ).catch((loadError) => {
+          if (controller.signal.aborted) throw loadError;
+          return null;
+        })
+        : Promise.resolve({ change_requests: [] }),
       actingRole === "Safety Officer"
         ? Promise.resolve({ clarification: null })
         : apiRequest<{ clarification: EventClarification | null }>(
         `/events/${params.eventId}/clarification`, { signal: controller.signal },
       ),
     ])
-      .then(([eventResult, historyResult, clarificationResult]) => {
+      .then(([eventResult, historyResult, changeRequestResult, clarificationResult]) => {
         setEvent(eventResult.event);
         setHistory(historyResult.history);
+        setChangeRequests(changeRequestResult?.change_requests ?? []);
+        setChangeRequestsUnavailable(changeRequestResult === null);
         setClarification(clarificationResult.clarification);
         setLoading(false);
       })
@@ -153,6 +177,29 @@ export default function EventStatusPage() {
           </div>
 
           {actingRole === "Organiser" && clarification && <EventResubmitForm event={event} clarification={clarification} onSaved={(updated) => { setEvent(updated); setClarification(null); }} />}
+          {(actingRole === "Organiser" || actingRole === "Coordinator") && (
+            <EventChangeRequests
+              event={event}
+              requests={changeRequests}
+              loadFailed={changeRequestsUnavailable}
+              isCoordinator={actingRole === "Coordinator"}
+              onChanged={async (changed) => {
+                setChangeRequests((current) => {
+                  const existing = current.findIndex((request) => request.id === changed.id);
+                  if (existing < 0) return [changed, ...current];
+                  return current.map((request) => request.id === changed.id ? changed : request);
+                });
+                try {
+                  const updatedHistory = await apiRequest<{ history: EventStatusHistory[] }>(
+                    `/events/${event.id}/history`,
+                  );
+                  setHistory(updatedHistory.history);
+                } catch {
+                  setError("The change request was saved, but status history could not be refreshed.");
+                }
+              }}
+            />
+          )}
           {actingRole === "Coordinator" && event.status === "Planning" && <EventConfirmForm event={event} onSaved={setEvent} />}
             {(actingRole === "Coordinator" || actingRole === "Organiser" || actingRole === "Venue Staff") && (
               <EventBookingsPanel eventId={event.id} canManage={actingRole === "Coordinator"} />
@@ -168,7 +215,7 @@ export default function EventStatusPage() {
             <div className="border-t border-border px-5 py-4">
               {history.length === 0 ? <p className="text-sm text-muted-foreground">No status history is available yet.</p> : <ol className="space-y-4">
                 {history.map((change) => <li key={change.id} className="border-l-2 border-primary/40 pl-4 text-sm">
-                  <p>{change.action ?? `${change.old_status ?? "Created"} → ${change.new_status}`}</p>
+                  <p>{change.action ? (historyActionLabels[change.action] ?? change.action) : `${change.old_status ?? "Created"} → ${change.new_status}`}</p>
                   {change.note && <p className="mt-1 whitespace-pre-wrap break-words text-muted-foreground">{change.note}</p>}
                   <p className="mt-1 text-xs text-muted-foreground">User {change.changed_by} · {new Date(change.changed_at).toLocaleString()}</p>
                 </li>)}
