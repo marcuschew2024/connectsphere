@@ -41,6 +41,12 @@ export type EventStatusHistory = {
   note?: string | null;
 };
 
+// POST /events/<id>/complete (SCRUM-132): the closed event and the holds it released.
+export type EventCompletionResult = {
+  event: EventRecord;
+  released: { equipment_reservations: number; venue_bookings: number };
+};
+
 export type EventClarification = {
   id: number;
   event_id: string;

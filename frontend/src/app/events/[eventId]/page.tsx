@@ -8,6 +8,7 @@ import {
   StatusBadge,
   type EventClarification,
   type EventChangeRequest,
+  type EventCompletionResult,
   type EventRecord,
   type EventStatusHistory,
 } from "@/lib/events";
@@ -22,8 +23,10 @@ import EventClarificationForm from "./event-clarification-form";
 import EventResubmitForm from "./event-resubmit-form";
 import EventBookingsPanel from "./event-bookings-panel";
 import EventChangeRequests from "./event-change-requests";
+import EventCompleteForm from "./event-complete-form";
 
 const historyActionLabels: Record<string, string> = {
+  event_completed: "Event completed",
   change_requested: "Change Request Pending",
   change_request_under_review: "Change Request Under Review",
   change_request_approved: "Change Request Approved",
@@ -39,6 +42,7 @@ export default function EventStatusPage() {
   const [clarification, setClarification] = useState<EventClarification | null>(null);
   const [changeRequests, setChangeRequests] = useState<EventChangeRequest[]>([]);
   const [changeRequestsUnavailable, setChangeRequestsUnavailable] = useState(false);
+  const [released, setReleased] = useState<EventCompletionResult["released"] | null>(null);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(true);
 
@@ -108,6 +112,20 @@ export default function EventStatusPage() {
   }, [params.eventId, actingRole, roleLoading]);
 
   const canReview = actingRole === "Coordinator" && event?.status === "Submitted" && !clarification;
+  const completed = event?.status === "Completed";
+
+  async function handleCompleted(result: EventCompletionResult) {
+    setEvent(result.event);
+    setReleased(result.released);
+    try {
+      const updatedHistory = await apiRequest<{ history: EventStatusHistory[] }>(
+        `/events/${result.event.id}/history`,
+      );
+      setHistory(updatedHistory.history);
+    } catch {
+      setError("The event was completed, but status history could not be refreshed.");
+    }
+  }
   const accepted = event?.decision_at && event.decision_by != null && event.decision_reason == null
     && ["Planning", "Confirmed", "Completed"].includes(event.status);
 
@@ -135,6 +153,13 @@ export default function EventStatusPage() {
             </div>
           </header>
 
+          {completed && <section aria-labelledby="completed-heading" className="rounded-2xl border border-border bg-muted/40 p-5">
+            <h2 id="completed-heading" className="font-semibold">Event completed and closed</h2>
+            <p role="status" className="mt-1 text-sm text-muted-foreground">
+              This event&apos;s record is read-only.
+              {released && ` Released ${released.equipment_reservations} equipment reservation(s) and ${released.venue_bookings} future venue booking(s).`}
+            </p>
+          </section>}
           {event.request_status === "Draft" && <Button asChild><Link href={`/events/drafts/${event.id}`}>Continue editing</Link></Button>}
           {accepted && (actingRole === "Organiser" || actingRole === "Coordinator") && <section aria-labelledby="acceptance-heading" className="rounded-2xl border border-emerald-500/30 bg-emerald-500/5 p-5">
             <h2 id="acceptance-heading" className="font-semibold text-emerald-700 dark:text-emerald-400">Request accepted</h2>
@@ -202,8 +227,9 @@ export default function EventStatusPage() {
           )}
           {actingRole === "Coordinator" && event.status === "Planning" && <EventConfirmForm event={event} onSaved={setEvent} />}
             {(actingRole === "Coordinator" || actingRole === "Organiser" || actingRole === "Venue Staff") && (
-              <EventBookingsPanel eventId={event.id} canManage={actingRole === "Coordinator"} />
+              <EventBookingsPanel eventId={event.id} canManage={actingRole === "Coordinator" && !completed} />
             )}
+          {actingRole === "Coordinator" && event.status === "Preparation" && <EventCompleteForm event={event} onCompleted={(result) => void handleCompleted(result)} />}
           {actingRole === "Safety Officer" && event.status === "Confirmed" && <EventSafetyCheckForm event={event} onSaved={setEvent} />}
           {actingRole === "Coordinator" && event.status === "Planning" && <details className="rounded-2xl border border-border bg-card shadow-sm">
             <summary className="cursor-pointer px-5 py-4 text-sm font-medium text-primary">Edit event details</summary>

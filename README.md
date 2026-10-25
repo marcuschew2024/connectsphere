@@ -130,6 +130,15 @@ status and records optional update notes. Coordinators use **View request** to s
 the latest status and who changed it, without editing controls. Stock reservations
 remain a separate operation. See the [setup, status rules and test evidence](docs/SCRUM-38.md).
 
+## Complete and close an event (SCRUM-132)
+
+Apply [`20261025120000_scrum_132_complete_event.sql`](supabase/migrations/20261025120000_scrum_132_complete_event.sql)
+after the event, venue booking and equipment migrations. The assigned Coordinator opens
+an event in **Preparation** and chooses **Mark event complete**, with optional post-event
+notes. The event becomes Completed and read-only, and its remaining equipment
+reservations and future venue bookings are released. See the
+[workflow, read-only rules and test evidence](docs/SCRUM-132.md).
+
 ## Prerequisites
 
 For draft submission, on-screen confirmation and coordinator assignment, see the
