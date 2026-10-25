@@ -7,11 +7,13 @@ from werkzeug.exceptions import BadRequest, Conflict, Forbidden, HTTPException, 
 
 from .acting_user import require_acting_user
 from .booking_repository import list_bookings_for_event
+from .event_completion import EventCompletion
 from .event_confirmation import EventConfirmation
 from .event_decision import EventDecision
 from .event_repository import (
     add_event_participant,
     add_status_history,
+    complete_event_record,
     create_change_request,
     create_clarification,
     create_notification,
@@ -21,6 +23,7 @@ from .event_repository import (
     get_pending_clarification,
     get_status_history,
     insert_event,
+    list_event_equipment_requests,
     list_safety_review_events,
     log_event_edit,
     mark_clarification_resubmitted,
@@ -61,6 +64,8 @@ def event_response(event, user):
 # A Safety Officer reviews events in the safety-review window, so they may read these
 # states without being an organiser/coordinator/participant (SCRUM-128).
 _SAFETY_REVIEW_STATES = {"Confirmed", "Preparation"}
+# A Completed event is terminal (SCRUM-132): nothing may change it after closing.
+_COMPLETED_READ_ONLY = "This event is completed and closed. Its record is read-only."
 
 
 def require_event_access(event_id, user):
@@ -212,6 +217,8 @@ def change_event_status(event_id):
     event = require_event_access(event_id, user)
     if event["status"] == "Draft":
         raise Conflict("Complete and submit this request through the draft form first.")
+    if event["status"] == "Completed":
+        raise Conflict(_COMPLETED_READ_ONLY)
     require_related_user(user, event, action="change_status")
 
     data = request.get_json(silent=True)
@@ -227,9 +234,13 @@ def change_event_status(event_id):
         # Preparation is gated (SCRUM-128): only a Safety Officer's approval of the
         # operational safety check can move an event into preparation.
         raise Conflict("An event reaches preparation only through the operational safety check.")
+    if status == "Completed":
+        # Completion is gated (SCRUM-132): only the assigned Coordinator's completion
+        # step closes an event, so its checks and resource release cannot be skipped.
+        raise Conflict("Complete an event through its completion step, not a status update.")
     allowed_statuses = {
         "Submitted", "Assigned", "Under review", "Approved", "Planning",
-        "Completed", "Rejected", "Cancelled",
+        "Rejected", "Cancelled",
     }
     if status not in allowed_statuses:
         raise BadRequest("Choose a valid event status.")
@@ -331,6 +342,57 @@ def safety_check_event(event_id):
     )
     updated["status"] = canonical_event_status(updated.get("status"))
     return jsonify({"event": updated}), 200
+
+
+@events.post("/<event_id>/complete")
+def complete_delivered_event(event_id):
+    """Mark a delivered event Completed and close it (SCRUM-132).
+
+    Customer Brief step 14. The assigned Coordinator closes an event that has been
+    delivered (Preparation). The database function re-checks the gate under a row
+    lock, records the completion with an optional post-event note, and releases the
+    event's remaining equipment reservations and future venue bookings.
+    """
+    if request.headers.get("Origin") != current_app.config["FRONTEND_ORIGIN"]:
+        raise Forbidden("Request must come from the configured frontend origin.")
+
+    user = require_acting_user()
+    require_role(user, "Coordinator", action="complete_event")
+
+    event = get_event_by_id(event_id)
+    if event is None:
+        raise NotFound("Event not found.")
+
+    require_related_user(user, event, action="complete_event")
+    if event.get("coordinator_id") != user["id"]:
+        raise Forbidden("Only the assigned Coordinator can complete this event.")
+
+    data = request.get_json(silent=True)
+    if data is None:
+        data = {}
+    if not isinstance(data, dict) or set(data) - {"note"}:
+        raise BadRequest("Send a JSON object with an optional note only.")
+    note = data.get("note")
+    if note is not None and (not isinstance(note, str) or len(note.strip()) > 2000):
+        raise BadRequest("Post-event notes must be text of at most 2000 characters.")
+    note = note.strip() or None if isinstance(note, str) else None
+
+    gate = EventCompletion.from_records(
+        event, list_bookings_for_event(event_id), list_event_equipment_requests(event_id),
+    )
+    if not gate.can_complete:
+        raise Conflict("This event cannot be completed yet. " + " ".join(gate.outstanding))
+
+    result = complete_event_record(event_id, user["id"], note)
+    updated = result["event"]
+    updated["status"] = canonical_event_status(updated.get("status"))
+    return jsonify({
+        "event": updated,
+        "released": {
+            "equipment_reservations": result.get("released_equipment_reservations", 0),
+            "venue_bookings": result.get("released_venue_bookings", 0),
+        },
+    }), 200
 
 
 @events.post("/<event_id>/decision")
@@ -445,6 +507,8 @@ def change_requests(event_id):
     require_role(user, "Organiser", action="create_change_request")
     if event.get("organiser_id") != user["id"]:
         raise Forbidden("Only the Organiser who owns this request can raise a change request.")
+    if event.get("status") == "Completed":
+        raise Conflict(_COMPLETED_READ_ONLY)
     if event.get("status") in {"Draft", "Rejected", "Cancelled"}:
         raise Conflict("Change requests are only available after an event is submitted.")
     if event.get("coordinator_id") is None:
@@ -481,6 +545,8 @@ def review_change_request(event_id, request_id):
     require_related_user(user, event, action="review_change_request")
     if event.get("coordinator_id") != user["id"]:
         raise Forbidden("Only the assigned Coordinator can review this request.")
+    if event.get("status") == "Completed":
+        raise Conflict(_COMPLETED_READ_ONLY)
 
     data = request.get_json(silent=True)
     if not isinstance(data, dict) or set(data) - {"status", "review_note"} or "status" not in data:

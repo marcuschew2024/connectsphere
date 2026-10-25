@@ -253,7 +253,7 @@ def test_change_request_needs_an_assigned_coordinator(app, monkeypatch):
     assert response.status_code == 409
 
 
-@pytest.mark.parametrize("status", ["Rejected", "Cancelled"])
+@pytest.mark.parametrize("status", ["Rejected", "Cancelled", "Completed"])
 def test_change_request_not_allowed_for_closed_events(app, monkeypatch, status):
     event = _event()
     event["status"] = status
@@ -357,6 +357,24 @@ def test_only_the_assigned_coordinator_can_review(app, monkeypatch):
     )
 
     assert response.status_code == 403
+
+
+def test_change_requests_of_a_completed_event_cannot_be_reviewed(app, monkeypatch):
+    event = _event()
+    event["status"] = "Completed"
+    _wire(monkeypatch, event, [{"id": 1, "event_id": "event-46", "status": "Pending"}])
+    monkeypatch.setattr("app.events.require_related_user", lambda user, event, action: user)
+    client = app.test_client()
+    select_user(client, 2)
+
+    response = client.patch(
+        "/events/event-46/change-requests/1",
+        json={"status": "Approved"},
+        headers=ORIGIN,
+    )
+
+    assert response.status_code == 409
+    assert "read-only" in response.json["error"]
 
 
 def test_reviewing_an_unknown_change_request_returns_404(app, monkeypatch):

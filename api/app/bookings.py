@@ -258,6 +258,10 @@ def cancel_one_booking(booking_id):
     booking = get_booking(booking_id)
     if booking is None:
         raise NotFound("Booking request not found.")
+    event = get_event_by_id(booking["event_id"]) if booking.get("event_id") else None
+    if event and event.get("status") == "Completed":
+        # SCRUM-132: a completed event's bookings are part of its closed record.
+        raise Conflict("This event is completed and closed. Its bookings are read-only.")
     return jsonify({"booking": cancel_booking(booking_id, user["id"])}), 200
 
 
