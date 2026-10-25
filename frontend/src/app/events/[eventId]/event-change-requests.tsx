@@ -8,11 +8,13 @@ import { Button } from "@/components/ui/button";
 export default function EventChangeRequests({
   event,
   requests,
+  loadFailed = false,
   isCoordinator,
   onChanged,
 }: {
   event: EventRecord;
   requests: EventChangeRequest[];
+  loadFailed?: boolean;
   isCoordinator: boolean;
   onChanged: (request: EventChangeRequest) => void;
 }) {
@@ -65,7 +67,8 @@ export default function EventChangeRequests({
           <Button type="submit" disabled={busy}>{busy ? "Submitting..." : "Request a change"}</Button>
         </form>
       )}
-      {requests.length === 0 ? <p className="text-sm text-muted-foreground">No change requests have been raised.</p> : (
+      {loadFailed && <p role="alert" className="text-sm text-destructive">Existing change requests could not be loaded. Refresh to try again.</p>}
+      {requests.length === 0 ? !loadFailed && <p className="text-sm text-muted-foreground">No change requests have been raised.</p> : (
         <ul className="space-y-3">
           {requests.map((request) => <li key={request.id} className="rounded-xl border border-border p-4">
             <div className="flex flex-wrap items-center justify-between gap-2">
@@ -75,9 +78,9 @@ export default function EventChangeRequests({
             <p className="mt-3 whitespace-pre-wrap text-sm">{request.description}</p>
             {request.review_note && <p className="mt-2 whitespace-pre-wrap text-sm text-muted-foreground">Coordinator note: {request.review_note}</p>}
             {isCoordinator && (request.status === "Pending" || request.status === "Under Review") && <div className="mt-3 flex flex-wrap gap-2">
-              {request.status === "Pending" && <Button type="button" variant="outline" size="sm" onClick={() => void review(request, "Under Review")}>Review</Button>}
-              <Button type="button" size="sm" onClick={() => void review(request, "Approved")} className="bg-emerald-600 text-white hover:bg-emerald-500">Approve</Button>
-              <Button type="button" size="sm" onClick={() => void review(request, "Rejected")} className="bg-destructive text-white hover:bg-destructive/80">Reject</Button>
+              {request.status === "Pending" && <Button type="button" variant="outline" size="sm" onClick={() => void review(request, "Under Review")}>Start review</Button>}
+              <Button type="button" size="sm" onClick={() => void review(request, "Approved")} className="bg-emerald-600 text-white hover:bg-emerald-500">Approve change</Button>
+              <Button type="button" size="sm" onClick={() => void review(request, "Rejected")} className="bg-destructive text-white hover:bg-destructive/80">Reject change</Button>
             </div>}
           </li>)}
         </ul>

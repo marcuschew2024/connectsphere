@@ -38,6 +38,7 @@ export default function EventStatusPage() {
   const [history, setHistory] = useState<EventStatusHistory[]>([]);
   const [clarification, setClarification] = useState<EventClarification | null>(null);
   const [changeRequests, setChangeRequests] = useState<EventChangeRequest[]>([]);
+  const [changeRequestsUnavailable, setChangeRequestsUnavailable] = useState(false);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(true);
 
@@ -57,11 +58,16 @@ export default function EventStatusPage() {
       apiRequest<{ history: EventStatusHistory[] }>(`/events/${params.eventId}/history`, {
         signal: controller.signal,
       }),
-      actingRole === "Safety Officer"
-        ? Promise.resolve({ change_requests: [] })
-        : apiRequest<{ change_requests: EventChangeRequest[] }>(
+      // Only Organisers and Coordinators may list change requests (SCRUM-46).
+      // They are secondary to the event, so a failed load must not hide the page.
+      actingRole === "Organiser" || actingRole === "Coordinator"
+        ? apiRequest<{ change_requests: EventChangeRequest[] }>(
           `/events/${params.eventId}/change-requests`, { signal: controller.signal },
-        ),
+        ).catch((loadError) => {
+          if (controller.signal.aborted) throw loadError;
+          return null;
+        })
+        : Promise.resolve({ change_requests: [] }),
       actingRole === "Safety Officer"
         ? Promise.resolve({ clarification: null })
         : apiRequest<{ clarification: EventClarification | null }>(
@@ -71,7 +77,8 @@ export default function EventStatusPage() {
       .then(([eventResult, historyResult, changeRequestResult, clarificationResult]) => {
         setEvent(eventResult.event);
         setHistory(historyResult.history);
-        setChangeRequests(changeRequestResult.change_requests);
+        setChangeRequests(changeRequestResult?.change_requests ?? []);
+        setChangeRequestsUnavailable(changeRequestResult === null);
         setClarification(clarificationResult.clarification);
         setLoading(false);
       })
@@ -174,6 +181,7 @@ export default function EventStatusPage() {
             <EventChangeRequests
               event={event}
               requests={changeRequests}
+              loadFailed={changeRequestsUnavailable}
               isCoordinator={actingRole === "Coordinator"}
               onChanged={async (changed) => {
                 setChangeRequests((current) => {
