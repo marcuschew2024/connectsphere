@@ -2,9 +2,18 @@
 
 from datetime import UTC, datetime
 
-from werkzeug.exceptions import Conflict, ServiceUnavailable
+from postgrest.exceptions import APIError
+from werkzeug.exceptions import BadRequest, Conflict, Forbidden, NotFound, ServiceUnavailable
 
 from .supabase_client import get_supabase_client
+
+# complete_event() database refusals (SCRUM-132), re-checked under the event row lock.
+_COMPLETION_CONFLICTS = {
+    "already_completed": "This event is already completed.",
+    "not_in_preparation": "Only an event in Preparation can be completed.",
+    "pending_bookings": "A venue booking is still awaiting approval.",
+    "open_equipment_requests": "An equipment request is still awaiting Tech Support.",
+}
 
 
 def insert_event(fields: dict) -> dict:
@@ -412,6 +421,58 @@ def update_event_status(event_id: str, status: str, user_id: int) -> dict:
     except Exception as error:
         raise ServiceUnavailable(
             "Could not update the event status. Contact the team before retrying."
+        ) from error
+
+
+def list_event_equipment_requests(event_id: str) -> list[dict]:
+    """Equipment request statuses for one event, for the completion gate (SCRUM-132)."""
+    try:
+        client = get_supabase_client()
+        if client is None:
+            raise ServiceUnavailable("The database is not configured. Contact the team.")
+        result = client.table("equipment_requests").select("id,status").eq(
+            "event_id", event_id
+        ).execute()
+        return result.data or []
+    except ServiceUnavailable:
+        raise
+    except Exception as error:
+        raise ServiceUnavailable(
+            "Could not load the event's equipment requests. Contact the team."
+        ) from error
+
+
+def complete_event_record(event_id: str, user_id: int, note: str | None) -> dict:
+    """Close a delivered event and release its remaining holds in one transaction."""
+    try:
+        client = get_supabase_client()
+        if client is None:
+            raise ServiceUnavailable("The database is not configured. Contact the team.")
+        result = client.rpc("complete_event", {
+            "p_event_id": event_id, "p_actor_id": user_id, "p_note": note,
+        }).execute()
+        if not isinstance(result.data, dict) or "event" not in result.data:
+            raise ServiceUnavailable("The database did not confirm the completion.")
+        return result.data
+    except APIError as error:
+        if error.code == "PT403":
+            raise Forbidden("Only the assigned Coordinator can complete this event.") from error
+        if error.code == "PT404":
+            raise NotFound("Event not found.") from error
+        if error.code == "PT409":
+            raise Conflict(_COMPLETION_CONFLICTS.get(
+                error.message, "This event cannot be completed. Reload it and try again."
+            )) from error
+        if error.code == "22023":
+            raise BadRequest("Post-event notes must be at most 2000 characters.") from error
+        raise ServiceUnavailable(
+            "Could not complete the event. Contact the team before retrying."
+        ) from error
+    except ServiceUnavailable:
+        raise
+    except Exception as error:
+        raise ServiceUnavailable(
+            "Could not complete the event. Contact the team before retrying."
         ) from error
 
 
