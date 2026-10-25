@@ -59,7 +59,7 @@ export default function EventChangeRequests({
         <h2 id="change-requests-heading" className="font-semibold">Change requests</h2>
         <p className="mt-1 text-sm text-muted-foreground">Changes are routed to the assigned Coordinator and can be raised at any time.</p>
       </div>
-      {!isCoordinator && !["Draft", "Rejected", "Cancelled"].includes(event.status) && (
+      {!isCoordinator && !["Draft", "Rejected", "Cancelled", "Completed"].includes(event.status) && (
         <form onSubmit={submit} className="space-y-3">
           <label htmlFor="change-request-description" className="block text-sm font-medium">Describe the desired change</label>
           <textarea id="change-request-description" value={description} onChange={(e) => setDescription(e.target.value)} maxLength={2000} required rows={4} className="w-full rounded-md border border-input bg-background p-3 text-sm" />
