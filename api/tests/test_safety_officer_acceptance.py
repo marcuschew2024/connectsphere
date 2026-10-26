@@ -34,6 +34,7 @@ def live_safety(monkeypatch):
         assert len(safety) == 1
         assert {u["role"] for u in users} == {
             "Organiser", "Coordinator", "Venue Staff", "Tech Support", "Attendee", "Safety Officer",
+            "Event Coordinator Lead",  # SCRUM-131 adds the seventh seeded role.
         }
         assert safety[0]["id"] not in range(1, 8)  # IDs 6/7 are already occupied.
         assert select_user(client, safety[0]["id"]).status_code == 200
