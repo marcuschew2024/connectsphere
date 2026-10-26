@@ -26,7 +26,21 @@ class BookingInterval:
         )
 
     def overlaps(self, start_at: datetime, end_at: datetime) -> bool:
-        """Use half-open intervals: touching endpoints are compatible."""
+        """Return True only when this interval and ``[start_at, end_at)`` truly overlap.
+
+        Both bookings are treated as **half-open** intervals ``[start, end)``: the start
+        instant belongs to the booking, the end instant does not. Two intervals conflict
+        iff ``existing.start < new.end AND new.start < existing.end``. The consequence is
+        that **touching endpoints are compatible** — a booking ending at exactly 10:00 and
+        another starting at exactly 10:00 do *not* overlap, so **back-to-back bookings are
+        allowed** while any real overlap is rejected.
+
+        This is the boundary case that is easy to get wrong: using closed intervals (``<=``)
+        would reject legitimate back-to-back bookings, and a naive ``start < end`` check
+        across the wrong pair of endpoints would let a real overlap slip through. The two
+        strict ``<`` comparisons against the opposite endpoints are deliberate — do not
+        "simplify" them to ``<=``.
+        """
         return self.start_at < end_at and start_at < self.end_at
 
 

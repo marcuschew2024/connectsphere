@@ -101,3 +101,27 @@ jobs:
           pip install pip-audit
           pip-audit
         continue-on-error: true
+
+  test-protection:
+    name: Test protection (advisory)
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+
+      - name: Surface modified/deleted/renamed tests (advisory, does not block)
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+        run: |
+          changed=$(git diff --diff-filter=MDR --name-only "$BASE_SHA" HEAD -- \
+            api/tests supabase/tests frontend/e2e \
+            'frontend/src/**/*.test.ts' 'frontend/src/**/*.test.tsx') || true
+          if [ -z "$changed" ]; then
+            echo "No existing test files were modified, deleted, or renamed."
+            exit 0
+          fi
+          echo "These existing test files were modified/deleted/renamed:"
+          echo "$changed"
+          echo "::warning::This PR changes existing tests. Reviewer: confirm each change reflects a real behaviour change, not a weakened assertion. (Advisory — not blocking. This check also cannot catch a NEW weak test or a gutted assertion.)"
