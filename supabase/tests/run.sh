@@ -46,3 +46,10 @@ for pass in 1 2; do
   psql -v ON_ERROR_STOP=1 -f /sql/migrations/20261025120000_scrum_132_complete_event.sql > /tmp/migration-output.txt
   echo "Event completion migration pass $pass: PASS"
 done
+
+# SCRUM-41: apply twice to verify upgrade/replay safety, then check DB invariants.
+for pass in 1 2; do
+  psql -v ON_ERROR_STOP=1 -f /sql/migrations/20261026150854_scrum_41_registration_capacity.sql > /tmp/migration-output.txt
+  echo "Registration capacity migration pass $pass: PASS"
+done
+psql -v ON_ERROR_STOP=1 -f /sql/tests/registration_capacity.sql
