@@ -107,6 +107,25 @@ def list_safety_review_events(page: int = 1) -> tuple[list[dict], bool]:
         raise ServiceUnavailable("Could not load safety reviews. Please try again.") from error
 
 
+def list_all_supervised_events() -> list[dict]:
+    """Every event that has left Draft, for the Event Coordinator Lead's oversight
+    (SCRUM-131). Private drafts never leave their organiser, so they are excluded here;
+    the Lead supervises intake and assignments, not other people's unsubmitted drafts."""
+    try:
+        client = get_supabase_client()
+        if client is None:
+            raise ServiceUnavailable("The database is not configured. Contact the team.")
+        result = (client.table("events").select("*")
+                  .neq("status", "Draft").order("updated_at", desc=True).execute())
+        return result.data or []
+    except ServiceUnavailable:
+        raise
+    except Exception as error:
+        raise ServiceUnavailable(
+            "Could not load supervised events. Contact the team."
+        ) from error
+
+
 def save_event_draft(event_id: str, user_id: int, fields: dict, *, submitting: bool) -> dict:
     """Save the same draft; SQL makes submission and its history entry atomic."""
     try:

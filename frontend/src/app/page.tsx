@@ -29,6 +29,9 @@ const ROLE_ACTIONS: Record<string, Action[]> = {
   "Safety Officer": [
     { title: "Review operational safety", description: "Assess confirmed events before preparation.", href: "/events/safety", icon: ClipboardCheck, primary: true },
   ],
+  "Event Coordinator Lead": [
+    { title: "Supervised events", description: "Oversee intake and every Coordinator's assignments.", href: "/events/supervised", icon: ClipboardCheck, primary: true },
+  ],
   Organiser: [
     { title: "Create an event request", description: "Start a new request for approval.", href: "/events/new", icon: Plus, primary: true },
     { title: "My drafts", description: "Pick up a private draft where you left off.", href: "/events/drafts", icon: FileText },

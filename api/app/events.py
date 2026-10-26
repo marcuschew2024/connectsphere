@@ -23,6 +23,7 @@ from .event_repository import (
     get_pending_clarification,
     get_status_history,
     insert_event,
+    list_all_supervised_events,
     list_event_equipment_requests,
     list_safety_review_events,
     log_event_edit,
@@ -55,7 +56,9 @@ def json_error(error):
 def event_response(event, user):
     """Keep drafts editable and show customers Planning during coordinator review."""
     visible = canonical_event_status(event["status"])
-    if user["role"] != "Coordinator":
+    # Coordinators and the Event Coordinator Lead are internal staff who oversee intake,
+    # so they see the real workflow status (Submitted vs Planning); customers do not.
+    if user["role"] not in ("Coordinator", "Event Coordinator Lead"):
         visible = customer_event_status(visible)
     result = {**event, "request_status": event["status"], "status": visible}
     return public_event_view(result) if user["role"] == "Attendee" else result
@@ -81,6 +84,11 @@ def require_event_access(event_id, user):
             log_access_denied(user, action="view_event", event_id=event_id,
                               reason="outside the safety-review window")
             raise Forbidden("This event is not available for safety review.")
+    elif user.get("role") == "Event Coordinator Lead":
+        # The Lead oversees intake and every coordinator assignment, so may read any
+        # event that has left Draft (SCRUM-131). Drafts stay private to their organiser,
+        # which the Draft branch above already enforces.
+        pass
     else:
         require_related_user(user, event, action="view_event")
     return event
@@ -131,15 +139,19 @@ def list_events():
 
     user = require_acting_user()
     require_role(user, "Organiser", "Coordinator", "Venue Staff", "Tech Support", "Attendee",
-                 action="list_events")
+                 "Event Coordinator Lead", action="list_events")
     status = request.args.get("status")
     if status not in (None, "Draft"):
         raise BadRequest("The supported status filter is Draft.")
     if status == "Draft" and user["role"] != "Organiser":
         raise Forbidden("Only Organisers can view their drafts.")
-    event_list = get_events_for_user(user["id"], drafts_only=status == "Draft")
-    event_list = [event for event in event_list
-                  if event["status"] != "Draft" or user["role"] == "Organiser"]
+    if user["role"] == "Event Coordinator Lead":
+        # Oversight view: every submitted/active event, not just ones tied to the Lead.
+        event_list = list_all_supervised_events()
+    else:
+        event_list = get_events_for_user(user["id"], drafts_only=status == "Draft")
+        event_list = [event for event in event_list
+                      if event["status"] != "Draft" or user["role"] == "Organiser"]
     return jsonify({"events": [event_response(event, user) for event in event_list]}), 200
 
 
