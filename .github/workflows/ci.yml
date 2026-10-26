@@ -96,11 +96,10 @@ jobs:
         if: always()
         working-directory: .
         run: docker compose -p connectsphere-acceptance -f compose.acceptance.yml down -v
-      - name: Security audit (advisory)
+      - name: Security audit
         run: |
           pip install pip-audit
           pip-audit
-        continue-on-error: true
 
   test-protection:
     name: Test protection (advisory)
