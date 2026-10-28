@@ -5,7 +5,7 @@ from unittest.mock import MagicMock
 
 import pytest
 from postgrest.exceptions import APIError
-from werkzeug.exceptions import Conflict, ServiceUnavailable
+from werkzeug.exceptions import BadRequest, Conflict, ServiceUnavailable
 
 from app.registration_capacity import RegistrationCapacity, valid_capacity
 from app.registration_repository import register_attendee, set_registration_capacity
@@ -185,3 +185,13 @@ def test_capacity_api_enforces_ten_thousand_limit(capacity_api, capacity):
         assert response.status_code == 400
         assert response.json["fields"]["capacity"] == "Enter a whole number between 1 and 10,000."
         assert calls == []
+
+
+def test_database_capacity_validation_uses_the_public_input_range(monkeypatch):
+    client = MagicMock()
+    monkeypatch.setattr("app.registration_repository.get_supabase_client", lambda: client)
+    client.rpc.return_value.execute.side_effect = APIError({
+        "code": "22023", "message": "Invalid capacity", "details": None, "hint": None,
+    })
+    with pytest.raises(BadRequest, match="between 1 and 10,000"):
+        set_registration_capacity(EVENT_ID, 1, 0)

@@ -35,7 +35,7 @@ def _rpc(name: str, parameters: dict) -> dict:
                 error.message, "Registration changed. Refresh the event before retrying."
             )) from error
         if error.code == "22023":
-            raise BadRequest("Enter a whole number between 1 and 2,147,483,647.") from error
+            raise BadRequest("Enter a whole number between 1 and 10,000.") from error
         raise ServiceUnavailable(
             "Could not confirm the registration change. Refresh the event before retrying."
         ) from error
