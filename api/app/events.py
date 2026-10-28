@@ -37,6 +37,12 @@ from .event_repository import (
 from .event_status import canonical_event_status, customer_event_status
 from .event_validation import TEXT_LIMITS, validate_event
 from .rbac import log_access_denied, public_event_view, require_related_user, require_role
+from .registration_capacity import valid_capacity
+from .registration_repository import (
+    capacity_for_event,
+    register_attendee,
+    set_registration_capacity,
+)
 from .safety_decision import SafetyDecision
 
 events = Blueprint("events", __name__, url_prefix="/events")
@@ -216,6 +222,52 @@ def get_event_history(event_id):
     require_event_access(event_id, user)
 
     return jsonify({"history": get_status_history(event_id)}), 200
+
+
+@events.route("/<uuid:event_id>/registration-capacity", methods=["GET", "PUT"])
+def registration_capacity(event_id):
+    """Aggregate places only; no attendee identities are exposed."""
+    if request.headers.get("Origin") != current_app.config["FRONTEND_ORIGIN"]:
+        raise Forbidden("Request must come from the configured frontend origin.")
+    user = require_acting_user()
+    event = require_event_access(str(event_id), user)
+    if request.method == "GET":
+        return jsonify({"registration_capacity": capacity_for_event(event).as_dict()})
+
+    require_role(user, "Organiser", action="set_registration_capacity")
+    if event["organiser_id"] != user["id"]:
+        raise Forbidden("Only the event's Organiser can set its registration capacity.")
+    data = request.get_json(silent=True)
+    if not isinstance(data, dict) or set(data) != {"capacity"}:
+        raise BadRequest("Send a JSON object containing only capacity.")
+    if not valid_capacity(data["capacity"]):
+        return jsonify({"error": "Please check the highlighted field.", "fields": {
+            "capacity": "Enter a whole number between 1 and 10,000.",
+        }}), 400
+    saved = set_registration_capacity(str(event_id), user["id"], data["capacity"])
+    return jsonify({"registration_capacity": capacity_for_event(saved).as_dict()})
+
+
+@events.post("/<uuid:event_id>/registrations")
+def create_registration(event_id):
+    """Minimal capacity-protected write seam for SCRUM-40's attendee UI."""
+    if request.headers.get("Origin") != current_app.config["FRONTEND_ORIGIN"]:
+        raise Forbidden("Request must come from the configured frontend origin.")
+    user = require_acting_user()
+    require_role(user, "Attendee", action="register_event")
+    data = request.get_json(silent=True)
+    if data != {}:
+        raise BadRequest("Send an empty JSON object. The attendee comes from your session.")
+    event = get_event_by_id(str(event_id))
+    if event is None:
+        raise NotFound("Event not found.")
+    refusal = capacity_for_event(event).refusal(event["status"])
+    if refusal:
+        raise Conflict(refusal)
+    # Signup must not require a pre-existing participant link. SQL checks the actual
+    # stored status, actor role, uniqueness and capacity atomically before inserting.
+    registration = register_attendee(str(event_id), user["id"])
+    return jsonify({"registration": registration}), 201
 
 
 @events.patch("/<event_id>/status")

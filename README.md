@@ -139,6 +139,16 @@ notes. The event becomes Completed and read-only, and its remaining equipment
 reservations and future venue bookings are released. See the
 [workflow, read-only rules and test evidence](docs/SCRUM-132.md).
 
+## Registration capacity (SCRUM-41)
+
+Apply [`20261026150854_scrum_41_registration_capacity.sql`](supabase/migrations/20261026150854_scrum_41_registration_capacity.sql)
+after the event and `edit_planning.sql` setup. The event's Organiser can set
+**Maximum attendees** in **Registration capacity** before confirmation. This signup
+limit is separate from expected attendance; full events reject further signups,
+including concurrent attempts. Existing events start with registration closed until
+a limit is set. See the [setup, API handoff and test evidence](docs/SCRUM-41.md).
+The attendee registration screens remain SCRUM-40 work.
+
 ## Prerequisites
 
 For draft submission, on-screen confirmation and coordinator assignment, see the

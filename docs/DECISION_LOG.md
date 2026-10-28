@@ -261,6 +261,65 @@ An at-a-glance summary of where AI was and was not used sits in the
 
 ---
 
+### D15 — Registration capacity is a separate, atomic signup limit (SCRUM-41)
+
+- **Context.** Expected attendance is a planning estimate, and no registration table
+  previously existed. Counting signups before a separate insert could oversell the last
+  place when requests race.
+- **Decision proposed for Jerome's review.** Add an explicit nullable registration
+  capacity and counter to events, plus a unique event/attendee registration row. A table
+  trigger locks and conditionally updates the parent event in the signup transaction.
+  A pure `RegistrationCapacity` object supplies the application precheck. The organiser
+  sets capacity before confirmation through a separate, audited endpoint.
+- **Constraints.** No inferred limit/backfill from expected attendance; unset capacity
+  keeps signup closed. Existing confirmation and safety gates are preserved. SQL
+  independently validates status, role, uniqueness and capacity. RLS and backend-only
+  grants keep identities supplied by the session, not the browser. Invoker functions
+  use an empty search path. SCRUM-40/43/44 retain their full attendee workflows.
+- **Verification.** Boundary and endpoint tests, SQL replay/permissions/100-of-100
+  checks, real database final-slot concurrency/direct-write tests, and browser checks
+  for clear save, full, failure, read-only and mobile states; full regression evidence
+  is recorded in `docs/SCRUM-41.md`.
+- **Trade-off.** A stored counter avoids snapshot-based overselling and repeated counts;
+  all future registration state changes must preserve the trigger. Capacity is locked
+  after confirmation, matching the existing change-request model. Waiting-list
+  behaviour is deferred because it is not enabled.
+- **Owner.** Jerome. This design was proposed and implemented by Codex against the
+  story and sprint plan; human design/API/schema review is still required before merge.
+
+### D16 — Registration capacity input is limited to 10,000 (SCRUM-41)
+
+- **Context.** During manual review, the user requested a practical maximum instead
+  of displaying PostgreSQL's integer ceiling in the validation message.
+- **Decision.** Accept whole numbers from 1 to 10,000 in the organiser form and Flask
+  capacity endpoint; show the same range in both validation messages.
+- **Constraints.** Preserve ownership, confirmation locks and atomic signup checks.
+  No schema migration is needed: storage retains its integer representation; trusted
+  direct database operations can still exceed the application input limit.
+- **Verification.** API boundary tests accept 1/10,000 and reject 10,001 before storage;
+  browser checks cover the correction and saving 10,000. Existing maximum-integer
+  acceptance and correction expectations change to match the requested contract.
+- **Trade-off.** This is an application input limit, not a new database invariant.
+  Existing saved values are preserved; editing them requires a value within the range.
+- **Owner.** Jerome remains accountable for API/domain review before merge; the user
+  requested the 10,000 maximum during manual review on 28 Oct 2026.
+
+### D17 — Expected attendance uses the same practical input range
+
+- **Context.** The user's follow-up identified the old integer-ceiling error in
+  Expected attendance, a separate field from registration capacity.
+- **Decision.** Limit expected attendance to whole numbers from 1 to 10,000 in
+  event creation/draft/edit forms and their shared API validator; use the same error
+  wording as registration capacity. Blank attendance remains allowed for drafts.
+- **Constraints.** Keep expected attendance separate from the signup limit. Preserve
+  existing storage, events, authorisation and status gates.
+- **Verification.** Event API tests cover draft/submission boundaries at 1, 10,000
+  and 10,001. Run event regression tests, lint and the frontend production build.
+- **Trade-off.** Application input limit only; direct database writes and existing
+  saved values retain the database's integer range.
+- **Owner.** Jerome remains the SCRUM-41 review owner; event contract changes require
+  review by the event-lifecycle owner before merge. Requested by the user on 28 Oct 2026.
+
 ## AI usage summary
 
 Per-feature view of where AI assistance was applied, always under human specification and
