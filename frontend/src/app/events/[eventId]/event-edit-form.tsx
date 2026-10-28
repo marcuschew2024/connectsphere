@@ -66,7 +66,7 @@ export default function EventEditForm({
       "expected_attendance",
     ) as HTMLInputElement;
     if (attendanceInput.validity.badInput) {
-      setFieldErrors({ expected_attendance: "Enter a whole number greater than zero." });
+      setFieldErrors({ expected_attendance: "Enter a whole number between 1 and 10,000." });
       return;
     }
     const form = new FormData(formEvent.currentTarget);
@@ -159,7 +159,7 @@ export default function EventEditForm({
           </div>
           <div>
             <label htmlFor="edit-expected_attendance" className="mb-2 block font-medium">Expected attendance *</label>
-            <input id="edit-expected_attendance" name="expected_attendance" type="number" min="1" step="1" max="2147483647"
+            <input id="edit-expected_attendance" name="expected_attendance" type="number" min="1" step="1" max="10000"
               defaultValue={event.expected_attendance ?? ""} aria-invalid={!!fieldErrors.expected_attendance}
               aria-describedby={fieldErrors.expected_attendance ? "expected_attendance-error" : undefined}
               className={INPUT_STYLE} />

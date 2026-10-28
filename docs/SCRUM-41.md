@@ -30,7 +30,7 @@ columns keep rendering the existing event page without this panel.
 | Endpoint | Caller | Contract |
 | --- | --- | --- |
 | `GET /events/{uuid}/registration-capacity` | Existing related event user | Aggregate capacity, count, remaining places and full flag; no attendee identities |
-| `PUT /events/{uuid}/registration-capacity` | Owning Organiser | `{"capacity":100}`; positive PostgreSQL integer; only Draft/Planning (including legacy planning states) |
+| `PUT /events/{uuid}/registration-capacity` | Owning Organiser | `{"capacity":100}`; whole number from 1 to 10,000; only Draft/Planning (including legacy planning states) |
 | `POST /events/{uuid}/registrations` | Signed-in Attendee | `{}`; identity comes from the session; Confirmed event, configured capacity, unique attendee and free place required |
 
 All endpoints use the existing session and configured-Origin guards. The signup write
@@ -120,3 +120,60 @@ already human-approved. See D15 in `DECISION_LOG.md`.
 
 **Accountable owner:** Jerome. Shared deployment, remote CI and merge remain separate
 from the local implementation and verification.
+
+## Review update — 28 Oct 2026
+
+User-requested registration capacity range: **1–10,000**, enforced in the organiser
+form and Flask endpoint. Validation says “Enter a whole number between 1 and 10,000.”
+Existing PostgreSQL storage and its atomic signup protection are unchanged. See D16.
+The previous maximum-integer acceptance test and browser correction expectation were
+updated to reflect the requested contract; rejection coverage was retained and new
+10,000/10,001 boundary checks were added. Jerome owns review of this revised limit.
+
+Validation for this revision: **33 capacity API tests and 7 capacity browser tests
+passed**; backend Ruff, frontend ESLint, production webpack build/TypeScript, and
+`git diff --check` passed. Browser tests used the local development server with mocked
+API responses; no shared database writes were made. Remote CI remains pending.
+
+Follow-up: the reported unformatted integer-ceiling error came from **Expected
+attendance**. Its create/draft/edit forms and shared API validator now use 1–10,000
+and the same correction (D17). Validation: 154 event/capacity API tests, 24 browser
+regressions against a separate production server on port 3141, Ruff, ESLint,
+webpack production build/TypeScript and diff checks passed. The initial browser run
+against the development server failed its production-only switcher check; rerunning
+against the production server passed without modifying that test.
+
+## Draft editor discoverability fix — 28 Oct 2026
+
+Manual review found that My drafts → Continue editing never exposed the capacity
+panel, despite capacity editing already being supported for drafts. The draft editor
+now renders the existing capacity control above the event details, using the same
+backend endpoint and permissions. It hides after successful submission; the receipt
+links to the event page. New draft receipts also link directly to the capacity editor.
+Older database responses without capacity columns retain the existing form.
+
+Delegated: make registration capacity reachable through the organiser's normal draft
+workflow. Constraints: reuse the existing panel/API, preserve private-draft access,
+form content, saved receipts and confirmation locks; no schema/auth changes.
+Evidence: 41 draft/event/capacity Playwright tests against a separate production server
+passed, including a new draft capacity save/reload check. ESLint, webpack production
+build/TypeScript and diff checks passed. The actual demo draft was visually inspected;
+no event values were changed. Existing tests were preserved.
+Review: Jerome should review placement and the save/submit experience. Jerome remains
+the accountable SCRUM-41 owner; remote CI and merge are still pending.
+
+## Merge handoff — 28 Oct 2026
+
+After manual review of the organiser experience, the owner explicitly requested push
+and merge in this session. This authorizes the merge once remote lint, build and e2e
+checks pass. The documented database/API/permissions/confirmation-lock decisions remain
+owned by Jerome (D15–D17); this entry does not substitute an agent review for human
+accountability. Database columns were confirmed present in the configured development
+project during troubleshooting; no additional shared database deployment is bundled
+with this merge.
+
+Latest local backend regression: **903 passed, 126 skipped**, with Ruff passing.
+The skips are disposable-database acceptance tests because the local Docker daemon
+is stopped; remote CI must run those tests before merge. Latest frontend validation:
+41 focused browser tests and production build/TypeScript/ESLint passed. The user's
+untracked `outputs/` folder is excluded from the commit.

@@ -4,7 +4,7 @@ from dataclasses import dataclass
 
 
 def valid_capacity(value: object) -> bool:
-    return type(value) is int and 1 <= value <= 2_147_483_647
+    return type(value) is int and 1 <= value <= 10_000
 
 
 @dataclass(frozen=True)

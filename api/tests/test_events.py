@@ -805,3 +805,21 @@ def test_ordinary_change_is_flagged(coordinator, event_database):
     )
     assert response.status_code == 200
     assert response.json["importance"] == "ordinary"
+
+
+@pytest.mark.parametrize("action", ["draft", "submit"])
+@pytest.mark.parametrize("attendance", [1, 10_000, 10_001])
+def test_expected_attendance_has_a_ten_thousand_limit(
+    organiser, details, event_database, action, attendance,
+):
+    details.update(expected_attendance=attendance, action=action)
+    response = organiser.post("/events", json=details, headers=ORIGIN)
+    if attendance <= 10_000:
+        assert response.status_code == 201
+        assert response.json["event"]["expected_attendance"] == attendance
+    else:
+        assert response.status_code == 400
+        assert response.json["fields"]["expected_attendance"] == (
+            "Enter a whole number between 1 and 10,000."
+        )
+        assert event_database[0] == []

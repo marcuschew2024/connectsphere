@@ -31,13 +31,15 @@ def test_unconfigured_or_unconfirmed_event_never_accepts_a_registration():
         assert "confirmed" in RegistrationCapacity(100, 0).refusal(status)
 
 
-@pytest.mark.parametrize("value", [None, 0, -1, True, False, 1.5, "100", 2_147_483_648])
+@pytest.mark.parametrize("value", [
+    None, 0, -1, True, False, 1.5, "100", 10_001, 2_147_483_647, 2_147_483_648,
+])
 def test_capacity_requires_a_positive_postgres_integer(value):
     assert not valid_capacity(value)
 
 
-def test_one_place_and_maximum_integer_are_valid():
-    assert valid_capacity(1) and valid_capacity(2_147_483_647)
+def test_one_place_and_ten_thousand_are_valid():
+    assert valid_capacity(1) and valid_capacity(10_000)
 
 
 @pytest.fixture
@@ -168,3 +170,18 @@ def test_database_errors_never_leak_internal_details(monkeypatch):
     with pytest.raises(ServiceUnavailable, match="Refresh the event") as unavailable:
         register_attendee(EVENT_ID, 5)
     assert "secret" not in str(unavailable.value)
+
+
+@pytest.mark.parametrize("capacity", [1, 10_000, 10_001])
+def test_capacity_api_enforces_ten_thousand_limit(capacity_api, capacity):
+    client, _, calls = capacity_api
+    response = client.put(f"/events/{EVENT_ID}/registration-capacity",
+                          json={"capacity": capacity}, headers=ORIGIN)
+    if capacity <= 10_000:
+        assert response.status_code == 200
+        assert response.json["registration_capacity"]["capacity"] == capacity
+        assert calls == [(EVENT_ID, 1, capacity)]
+    else:
+        assert response.status_code == 400
+        assert response.json["fields"]["capacity"] == "Enter a whole number between 1 and 10,000."
+        assert calls == []

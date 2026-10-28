@@ -230,7 +230,7 @@ def registration_capacity(event_id):
         raise BadRequest("Send a JSON object containing only capacity.")
     if not valid_capacity(data["capacity"]):
         return jsonify({"error": "Please check the highlighted field.", "fields": {
-            "capacity": "Enter a whole number between 1 and 2,147,483,647.",
+            "capacity": "Enter a whole number between 1 and 10,000.",
         }}), 400
     saved = set_registration_capacity(str(event_id), user["id"], data["capacity"])
     return jsonify({"registration_capacity": capacity_for_event(saved).as_dict()})

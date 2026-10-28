@@ -7,11 +7,13 @@ import { apiRequest } from "@/lib/api";
 import type { EventRecord } from "@/lib/events";
 import { Button } from "@/components/ui/button";
 import EventRequestForm from "../../new/event-request-form";
+import EventCapacityPanel from "../../[eventId]/event-capacity-panel";
 import DraftWorkspace from "../draft-workspace";
 
 function DraftEditor({ eventId }: { eventId: string }) {
   const [event, setEvent] = useState<EventRecord | null>(null);
   const [error, setError] = useState("");
+  const [submitted, setSubmitted] = useState(false);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -32,7 +34,13 @@ function DraftEditor({ eventId }: { eventId: string }) {
       <Button asChild className="mt-6"><Link href={`/events/${event.id}`}>View event status</Link></Button>
     </section>
   );
-  return <EventRequestForm canCreate initialEvent={event} />;
+  return <div className="space-y-6">
+    {!submitted && event.registration_capacity !== undefined && (
+      <EventCapacityPanel event={event} actingRole="Organiser" onSaved={setEvent} />
+    )}
+    <EventRequestForm canCreate initialEvent={event}
+      onSaved={(saved) => setSubmitted((saved.request_status ?? saved.status) !== "Draft")} />
+  </div>;
 }
 
 export default function EditDraftPage() {

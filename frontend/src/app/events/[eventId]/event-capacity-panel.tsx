@@ -32,8 +32,8 @@ export default function EventCapacityPanel({ event, actingRole, onSaved }: {
     setNotice("");
     const input = formEvent.currentTarget.elements.namedItem("capacity") as HTMLInputElement;
     const next = Number(value);
-    if (input.validity.badInput || value.trim() === "" || !Number.isInteger(next) || next < 1 || next > 2147483647) {
-      setError("Enter a whole number between 1 and 2,147,483,647.");
+    if (input.validity.badInput || value.trim() === "" || !Number.isInteger(next) || next < 1 || next > 10000) {
+      setError("Enter a whole number between 1 and 10,000.");
       input.focus();
       return;
     }
@@ -75,7 +75,7 @@ export default function EventCapacityPanel({ event, actingRole, onSaved }: {
         <form onSubmit={saveCapacity} noValidate className="mt-5 space-y-3 border-t border-border pt-4">
           <label htmlFor="registration-capacity" className="block text-sm font-medium">Maximum attendees</label>
           <div className="flex flex-col gap-3 sm:flex-row sm:items-start">
-            <input id="registration-capacity" name="capacity" type="number" min="1" max="2147483647" step="1"
+            <input id="registration-capacity" name="capacity" type="number" min="1" max="10000" step="1"
               value={value} onChange={(change) => { setValue(change.target.value); setError(""); setNotice(""); }}
               disabled={busy} aria-required="true" aria-invalid={!!error}
               aria-describedby={`capacity-help${error ? " capacity-error" : ""}`}

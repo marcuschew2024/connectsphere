@@ -56,11 +56,11 @@ test("invalid capacity stays in the form with an accessible correction", async (
   await page.route(endpoint, () => { writes++; });
   await openEvent(page);
   const input = page.getByLabel("Maximum attendees");
-  for (const value of ["", "0", "1.5", "2147483648"]) {
+  for (const value of ["", "0", "1.5", "10001", "2147483648"]) {
     await input.fill(value);
     await page.getByRole("button", { name: "Save capacity" }).click();
     await expect(page.getByRole("region", { name: "Registration capacity" }).getByRole("alert"))
-      .toHaveText("Enter a whole number between 1 and 2,147,483,647.");
+      .toHaveText("Enter a whole number between 1 and 10,000.");
     await expect(input).toBeFocused();
     await expect(input).toHaveAttribute("aria-invalid", "true");
   }
@@ -109,4 +109,21 @@ test("capacity form fits a narrow screen and supports keyboard submission", asyn
   await expect(panel.getByRole("status")).toContainText("Capacity saved");
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
   await panel.screenshot({ path: testInfo.outputPath("capacity-mobile.png") });
+});
+
+
+test("organiser can save the maximum capacity of ten thousand", async ({ page }) => {
+  await page.route(endpoint, async (route) => {
+    expect(route.request().postDataJSON()).toEqual({ capacity: 10000 });
+    await route.fulfill({ json: { registration_capacity: {
+      capacity: 10000, registered_count: 0, remaining: 10000, is_full: false,
+    } } });
+  });
+  await openEvent(page);
+  await expect(page.getByLabel("Maximum attendees")).toHaveAttribute("max", "10000");
+  await page.getByLabel("Maximum attendees").fill("10000");
+  await page.getByRole("button", { name: "Save capacity" }).click();
+  await expect(page.getByRole("region", { name: "Registration capacity" }).getByRole("status"))
+    .toContainText("Capacity saved");
+  await expect(page.getByText("10,000 places remaining", { exact: true })).toBeVisible();
 });

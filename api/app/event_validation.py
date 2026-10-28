@@ -40,9 +40,9 @@ def validate_event(data: dict, *, submitting: bool) -> tuple[dict, dict]:
     if attendance is None:
         if submitting:
             errors["expected_attendance"] = "Enter the expected attendance."
-    elif type(attendance) is not int or not 1 <= attendance <= 2_147_483_647:
+    elif type(attendance) is not int or not 1 <= attendance <= 10_000:
         # bool is an int subclass in Python; type(...) also rejects true/false.
-        errors["expected_attendance"] = "Enter a whole number between 1 and 2147483647."
+        errors["expected_attendance"] = "Enter a whole number between 1 and 10,000."
 
     value = data.get("event_datetime")
     fields["event_datetime"] = None
