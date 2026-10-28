@@ -34,6 +34,13 @@ for pass in 1 2; do
 done
 psql -v ON_ERROR_STOP=1 -f /sql/tests/safety_officer.sql
 
+# SCRUM-131 (Week 7 Change #5): add the Event Coordinator Lead role. Applied twice to
+# prove the drop/recreate constraint + not-exists seed are rerun-safe.
+for pass in 1 2; do
+  psql -v ON_ERROR_STOP=1 -f /sql/migrations/20261026120000_scrum_131_event_coordinator_lead.sql > /tmp/migration-output.txt
+  echo "Event Coordinator Lead migration pass $pass: PASS"
+done
+
 
 # Check the original status migration above, then the reservation integration twice.
 for pass in 1 2; do
