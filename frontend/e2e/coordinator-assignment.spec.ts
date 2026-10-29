@@ -124,3 +124,25 @@ test("a Coordinator is notified of assignment and reassignment on Home", async (
   await expect(inbox.getByRole("link", { name: /View request/ })).toHaveCount(1);
   await expect(inbox.getByRole("link", { name: /View request/ })).toHaveAttribute("href", `/events/${QUEUED}`);
 });
+
+for (const [coordinatorId, expected] of [
+  [null, "Your request is with the Event Coordinator Lead, who will assign a Coordinator to review it."],
+  [2, "Your request is with the Coordinator. The decision will appear in your notifications."],
+] as const) {
+  test(`the Organiser sees who holds a ${coordinatorId === null ? "queued" : "assigned"} request`, async ({ page }) => {
+    await page.route(`${API}/session`, (route) => route.fulfill({
+      json: { user: { id: 1, display_name: "Demo Organiser", role: "Organiser" } },
+    }));
+    await page.route(`${API}/events/${QUEUED}`, (route) => route.fulfill({ json: { event: {
+      ...base, id: QUEUED, title: "Robotics open day", status: "Planning", request_status: "Submitted",
+      coordinator_id: coordinatorId, submitted_at: "2026-10-02T01:00:00Z",
+      decision_at: null, decision_by: null, decision_reason: null,
+    } } }));
+    await page.route(`${API}/events/${QUEUED}/history`, (route) => route.fulfill({ json: { history: [] } }));
+    await page.route(`${API}/events/${QUEUED}/clarification`, (route) => route.fulfill({ json: { clarification: null } }));
+    await page.goto(`/events/${QUEUED}`);
+
+    await expect(page.getByText(expected)).toBeVisible();
+    await expect(page.getByText("Your request is with", { exact: false })).toHaveCount(1);
+  });
+}

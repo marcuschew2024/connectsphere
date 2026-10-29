@@ -166,7 +166,10 @@ export default function EventStatusPage() {
             <h2 id="acceptance-heading" className="font-semibold text-emerald-700 dark:text-emerald-400">Request accepted</h2>
             <p role="status" className="mt-1 text-sm text-muted-foreground">The Coordinator accepted this request on {new Date(event.decision_at!).toLocaleString()}.{event.status === "Planning" ? " Your event is now in Planning." : ""}</p>
           </section>}
-          {!accepted && event.request_status === "Submitted" && actingRole === "Organiser" && !clarification && <p className="rounded-xl border border-primary/20 bg-primary/5 p-4 text-sm text-foreground">Your request is with the Coordinator. The decision will appear in your notifications.</p>}
+          {/* SCRUM-130: a new request waits with the Event Coordinator Lead until assigned. */}
+          {!accepted && event.request_status === "Submitted" && actingRole === "Organiser" && !clarification && <p className="rounded-xl border border-primary/20 bg-primary/5 p-4 text-sm text-foreground">{event.coordinator_id === null
+            ? "Your request is with the Event Coordinator Lead, who will assign a Coordinator to review it. You will be notified when a Coordinator is assigned."
+            : "Your request is with the Coordinator. The decision will appear in your notifications."}</p>}
           {event.status === "Rejected" && (actingRole === "Organiser" || actingRole === "Coordinator") && <section aria-labelledby="rejection-heading" className="rounded-2xl border border-destructive/30 bg-destructive/5 p-5">
             <h2 id="rejection-heading" className="font-semibold text-destructive">Rejection reason</h2>
             <p className="mt-2 whitespace-pre-wrap break-words text-sm text-foreground">{event.decision_reason || "No rejection reason was recorded."}</p>
