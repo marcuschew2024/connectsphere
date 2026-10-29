@@ -41,6 +41,14 @@ for pass in 1 2; do
   echo "Event Coordinator Lead migration pass $pass: PASS"
 done
 
+# SCRUM-139: password accounts for all seven roles. The password is a disposable-database
+# value only; api/tests/test_role_accounts_acceptance.py logs in with the same one.
+for pass in 1 2; do
+  PGOPTIONS='-c connectsphere.seed_password=disposable-test-only-password' \
+    psql -v ON_ERROR_STOP=1 -f /sql/seed_role_accounts.sql > /tmp/migration-output.txt
+  echo "Role accounts seed pass $pass: PASS"
+done
+
 
 # Check the original status migration above, then the reservation integration twice.
 for pass in 1 2; do

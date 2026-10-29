@@ -1,6 +1,8 @@
 "use client";
 
+import { useEffect } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import {
   ArrowUpRight,
   Building2,
@@ -91,8 +93,19 @@ function ActionTile({ action }: { action: Action }) {
   );
 }
 
+// The passwordless switcher only exists in development builds (and only when the API
+// also enables it); everywhere else, real login is the way in.
+const DEV_SWITCHER_BUILD = process.env.NODE_ENV === "development";
+
 export default function Home() {
-  const [actingRole, updateRole] = useActingRole();
+  const router = useRouter();
+  const [actingRole, updateRole, , signedOut] = useActingRole();
+
+  useEffect(() => {
+    // SCRUM-139: only a confirmed "nobody is signed in" redirects; an unreachable API
+    // stays here and shows the sign-in prompt rather than looping through /login.
+    if (signedOut && !DEV_SWITCHER_BUILD) router.replace("/login");
+  }, [signedOut, router]);
 
   const actions = actingRole ? ROLE_ACTIONS[actingRole] : undefined;
 
@@ -124,7 +137,7 @@ export default function Home() {
             </p>
           </div>
 
-          {process.env.NODE_ENV === "development" && (
+          {DEV_SWITCHER_BUILD && (
             <DevRoleSwitcher compact onRoleChange={updateRole} />
           )}
 
@@ -150,9 +163,9 @@ export default function Home() {
 
           {!actingRole && (
             <div className="rounded-2xl border border-border/80 bg-card p-6 text-sm text-muted-foreground shadow-sm">
-              {process.env.NODE_ENV === "development"
+              {DEV_SWITCHER_BUILD
                 ? "Select a role above to see what it can do."
-                : "Sign in to access your workspace."}
+                : <>Sign in to access your workspace. <Link href="/login" className="font-medium text-primary underline-offset-4 hover:underline">Go to sign in</Link></>}
             </div>
           )}
         </div>

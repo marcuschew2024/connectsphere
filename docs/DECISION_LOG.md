@@ -517,6 +517,55 @@ Shared Supabase migration deployment is separate and is not implied by the Git m
   On 30 October 2026, after the waitlist limitation was disclosed, the user explicitly
   requested push and merge behind green CI. Shared database deployment is not included.
 
+### D25 — Real login is the entry point; the dev switcher never overrides it (SCRUM-139)
+
+- **Numbering note.** The Codex review tickets (SCRUM-135..145) cite planned entries
+  "D22–D25". Repository entries D21–D24 landed first with other meanings, so this fix
+  is recorded as D25. The ticket's "D22" means this entry.
+- **Context.** Codex review R10 (High). On Home, the development switcher's load-time
+  `/dev/session` response called the same role setter as `/session`. A password-signed-in
+  user with no demo selection was overwritten to "no role", and a disabled switcher (404)
+  did the same. `POST`/`DELETE /dev/session` began with `session.clear()`, so using
+  the switcher silently ended a real login. Signed-out visitors were never sent to
+  `/login`. Demo identities have no password, so no role had a working password account.
+- **Decision.** (1) `/session` is the only source of the page's role. The switcher reads
+  state on load and reports a role only after an explicit switch. It checks
+  `/auth/session` first and does not render while a password session exists.
+  (2) The API refuses `POST`/`DELETE /dev/session` with 409 while a password session
+  exists; the real session must end through `/auth/logout`. (3) In non-development
+  builds, Home redirects to `/login` when `/session` confirms nobody is signed in. An
+  unreachable API shows a sign-in link instead of redirecting. (4)
+  `supabase/seed_role_accounts.sql` seeds ten non-demo password accounts: all seven
+  roles, plus a second Organiser, Coordinator and Attendee for isolation checks.
+- **Constraints.** No change to the `/session`, `/auth/*` or `/dev/*` response shapes.
+  The existing switcher gates (`APP_ENV=development` and `DEV_ROLE_SWITCHER_ENABLED=true`,
+  plus a development build in the frontend) are unchanged, and production still
+  ignores `acting_user_id`. The seed contains no password: it refuses to run unless
+  `connectsphere.seed_password` (12+ characters) is set for the session. It hashes with
+  pgcrypto bcrypt (cost 12), which the API's `bcrypt.checkpw` accepts. No schema or
+  grant changes.
+- **Verification.** `api/tests/test_login_entry_point.py`: switch/clear refused while
+  signed in (both fail without the guard), real identity kept with a leftover demo
+  cookie, signed-out switching unchanged, production ignores demo cookies.
+  `api/tests/test_role_accounts_acceptance.py` runs on the disposable database: each
+  seeded account logs in and `/session` reports its role. It also checks the seven-role
+  coverage, the distinct isolation IDs, wrong-password rejection and that production
+  never resolves a demo identity. The seed is replayed twice in `run.sh`.
+  `src/lib/dev-switcher.test.ts` (loader never consults demo endpoints for a password
+  session); `e2e/login-entry.spec.ts` (redirect, no redirect on API failure, login lands
+  on the account's workspace with no `/dev/*` calls).
+- **Trade-off.** Only Home redirects. Other pages keep their in-page "Sign in or select a
+  demo user" states, and the server-side guards still protect them. A blanket guard
+  would change many existing e2e expectations and belongs in a separate, reviewed change.
+  Development builds still land signed-out users on Home so the switcher stays usable.
+  The seed resets passwords on rerun, by design, for development data.
+- **Owner.** Ernest Wong (reassigned from Marcus, 29 Oct 2026). This is
+  authentication logic and needs human review before merge. Applying the seed to the
+  shared Supabase project is a separate step for the owner.
+- **Owner verification — 30 Oct 2026.** Ernest Wong ran a production build and confirmed
+  that a signed-out visit to `/` lands on `/login`. Push and merge still require the
+  owner's explicit instruction and green CI.
+
 ## AI usage summary
 
 Per-feature view of where AI assistance was applied, always under human specification and
