@@ -461,6 +461,40 @@ Shared Supabase migration deployment is separate and is not implied by the Git m
   user supplied the blocking-status decision; implementation review and green CI
   remain required before merge. Nothing here authorizes push, merge or deployment.
 
+### D23 — Session-scoped current registration status (SCRUM-44)
+
+- **Context:** SCRUM-40 retains historical confirmations and per-event receipts.
+  Attendees need a discoverable list of their current registration state, including
+  after withdrawal or event cancellation. A confirmation message is not current state.
+- **Decision (proposed for Jerome's review):** add Attendee-only
+  `GET /events/registrations?page=1`, returning 25 current registrations plus `page`
+  and `has_more`. Derive identity exclusively from the existing account/session
+  resolver; reject query parameters other than a single bounded page. Filter
+  `attendee_id` before ordering/pagination, with `registered_at DESC, id ASC`.
+  Select only registration reference/state/timestamps and public event identity,
+  title, category, date and lifecycle status. Exclude attendees' identities,
+  registration information and internal event planning fields.
+- **Constraints:** reuse central role guards, existing Origin policy, repositories,
+  backend-only database access and the current schema. All responses are `no-store`;
+  the frontend also bypasses its fetch cache. The list refreshes on return/focus,
+  every 30 seconds while visible, and explicitly on request. Failed refreshes remove
+  old rows and show a retryable error rather than stale confirmation or empty success.
+- **Verification:** new HTTP tests cover session/role/Origin/input/failure boundaries;
+  disposable-database acceptance tests prove cross-attendee isolation, safe public
+  projections, complete pagination, and fresh reads after a persisted withdrawal and
+  cancellation. Browser checks cover status changes, focus/polling, errors/retry,
+  navigation, pagination and mobile/keyboard use. Existing tests are preserved.
+- **Trade-off:** the Sprint 4 Goal & Scope explicitly defers waiting lists to SCRUM-80;
+  D15/D18 and the database currently support Registered/Withdrawn only. The display
+  understands Waitlisted and a later promotion response without claiming a booked
+  place, but this read story adds no queue, status transition, or migration. Waiting-list
+  presentation/promotion is verified with API/browser fixtures; a persisted waiting-list
+  transition remains an integration check for SCRUM-80. Jerome must review this scope
+  reconciliation against the literal Jira wording before accepting SCRUM-44.
+- **Owner:** Jerome owns the API/access contract and acceptance decision. Codex authors
+  the proposed implementation. Human design review and green CI remain merge gates;
+  no push, merge or shared database deployment is authorized by this implementation task.
+
 ## AI usage summary
 
 Per-feature view of where AI assistance was applied, always under human specification and

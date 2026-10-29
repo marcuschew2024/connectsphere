@@ -29,6 +29,7 @@ type Action = {
 const ROLE_ACTIONS: Record<string, Action[]> = {
   Attendee: [
     { title: "Browse events", description: "Find a campus event and book your place.", href: "/events/browse", icon: CalendarPlus, primary: true },
+    { title: "My registrations", description: "Check your current registration status.", href: "/registrations", icon: ClipboardCheck },
   ],
   "Safety Officer": [
     { title: "Review operational safety", description: "Assess confirmed events before preparation.", href: "/events/safety", icon: ClipboardCheck, primary: true },

@@ -44,6 +44,7 @@ from .registration_repository import (
     capacity_for_event,
     get_own_registration,
     get_registration_confirmations,
+    list_own_registrations,
     list_registration_events,
     register_attendee,
     set_registration_capacity,
@@ -322,6 +323,21 @@ def registration_confirmations():
     user = require_acting_user()
     require_role(user, "Attendee", action="view_registration_confirmations")
     return jsonify({"confirmations": get_registration_confirmations(user["id"])})
+
+
+@events.get("/registrations")
+def own_registrations():
+    if request.headers.get("Origin") != current_app.config["FRONTEND_ORIGIN"]:
+        raise Forbidden("Request must come from the configured frontend origin.")
+    user = require_acting_user()
+    require_role(user, "Attendee", action="view_own_registrations")
+    if set(request.args) - {"page"} or len(request.args.getlist("page")) > 1:
+        raise BadRequest("Send only a page number. The attendee comes from your session.")
+    page = request.args.get("page", "1")
+    if not page.isascii() or not page.isdecimal() or len(page) > 5 or not 1 <= int(page) <= 10000:
+        raise BadRequest("Choose a registration page from 1 to 10000.")
+    rows, has_more = list_own_registrations(user["id"], int(page))
+    return jsonify({"registrations": rows, "page": int(page), "has_more": has_more})
 
 
 @events.get("/<uuid:event_id>/registration-offer")
