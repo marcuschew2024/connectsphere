@@ -116,6 +116,25 @@ def get_own_registration(event_id: str, attendee_id: int) -> dict | None:
         raise ServiceUnavailable("Could not check your registration. Please try again.") from error
 
 
+def list_own_registrations(attendee_id: int, page: int) -> tuple[list[dict], bool]:
+    """Read current rows, not confirmation messages; scope before pagination."""
+    try:
+        client = get_supabase_client()
+        if client is None:
+            raise ServiceUnavailable("The database is not configured. Contact the team.")
+        start = (page - 1) * 25
+        rows = (client.table("event_registrations").select(
+            "id,event_id,status,registered_at,withdrawn_at,"
+            "event:events(id,title,category,event_datetime,status)"
+        ).eq("attendee_id", attendee_id).order("registered_at", desc=True).order("id")
+            .range(start, start + 25).execute().data or [])
+        return rows[:25], len(rows) > 25
+    except ServiceUnavailable:
+        raise
+    except Exception as error:
+        raise ServiceUnavailable("Could not load your registrations. Please try again.") from error
+
+
 def get_registration_confirmations(attendee_id: int) -> list[dict]:
     """Never include organiser decisions, even if an account's role changes."""
     try:

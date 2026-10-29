@@ -1,7 +1,7 @@
 # SCRUM-139: Real login is the entry point (bug fix from SCRUM-20)
 
 Codex review finding R10 (High). SCRUM-20 stays Done; this is the linked fix. Design and
-trade-offs: Decision Log **D23**. Owner: Ernest Wong.
+trade-offs: Decision Log **D25**. Owner: Ernest Wong.
 
 ## What was wrong
 
@@ -79,4 +79,4 @@ cd ../frontend && npm run test:unit && npm run build && npm run test:e2e
 ## Known limitation
 
 Only Home redirects. Other pages keep their existing "Sign in or select a demo user"
-states. The server-side guards still protect them. See D23 for the trade-off.
+states. The server-side guards still protect them. See D25 for the trade-off.
