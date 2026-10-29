@@ -6,6 +6,8 @@ import { apiRequest } from "./api";
 export function useActingRole() {
   const [role, setRole] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  // True only when the API answered that nobody is signed in — not when it was unreachable.
+  const [signedOut, setSignedOut] = useState(false);
   const lookup = useRef<AbortController | null>(null);
 
   useEffect(() => {
@@ -15,6 +17,7 @@ export function useActingRole() {
       .then(({ user }) => {
         if (!controller.signal.aborted) {
           setRole(user?.role ?? null);
+          setSignedOut(user === null);
           setLoading(false);
         }
       })
@@ -31,8 +34,9 @@ export function useActingRole() {
     // A slow page-load response must not overwrite a newer dropdown selection.
     lookup.current?.abort();
     setRole(nextRole);
+    setSignedOut(false);
     setLoading(pending);
   }, []);
 
-  return [role, updateRole, loading] as const;
+  return [role, updateRole, loading, signedOut] as const;
 }

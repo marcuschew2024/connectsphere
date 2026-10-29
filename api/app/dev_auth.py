@@ -1,9 +1,17 @@
 """Passwordless development endpoints. Not registered outside development."""
 
 from flask import Blueprint, current_app, jsonify, request, session
-from werkzeug.exceptions import BadRequest, Forbidden, HTTPException, NotFound, ServiceUnavailable
+from werkzeug.exceptions import (
+    BadRequest,
+    Conflict,
+    Forbidden,
+    HTTPException,
+    NotFound,
+    ServiceUnavailable,
+)
 
 from .acting_user import dev_switcher_enabled, get_acting_user, require_acting_user
+from .auth import get_authenticated_user
 from .users import get_demo_user, list_demo_users
 
 dev_auth = Blueprint("dev_auth", __name__, url_prefix="/dev")
@@ -38,6 +46,13 @@ def users():
     return jsonify({"users": demo_users})
 
 
+def _refuse_if_signed_in() -> None:
+    # SCRUM-139: both switcher writes start with session.clear(), which would silently
+    # end a password login. A real session must be ended through /auth/logout instead.
+    if get_authenticated_user() is not None:
+        raise Conflict("Sign out before using the development role switcher.")
+
+
 @dev_auth.get("/session")
 def current_session():
     return jsonify({"user": get_acting_user()})
@@ -45,6 +60,7 @@ def current_session():
 
 @dev_auth.post("/session")
 def switch_user():
+    _refuse_if_signed_in()
     data = request.get_json(silent=True)
     if not isinstance(data, dict) or set(data) != {"user_id"}:
         raise BadRequest("Send a JSON object containing only user_id.")
@@ -61,6 +77,7 @@ def switch_user():
 
 @dev_auth.delete("/session")
 def clear_session():
+    _refuse_if_signed_in()
     session.clear()
     return jsonify({"user": None})
 
