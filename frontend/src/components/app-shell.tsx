@@ -27,6 +27,7 @@ const NAV_BY_ROLE: Record<string, NavItem[]> = {
   Attendee: [
     { label: "Home", href: "/", icon: Home },
     { label: "Events", href: "/events/browse", icon: CalendarPlus },
+    { label: "Registrations", href: "/registrations", icon: ClipboardCheck },
   ],
   "Safety Officer": [
     { label: "Home", href: "/", icon: Home },

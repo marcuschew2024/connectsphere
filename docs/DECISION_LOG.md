@@ -461,11 +461,67 @@ Shared Supabase migration deployment is separate and is not implied by the Git m
   user supplied the blocking-status decision; implementation review and green CI
   remain required before merge. Nothing here authorizes push, merge or deployment.
 
-### D23 — Real login is the entry point; the dev switcher never overrides it (SCRUM-139)
+### D23 — Venue requirement fragments must not invent requested features
+
+- **Context.** New requirement-matching regressions found that `quiet room` produced
+  warnings for both Classroom and Boardroom. The reverse substring check treated
+  `room` as a request for each longer canonical name.
+- **Decision.** Remove reverse fragment matching. Preserve normalised phrase/synonym
+  recognition and conservative typo hints. An ambiguous fragment such as `micro`
+  does not by itself request a microphone. Suitability warnings remain advisory;
+  no booking, capacity, overlap or authorisation policy changes here.
+- **Constraints.** Preserve existing test assertions and coverage settings. This is a
+  matching correction, not a new schema, API or value-object interface. No shared
+  database writes form part of the coverage verification.
+- **Verification.** A regression asserts no warning for `quiet room` in a venue that
+  supports Theatre. Existing suitability and boundary suites still pass; the full
+  local Python 3.12 run passed 1,403 tests with 96.95% backend line coverage.
+- **Trade-off.** Truncated names are not silently accepted as full requirements;
+  users can use the complete supported feature or an existing normalised synonym.
+- **Owner.** Marcus for scope/merge, with Jessica for venue-suitability review. The
+  user requested merging this regression increment behind green CI; this entry
+  does not certify a separate teammate review or completion of 100% coverage.
+
+### D24 — Session-scoped current registration status (SCRUM-44)
+
+- **Context:** SCRUM-40 retains historical confirmations and per-event receipts.
+  Attendees need a discoverable list of their current registration state, including
+  after withdrawal or event cancellation. A confirmation message is not current state.
+- **Decision (proposed for Jerome's review):** add Attendee-only
+  `GET /events/registrations?page=1`, returning 25 current registrations plus `page`
+  and `has_more`. Derive identity exclusively from the existing account/session
+  resolver; reject query parameters other than a single bounded page. Filter
+  `attendee_id` before ordering/pagination, with `registered_at DESC, id ASC`.
+  Select only registration reference/state/timestamps and public event identity,
+  title, category, date and lifecycle status. Exclude attendees' identities,
+  registration information and internal event planning fields.
+- **Constraints:** reuse central role guards, existing Origin policy, repositories,
+  backend-only database access and the current schema. All responses are `no-store`;
+  the frontend also bypasses its fetch cache. The list refreshes on return/focus,
+  every 30 seconds while visible, and explicitly on request. Failed refreshes remove
+  old rows and show a retryable error rather than stale confirmation or empty success.
+- **Verification:** new HTTP tests cover session/role/Origin/input/failure boundaries;
+  disposable-database acceptance tests prove cross-attendee isolation, safe public
+  projections, complete pagination, and fresh reads after a persisted withdrawal and
+  cancellation. Browser checks cover status changes, focus/polling, errors/retry,
+  navigation, pagination and mobile/keyboard use. Existing tests are preserved.
+- **Trade-off:** the Sprint 4 Goal & Scope explicitly defers waiting lists to SCRUM-80;
+  D15/D18 and the database currently support Registered/Withdrawn only. The display
+  understands Waitlisted and a later promotion response without claiming a booked
+  place, but this read story adds no queue, status transition, or migration. Waiting-list
+  presentation/promotion is verified with API/browser fixtures; a persisted waiting-list
+  transition remains an integration check for SCRUM-80. Jerome must review this scope
+  reconciliation against the literal Jira wording before accepting SCRUM-44.
+- **Owner:** Jerome owns the API/access contract and acceptance decision. Codex authors
+  the proposed implementation. Human design review and green CI remain merge gates;
+  On 30 October 2026, after the waitlist limitation was disclosed, the user explicitly
+  requested push and merge behind green CI. Shared database deployment is not included.
+
+### D25 — Real login is the entry point; the dev switcher never overrides it (SCRUM-139)
 
 - **Numbering note.** The Codex review tickets (SCRUM-135..145) cite planned entries
-  "D22–D25". Repository entries D21/D22 landed first with other meanings, so this fix
-  is recorded as D23. The ticket's "D22" means this entry.
+  "D22–D25". Repository entries D21–D24 landed first with other meanings, so this fix
+  is recorded as D25. The ticket's "D22" means this entry.
 - **Context.** Codex review R10 (High). On Home, the development switcher's load-time
   `/dev/session` response called the same role setter as `/session`. A password-signed-in
   user with no demo selection was overwritten to "no role", and a disabled switcher (404)
