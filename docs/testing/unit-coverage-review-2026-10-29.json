@@ -1503,7 +1503,7 @@
   },
   "follow_up_confirmation": {
     "reference": "booking-behaviour-review-2026-10-29.json",
-    "decision": "D21",
+    "decision": "D22",
     "overall_100_percent_achieved": false,
     "full_backend_passed": 1201,
     "totals": {

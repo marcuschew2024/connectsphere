@@ -1,6 +1,6 @@
 """Coordinator venue booking requests and Venue Staff review queue (SCRUM-31)."""
 
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 
 from flask import Blueprint, current_app, jsonify, request
 from werkzeug.exceptions import BadRequest, Conflict, Forbidden, HTTPException, NotFound
@@ -292,13 +292,37 @@ def decide_booking(booking_id):
     booking = get_booking(booking_id)
     if booking is None:
         raise NotFound("Booking request not found.")
-    if booking.get("status") not in ("Requested", "Pending"):
+    if booking.get("status") not in ("Requested", "Pending", "Held"):
         raise Conflict("This booking has already been decided.")
 
     try:
         decision = BookingDecision.from_payload(request.get_json(silent=True))
     except ValueError as error:
         raise BadRequest(str(error)) from error
+
+    expires_at_iso = None
+    if decision.is_hold:
+        payload = request.get_json(silent=True) or {}
+        custom_expires = payload.get("expires_at")
+        start_dt = datetime.fromisoformat(booking["start_at"].replace("Z", "+00:00"))
+        now = datetime.now(UTC)
+
+        if custom_expires:
+            try:
+                exp_dt = datetime.fromisoformat(custom_expires.replace("Z", "+00:00"))
+            except (ValueError, TypeError):
+                raise BadRequest("Invalid expiry timestamp.") from None
+            if exp_dt <= now:
+                raise BadRequest("Expiry time must be in the future.")
+            if exp_dt >= start_dt:
+                raise BadRequest("Expiry time must be before the event starts.")
+            expires_at_iso = exp_dt.isoformat()
+        else:
+            # Default: 48h from now, capped at 1h before booking starts
+            default_exp = min(now + timedelta(hours=48), start_dt - timedelta(hours=1))
+            if default_exp <= now:
+                default_exp = now + timedelta(minutes=30)
+            expires_at_iso = default_exp.isoformat()
 
     # Confirmed decisions hard-block only published-slot conflicts. A stale tentative
     # hold does not beat a confirmed booking (FCFS); the database remains the backstop.
@@ -326,7 +350,12 @@ def decide_booking(booking_id):
             raise Conflict("The venue is already confirmed or blocked for that time slot.")
 
     updated = record_booking_decision(
-        booking_id, decision.status, decision.reason, decision.alternative, user["id"],
+        booking_id,
+        decision.status,
+        decision.reason,
+        decision.alternative,
+        user["id"],
+        expires_at=expires_at_iso,
     )
 
     # Notify the Coordinator who requested the booking.
@@ -336,6 +365,11 @@ def decide_booking(booking_id):
             message += f" Suggested alternative: {decision.alternative}"
         create_notification(
             booking["requested_by"], booking["event_id"], "booking_rejected", message,
+        )
+    elif decision.is_hold:
+        create_notification(
+            booking["requested_by"], booking["event_id"], "booking_held",
+            f"Your venue booking is tentatively held until {expires_at_iso}.",
         )
     else:
         create_notification(

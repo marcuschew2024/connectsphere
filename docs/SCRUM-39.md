@@ -36,7 +36,7 @@ An event may be confirmed only when **all** of the following hold:
   Partially fulfilled, Unavailable and unknown states block. Released/cancelled or
   Pending allocations cannot satisfy required quantities. No recorded equipment
   requests means no equipment gate is outstanding. This replaces the former hardcoded
-  readiness flag; see Decision Log D21 for the owner's decision and concurrency limits.
+  readiness flag; see Decision Log D22 for the owner's decision and concurrency limits.
 
 `Rejected` bookings are **settled history and do not block** (PO decision): a declined
 venue request sitting in the log does not stop the event being confirmed, as long as

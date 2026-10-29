@@ -35,7 +35,7 @@
   },
   "human_review": {
     "scope_owner": "Marcus with the equipment/story owners",
-    "required": "Owner approved blocking policy; Marcus and equipment owners still review implementation and concurrency limits in Decision Log D21 before merge.",
+    "required": "Owner approved blocking policy; Marcus and equipment owners still review implementation and concurrency limits in Decision Log D22 before merge.",
     "merge_ready": false
   },
   "initial_result": {

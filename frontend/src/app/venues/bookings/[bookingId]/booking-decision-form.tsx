@@ -16,12 +16,13 @@ export default function BookingDecisionForm({
 }) {
   const [reason, setReason] = useState("");
   const [alternative, setAlternative] = useState("");
+  const [expiryHours, setExpiryHours] = useState("48");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
 
   if (booking.status !== "Requested" && booking.status !== "Pending") return null;
 
-  async function makeDecision(decision: "approve" | "reject") {
+  async function makeDecision(decision: "approve" | "reject" | "hold") {
     if (busy) return;
 
     if (decision === "reject" && !reason.trim()) {
@@ -41,6 +42,9 @@ export default function BookingDecisionForm({
             decision,
             ...(decision === "reject" ? { reason: reason.trim() } : {}),
             ...(alternative.trim() ? { alternative: alternative.trim() } : {}),
+            ...(decision === "hold" && expiryHours ? {
+              expires_at: new Date(Date.now() + Number(expiryHours) * 3600 * 1000).toISOString(),
+            } : {}),
           }),
         },
       );
@@ -75,14 +79,43 @@ export default function BookingDecisionForm({
 
       {error && <p role="alert" className="rounded-md border border-destructive/30 bg-destructive/5 p-3 text-sm text-destructive">{error}</p>}
 
-      <button
-        type="button"
-        disabled={busy}
-        onClick={() => void makeDecision("approve")}
-        className="w-full rounded-md bg-emerald-600 px-4 py-3 text-sm font-semibold text-white hover:bg-emerald-500 disabled:opacity-50"
-      >
-        Approve
-      </button>
+      <div className="rounded-xl border border-border bg-muted/30 p-3.5">
+        <label htmlFor="hold-duration-select" className="block text-xs font-medium text-foreground">
+          Hold duration
+        </label>
+        <select
+          id="hold-duration-select"
+          value={expiryHours}
+          onChange={(e) => setExpiryHours(e.target.value)}
+          disabled={busy}
+          className="mt-1.5 w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground focus:border-ring focus:outline-none focus:ring-2 focus:ring-ring/30"
+        >
+          <option value="24">24 hours (1 day)</option>
+          <option value="48">48 hours (2 days - standard)</option>
+        </select>
+        <p className="mt-1.5 text-xs text-muted-foreground">
+          Tentative holds reserve the venue while details are finalised, then automatically expire.
+        </p>
+      </div>
+
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+        <button
+          type="button"
+          disabled={busy}
+          onClick={() => void makeDecision("approve")}
+          className="w-full rounded-md bg-emerald-600 px-4 py-3 text-sm font-semibold text-white hover:bg-emerald-500 disabled:opacity-50"
+        >
+          Approve
+        </button>
+        <button
+          type="button"
+          disabled={busy}
+          onClick={() => void makeDecision("hold")}
+          className="w-full rounded-md bg-indigo-600 px-4 py-3 text-sm font-semibold text-white hover:bg-indigo-500 disabled:opacity-50"
+        >
+          Tentatively hold
+        </button>
+      </div>
 
       <form onSubmit={submitRejection} className="space-y-3 border-t border-border pt-4">
         <div>

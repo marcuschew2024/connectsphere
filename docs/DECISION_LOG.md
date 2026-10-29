@@ -134,7 +134,7 @@ An at-a-glance summary of where AI was and was not used sits in the
   unresolved. Resolution: wire the confirm endpoint to real equipment-request status.
 - **Owner.** Event-lifecycle / readiness work.
 
-**29 October 2026 update:** the deferred seam above is superseded locally by D21.
+**29 October 2026 update:** the deferred seam above is superseded locally by D22.
 It remains a description of the previously merged baseline, not the updated gate.
 
 ### D6 — Operational safety check as a distinct lifecycle stage
@@ -230,7 +230,7 @@ It remains a description of the previously merged baseline, not the updated gate
 - **Verification.** Unit and acceptance tests across catalogue, availability, requests, and
   reservation status, plus e2e specs for the equipment screens.
 - **Trade-off.** A sizeable surface delivered late in the project; it is built and merged,
-  but was initially not wired into the event confirmation gate (D5). D21 supplies
+  but was initially not wired into the event confirmation gate (D5). D22 supplies
   that integration locally; merge/review is still required.
 - **Owner.** Equipment / technical-support work.
 
@@ -410,7 +410,23 @@ case, the owner explicitly requested push and merge of the SCRUM-40 branch. Proc
 only after remote lint/build/e2e pass. Jerome owns these domain/API/access decisions.
 Shared Supabase migration deployment is separate and is not implied by the Git merge.
 
-### D21 — Confirmation requires fully reserved equipment (SCRUM-39)
+### D21 — Tentative venue holds with auto-expiry and FCFS override (SCRUM-79)
+
+- **Context.** Venue Staff need to tentatively hold a venue slot while arrangements are finalised.
+  Customer Week 7 Change #4 requires that holds must have an expiry timestamp and release the venue
+  if unconfirmed; confirmed bookings (FCFS) override active holds.
+- **Decision.** Model tentative holds as booking records with `status = 'Held'` and `expires_at timestamptz`.
+  In `OverlapEngine`, holds block new tentative requests while active (`now < expires_at`), but release
+  the slot once expired (`now >= expires_at`). A confirmed booking wins over a tentative hold (`can_confirm = True`).
+- **Constraints / guardrails.** Enforce `expires_at` in the future and strictly before the event starts.
+  Single hold per venue/slot enforced by Postgres EXCLUDE gist constraint and the overlap engine.
+- **Verification.** `test_venue_overlap.py` unit tests for hold precedence and expiry; `test_booking_decision_route.py`
+  integration tests for Venue Staff placement, expiry validation, and coordinator notification.
+- **Trade-off.** Automatic slot release is evaluated on-demand during conflict checks (`is_expired()`) rather
+  than running a continuous background daemon, ensuring zero background compute overhead and high reliability.
+- **Owner.** Jessica Ang (Sprint 4 Overlap & Availability owner).
+
+### D22 — Confirmation requires fully reserved equipment (SCRUM-39)
 
 - **Context.** Database-backed regression tests reproduced confirmation returning
   200 with approved venues but a Requested equipment request. D5 documented this
@@ -473,5 +489,5 @@ under human-authored specifications. Every safety-critical decision — the over
 the confirmation and safety gates, and the authentication/authorisation model — was
 human-designed, documented in this log, and review-gated in CI before merge. Known
 trade-offs (notably the former deferred technical-arrangements seam in D5, addressed
-locally by D21, and the interim
+locally by D22, and the interim
 auto-assign in D9) are recorded explicitly rather than left implicit.

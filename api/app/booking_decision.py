@@ -13,6 +13,7 @@ class BookingDecision:
     _STATUSES = {
         "approve": "Confirmed",
         "reject": "Rejected",
+        "hold": "Held",
     }
 
     def __init__(
@@ -22,12 +23,18 @@ class BookingDecision:
         alternative: str | None = None,
     ):
         if action not in self._STATUSES:
-            raise ValueError("Decision must be approve or reject.")
+            raise ValueError("Decision must be approve, reject, or hold.")
 
         if action == "reject":
             if not isinstance(reason, str) or not reason.strip():
                 raise ValueError("A reason is required when rejecting a request.")
             reason = reason.strip()
+        elif action == "hold":
+            reason = (
+                reason.strip()
+                if isinstance(reason, str) and reason.strip()
+                else "Tentatively held by Venue Staff"
+            )
         else:
             reason = None
 
@@ -42,12 +49,18 @@ class BookingDecision:
         self.reason = reason
         self.alternative = alternative
 
+    @property
+    def is_hold(self) -> bool:
+        return self.action == "hold"
+
     @classmethod
     def from_payload(cls, data: object) -> "BookingDecision":
         """Build a decision from the JSON sent by the client."""
-        if not isinstance(data, dict) or set(data) - {"decision", "reason", "alternative"}:
+        allowed_keys = {"decision", "reason", "alternative", "expires_at"}
+        if not isinstance(data, dict) or set(data) - allowed_keys:
             raise ValueError(
-                "Send a decision and, when rejecting, a reason; alternative is optional."
+                "Send a decision and, when rejecting, a reason; "
+                "alternative and expires_at are optional."
             )
         return cls(data.get("decision"), data.get("reason"), data.get("alternative"))
 

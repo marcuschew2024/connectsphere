@@ -135,7 +135,7 @@ export default function BookingDecisionPage() {
             </section>
           )}
 
-          <div className={`grid items-start gap-6 ${canReview ? "lg:grid-cols-[minmax(0,1fr)_360px]" : ""}`}>
+          <div className="space-y-6">
             <section aria-labelledby="booking-details-heading" className="min-w-0 rounded-2xl border border-border bg-card p-5 shadow-sm sm:p-6">
               <h2 id="booking-details-heading" className="mb-5 font-semibold">Booking details</h2>
               <dl className="grid gap-x-6 gap-y-5 text-sm sm:grid-cols-2">
@@ -147,9 +147,11 @@ export default function BookingDecisionPage() {
               </dl>
             </section>
 
-            {canReview && <aside aria-label="Review actions" className="lg:sticky lg:top-6">
-              <BookingDecisionForm booking={booking} onSaved={setBooking} />
-            </aside>}
+            {canReview && (
+              <section aria-label="Review actions">
+                <BookingDecisionForm booking={booking} onSaved={setBooking} />
+              </section>
+            )}
           </div>
         </>}
       </div>
