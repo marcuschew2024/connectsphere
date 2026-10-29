@@ -22,7 +22,7 @@ test("staff opens a prefilled form, saves all five fields, and sees updated cata
   await page.route(API + `/venues/${ID}`, route => {
     if (route.request().method() === "PUT") {
       const body = route.request().postDataJSON();
-      expect(Object.keys(body).sort()).toEqual(["accessibility", "capacity", "facilities", "operating_hours", "revision", "supported_layouts"]);
+      expect(Object.keys(body).sort()).toEqual(["accessibility", "capacity", "facilities", "operating_hours", "revision", "setup_time_minutes", "supported_layouts", "turnaround_time_minutes"]);
       expect(body.revision).toBe(1);
       expect(body.capacity).toBe(80);
       expect(body.facilities).toEqual(["Whiteboard"]);

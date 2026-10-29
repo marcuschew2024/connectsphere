@@ -11,7 +11,7 @@ from .rbac import require_role
 from .venue_repository import create_venue, get_venue, list_venues, update_venue
 from .venue_search import filter_options, parse_filters, search_venues
 from .venue_suitability import SuitabilityEngine
-from .venue_validation import FIELDS, validate_venue
+from .venue_validation import BUFFER_FIELDS, FIELDS, validate_venue
 
 venues = Blueprint("venues", __name__, url_prefix="/venues")
 
@@ -52,25 +52,29 @@ def add_venue():
     return jsonify({"venue": create_venue(fields, user["id"])}), 201
 
 
-EDIT_FIELDS = FIELDS - {"name", "location"}
+EDIT_FIELDS = (FIELDS - {"name", "location"}) - BUFFER_FIELDS
+OPTIONAL_EDIT_FIELDS = EDIT_FIELDS | BUFFER_FIELDS
 
 
 @venues.put("/<uuid:venue_id>")
 def edit_venue(venue_id):
     user = _require_user("Venue Staff")
     data = request.get_json(silent=True)
-    if not isinstance(data, dict) or set(data) != EDIT_FIELDS | {"revision"}:
+    if not isinstance(data, dict):
+        raise BadRequest("Send venue details as a JSON object.")
+    keys = set(data) - {"revision"}
+    if not (EDIT_FIELDS <= keys <= OPTIONAL_EDIT_FIELDS) or "revision" not in data:
         raise BadRequest("Send the five editable venue fields and its revision only.")
     if type(data["revision"]) is not int or not 1 <= data["revision"] <= 2147483647:
         raise BadRequest("Reload the venue before saving your changes.")
     venue = get_venue(str(venue_id))
     if venue is None:
         raise NotFound("Venue not found.")
-    fields, errors = validate_venue({**venue, **{key: data[key] for key in EDIT_FIELDS}})
+    fields, errors = validate_venue({**venue, **{key: data[key] for key in keys}})
     if errors:
         return jsonify({"error": "Please check the highlighted fields.", "fields": errors}), 400
     return jsonify({"venue": update_venue(
-        str(venue_id), {key: fields[key] for key in EDIT_FIELDS}, user["id"], data["revision"]
+        str(venue_id), {key: fields[key] for key in keys}, user["id"], data["revision"]
     )}), 200
 
 

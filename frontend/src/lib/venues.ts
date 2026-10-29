@@ -13,6 +13,8 @@ export type Venue = {
   supported_layouts: string[];
   operating_hours: OpeningHours;
   timezone: string;
+  setup_time_minutes?: number;
+  turnaround_time_minutes?: number;
   created_by: number;
   created_at: string;
   revision?: number;

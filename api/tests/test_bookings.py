@@ -42,7 +42,7 @@ def booking_api(app, monkeypatch):
     monkeypatch.setattr(
         "app.bookings.get_venue", lambda venue_id: {"id": venue_id, "capacity": 300}
     )
-    monkeypatch.setattr("app.bookings.find_overlapping_bookings", lambda *args: [])
+    monkeypatch.setattr("app.bookings.find_overlapping_bookings", lambda *args, **kwargs: [])
     monkeypatch.setattr("app.bookings._venue_staff_ids", lambda: [3])
     monkeypatch.setattr(
         "app.bookings.create_notification", lambda *args: notifications.append(args)
@@ -139,7 +139,7 @@ def test_confirmed_or_blocked_overlap_is_rejected(booking_api, monkeypatch):
     client, created, _, _ = booking_api
     monkeypatch.setattr(
         "app.bookings.find_overlapping_bookings",
-        lambda *args: [{
+        lambda *args, **kwargs: [{
             "id": "existing", "venue_id": "venue-1",
             "start_at": payload()["start_at"], "end_at": payload()["end_at"],
             "status": "Confirmed",
@@ -157,7 +157,7 @@ def test_existing_tentative_hold_is_rejected(booking_api, monkeypatch):
     requested = payload()
     monkeypatch.setattr(
         "app.bookings.find_overlapping_bookings",
-        lambda *args: [{
+        lambda *args, **kwargs: [{
             "id": "existing", "venue_id": "venue-1",
             "start_at": requested["start_at"], "end_at": requested["end_at"],
             "status": "Requested",
@@ -200,3 +200,53 @@ def test_booking_detail_is_available_to_assigned_coordinator(app, monkeypatch):
 
     assert response.status_code == 200
     assert response.json["booking"]["id"] == "booking-1"
+
+
+def test_tc_129_02_integration_back_to_back_bookings_conflict_due_to_buffers(
+    booking_api, monkeypatch
+):
+    """TC-129-02 (Integration): Back-to-back bookings now conflict due to venue buffers."""
+    client, created, _, _ = booking_api
+
+    # Venue configured with 30-min setup and 30-min turnaround
+    monkeypatch.setattr(
+        "app.bookings.get_venue",
+        lambda venue_id: {
+            "id": venue_id,
+            "capacity": 300,
+            "setup_time_minutes": 30,
+            "turnaround_time_minutes": 30,
+        },
+    )
+
+    base = datetime.now(UTC) + timedelta(days=3)
+    existing_start = (base + timedelta(hours=1)).isoformat()
+    existing_end = (base + timedelta(hours=3)).isoformat()
+
+    # An existing Confirmed booking runs from T+1h to T+3h (with turnaround, occupied until T+3.5h)
+    monkeypatch.setattr(
+        "app.bookings.find_overlapping_bookings",
+        lambda venue_id, s, e, buffer_window_minutes=0: [{
+            "id": "existing-confirmed",
+            "venue_id": venue_id,
+            "start_at": existing_start,
+            "end_at": existing_end,
+            "status": "Confirmed",
+        }],
+    )
+
+    # Coordinator requests a back-to-back slot: T+3h to T+5h
+    # Under old logic (zero buffer), [1..3) and [3..5) touch at 3 and do not conflict.
+    # Under SCRUM-129, existing turnaround (to 3:30) conflicts with new setup (from 2:30).
+    response = client.post(
+        "/venues/bookings",
+        json=payload(
+            start_at=existing_end,
+            end_at=(base + timedelta(hours=5)).isoformat(),
+        ),
+        headers=ORIGIN,
+    )
+
+    assert response.status_code == 409
+    assert "already confirmed or blocked" in response.json["error"]
+    assert created == []
