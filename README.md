@@ -149,6 +149,21 @@ including concurrent attempts. Existing events start with registration closed un
 a limit is set. See the [setup, API handoff and test evidence](docs/SCRUM-41.md).
 The attendee registration screens remain SCRUM-40 work.
 
+## Attendee registration (SCRUM-40)
+
+After the SCRUM-41 capacity and notification setup, apply
+[`20261029044510_scrum_40_attendee_registration.sql`](supabase/migrations/20261029044510_scrum_40_attendee_registration.sql).
+Attendees open **Browse events** from Home, provide the organiser's required information
+and book a place. The saved receipt and **Registration confirmations** on Home show
+their confirmation. Full events reject further signups; no waiting list is enabled.
+See the [API, setup, review decisions and verification](docs/SCRUM-40.md).
+
+For first-capacity setup on an already Confirmed event, also review
+[`20261029062324_scrum_40_initial_confirmed_capacity.sql`](supabase/migrations/20261029062324_scrum_40_initial_confirmed_capacity.sql).
+It allows the owning Organiser to initialise an unset limit once, with zero existing
+registrations. An established Confirmed limit stays locked. See Decision D20 before
+applying this change to the shared development database.
+
 ## Prerequisites
 
 For draft submission, on-screen confirmation and coordinator assignment, see the

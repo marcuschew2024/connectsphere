@@ -66,3 +66,16 @@ for pass in 1 2; do
   echo "Registration capacity migration pass $pass: PASS"
 done
 psql -v ON_ERROR_STOP=1 -f /sql/tests/registration_capacity.sql
+
+# SCRUM-40 remains additive to the capacity migration and is safe to replay.
+for pass in 1 2; do
+  psql -v ON_ERROR_STOP=1 -f /sql/migrations/20261029044510_scrum_40_attendee_registration.sql > /tmp/migration-output.txt
+  echo "Attendee registration migration pass $pass: PASS"
+done
+psql -v ON_ERROR_STOP=1 -f /sql/tests/attendee_registration.sql
+
+for pass in 1 2; do
+  psql -v ON_ERROR_STOP=1 -f /sql/migrations/20261029062324_scrum_40_initial_confirmed_capacity.sql > /tmp/migration-output.txt
+  echo "Initial confirmed capacity migration pass $pass: PASS"
+done
+psql -v ON_ERROR_STOP=1 -f /sql/tests/initial_confirmed_capacity.sql

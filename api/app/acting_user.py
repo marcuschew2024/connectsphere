@@ -30,7 +30,11 @@ def get_acting_user() -> dict | None:
 
 def require_acting_user() -> dict:
     """Use this in action handlers instead of accepting a user ID from the browser."""
-    user = get_acting_user()
+    # Match /session: password-authenticated accounts take precedence over the
+    # development-only switcher. Never accept an identity from the request body.
+    from .auth import get_authenticated_user
+
+    user = get_authenticated_user() or get_acting_user()
     if user is None:
         raise Unauthorized("Select a demo user first.")
     return user

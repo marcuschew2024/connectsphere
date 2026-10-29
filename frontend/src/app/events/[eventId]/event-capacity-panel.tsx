@@ -20,9 +20,11 @@ export default function EventCapacityPanel({ event, actingRole, onSaved }: {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
-  const canEdit = actingRole === "Organiser" && ["Draft", "Submitted", "Planning"].includes(event.status);
   const capacity = event.registration_capacity ?? null;
   const registered = event.registered_count ?? 0;
+  const firstSetup = event.status === "Confirmed" && capacity === null && registered === 0;
+  const canEdit = actingRole === "Organiser"
+    && (["Draft", "Submitted", "Planning"].includes(event.status) || firstSetup);
   const remaining = capacity === null ? 0 : Math.max(0, capacity - registered);
   const full = capacity !== null && remaining === 0;
 
@@ -84,13 +86,15 @@ export default function EventCapacityPanel({ event, actingRole, onSaved }: {
               {busy ? "Saving…" : "Save capacity"}
             </button>
           </div>
-          <p id="capacity-help" className="text-sm text-muted-foreground">Set this before confirmation. Expected attendance is a planning estimate and does not set this limit.</p>
+          <p id="capacity-help" className="text-sm text-muted-foreground">{firstSetup
+            ? "Set the first signup limit for this confirmed event. Once saved, capacity is locked; later changes go through your coordinator."
+            : "Set this before confirmation. Expected attendance is a planning estimate and does not set this limit."}</p>
           {error && <p id="capacity-error" role="alert" className="text-sm text-destructive">{error}</p>}
-          {notice && <p role="status" className="text-sm text-primary">{notice}</p>}
         </form>
       ) : actingRole === "Organiser" && !["Completed", "Cancelled", "Rejected"].includes(event.status)
         ? <p className="mt-4 text-sm text-muted-foreground">Capacity is locked after confirmation. Request a change through your coordinator.</p>
         : null}
+      {notice && <p role="status" className="mt-3 text-sm text-primary">{notice}</p>}
     </section>
   );
 }
