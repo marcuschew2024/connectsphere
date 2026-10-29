@@ -7,6 +7,7 @@ from werkzeug.exceptions import BadRequest, Conflict, Forbidden, HTTPException, 
 
 from .acting_user import require_acting_user
 from .booking_repository import list_bookings_for_event
+from .equipment_request_repository import list_confirmation_requests
 from .event_completion import EventCompletion
 from .event_confirmation import EventConfirmation
 from .event_decision import EventDecision
@@ -417,9 +418,9 @@ def confirm_event(event_id):
     if event.get("status") != "Planning":
         raise Conflict("Only an event in Planning can be confirmed.")
 
-    # Technical arrangements (equipment reservations, SCRUM-37) are not built yet, so
-    # the seam is passed as resolved for now; the gate already enforces it either way.
-    gate = EventConfirmation.from_bookings(list_bookings_for_event(event_id))
+    gate = EventConfirmation.from_arrangements(
+        list_bookings_for_event(event_id), list_confirmation_requests(event_id),
+    )
     if not gate.can_confirm:
         raise Conflict("This event cannot be confirmed yet. " + " ".join(gate.outstanding))
 

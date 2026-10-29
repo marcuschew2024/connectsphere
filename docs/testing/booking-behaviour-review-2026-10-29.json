@@ -1,0 +1,90 @@
+{
+  "date": "2026-10-29",
+  "baseline_commit": "94e23abe9bb32066e03159cb8b6393d758ae7873",
+  "scope": [
+    "SCRUM-126 independent booking changes",
+    "SCRUM-31 failed writes and role denial",
+    "SCRUM-39 unresolved equipment refusal"
+  ],
+  "test_file": "api/tests/test_booking_persistence_acceptance.py",
+  "command": "POSTGREST_TEST_URL=http://127.0.0.1:55433 .venv/bin/pytest -q tests/test_booking_persistence_acceptance.py --tb=short",
+  "environment": "Disposable local PostgreSQL/PostgREST with existing migrations; no hosted Supabase changes",
+  "passing_behaviours": [
+    "Editing one persisted booking preserves the entire sibling record and parent event",
+    "Cancelling one persisted booking preserves the entire sibling record and parent event",
+    "Both arrangements remain listed after edit or cancellation",
+    "Non-Coordinator roles receive 403 without mutation and with a fresh denied-action audit entry",
+    "A different Coordinator cannot change or cancel another Coordinator's booking",
+    "Database write failures return 503, conceal internal error details and preserve both bookings and parent"
+  ],
+  "reproduced_bug": {
+    "test": "test_confirm_refuses_an_unresolved_equipment_request",
+    "setup": "Two venue bookings approved through the API; equipment catalogue item and an unresolved Requested equipment request created through the API",
+    "expected": "409 with a technical-arrangements reason; Planning event and history unchanged",
+    "existing_decision": "docs/DECISION_LOG.md D5 documents the deferred technical-readiness seam",
+    "initial_actual": "200 and Confirmed event despite Requested equipment",
+    "resolution": "Owner approved blocking Requested, Partially fulfilled and Unavailable; implemented EventConfirmation.from_arrangements with current reserved-quantity reads, unit/repository regressions and real database refusal-to-reservation-to-confirmation flows."
+  },
+  "constraints": {
+    "existing_tests_modified": "Venue-route fixture now explicitly supplies no equipment requests; all existing assertions retained.",
+    "application_code_modified": true,
+    "expected_failure_marker_added": false,
+    "coverage_thresholds_or_exclusions_changed": false,
+    "full_suite_or_new_overall_coverage_claimed": "Full backend suite 1201 passed; measured combined line/branch coverage 87.35%.",
+    "pushed_or_merged": false
+  },
+  "human_review": {
+    "scope_owner": "Marcus with the equipment/story owners",
+    "required": "Owner approved blocking policy; Marcus and equipment owners still review implementation and concurrency limits in Decision Log D22 before merge.",
+    "merge_ready": false
+  },
+  "initial_result": {
+    "passed": 14,
+    "failed": 1,
+    "skipped": 0
+  },
+  "result": {
+    "behaviour_cases_passed": 19,
+    "failed": 0,
+    "skipped": 0,
+    "full_backend_suite_passed": 1201
+  },
+  "coverage": {
+    "totals": {
+      "covered_lines": 2646,
+      "num_statements": 3013,
+      "percent_covered": 87.35100948674288,
+      "percent_covered_display": "87",
+      "missing_lines": 367,
+      "excluded_lines": 5,
+      "percent_statements_covered": 87.81944905409891,
+      "percent_statements_covered_display": "88",
+      "num_branches": 1098,
+      "num_partial_branches": 141,
+      "covered_branches": 945,
+      "missing_branches": 153,
+      "percent_branches_covered": 86.06557377049181,
+      "percent_branches_covered_display": "86"
+    },
+    "event_confirmation": {
+      "covered_lines": 37,
+      "num_statements": 37,
+      "percent_covered": 100.0,
+      "percent_covered_display": "100",
+      "missing_lines": 0,
+      "excluded_lines": 0,
+      "percent_statements_covered": 100.0,
+      "percent_statements_covered_display": "100",
+      "num_branches": 12,
+      "num_partial_branches": 0,
+      "covered_branches": 12,
+      "missing_branches": 0,
+      "percent_branches_covered": 100.0,
+      "percent_branches_covered_display": "100"
+    }
+  },
+  "limits": [
+    "Readiness reads and event/history writes remain separate operations; no serializable concurrency guarantee.",
+    "No application schema or hosted database changes, push, merge, or hosted CI run."
+  ]
+}

@@ -15,8 +15,8 @@ Gate (Week 7 change #3, multi-venue). An event may be confirmed only when:
   * the technical arrangements are resolved.
 
 Rejected and cancelled bookings are settled history and do not block. The
-`technical_resolved` flag is the seam for equipment reservations (SCRUM-37);
-until that story lands the endpoint passes it as True. Non-essential items
+`from_arrangements` requires every equipment request to be Reserved; the
+repository derives readiness from its current reservations. Non-essential items
 (programme, registration setup) are intentionally not part of the gate - AC2
 requires that they must not block confirmation, so the gate never looks at them.
 """
@@ -52,6 +52,17 @@ class EventConfirmation:
             for booking in bookings
         ]
         return cls(statuses, technical_resolved=technical_resolved)
+
+    @classmethod
+    def from_arrangements(cls, bookings, equipment_requests) -> "EventConfirmation":
+        """No equipment requests means none are needed; every recorded request must be ready."""
+        if not isinstance(equipment_requests, list):
+            raise ValueError("Equipment requests must be a list of request records.")
+        technical_resolved = all(
+            isinstance(row, dict) and cls._clean(row.get("status")) == "Reserved"
+            for row in equipment_requests
+        )
+        return cls.from_bookings(bookings, technical_resolved=technical_resolved)
 
     @property
     def can_confirm(self) -> bool:

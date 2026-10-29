@@ -18,6 +18,9 @@ pytest_plugins = ("tests.test_events",)
 @pytest.fixture
 def bookings(monkeypatch):
     """Control what list_bookings_for_event returns for the confirm endpoint."""
+    # These venue-gate cases have no equipment requests. The real readiness
+    # lookup is exercised separately by the database acceptance regressions.
+    monkeypatch.setattr("app.events.list_confirmation_requests", lambda event_id: [])
 
     def _set(statuses):
         monkeypatch.setattr(
