@@ -506,6 +506,9 @@ Shared Supabase migration deployment is separate and is not implied by the Git m
 - **Owner.** Ernest Wong (reassigned from Marcus, 29 Oct 2026). This is
   authentication logic and needs human review before merge. Applying the seed to the
   shared Supabase project is a separate step for the owner.
+- **Owner verification — 30 Oct 2026.** Ernest Wong ran a production build and confirmed
+  that a signed-out visit to `/` lands on `/login`. Push and merge still require the
+  owner's explicit instruction and green CI.
 
 ## AI usage summary
 
