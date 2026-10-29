@@ -4,7 +4,7 @@
 // owned by SCRUM-31; until it lands the frontend is exercised against mocked responses.
 import { createElement } from "react";
 
-export type BookingStatus = "Requested" | "Pending" | "Confirmed" | "Rejected" | "Blocked" | "Cancelled";
+export type BookingStatus = "Requested" | "Pending" | "Held" | "Confirmed" | "Rejected" | "Blocked" | "Cancelled" | "Expired";
 
 export type BookingRecord = {
   id: string;
@@ -13,6 +13,7 @@ export type BookingRecord = {
   start_at: string;
   end_at: string;
   status: BookingStatus;
+  expires_at?: string | null;
   decision_reason: string | null;
   suggested_alternative: string | null;
   decided_by: number | null;
@@ -33,6 +34,8 @@ const statusStyles: Record<BookingStatus, string> = {
   Confirmed: "bg-emerald-100 text-emerald-700 border-emerald-200 dark:bg-emerald-500/15 dark:text-emerald-300 dark:border-emerald-400/30",
   Rejected: "bg-red-100 text-red-700 border-red-200 dark:bg-red-500/15 dark:text-red-300 dark:border-red-400/30",
   Blocked: "bg-orange-100 text-orange-700 border-orange-200 dark:bg-orange-500/15 dark:text-orange-300 dark:border-orange-400/30",
+  Held: "bg-indigo-100 text-indigo-700 border-indigo-200 dark:bg-indigo-500/15 dark:text-indigo-300 dark:border-indigo-400/30",
+  Expired: "bg-zinc-100 text-zinc-600 border-zinc-200 dark:bg-zinc-500/15 dark:text-zinc-400 dark:border-zinc-400/30",
   Cancelled: "bg-slate-100 text-slate-700 border-slate-200 dark:bg-slate-500/15 dark:text-slate-300 dark:border-slate-400/30",
 };
 

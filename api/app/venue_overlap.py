@@ -27,7 +27,7 @@ def _as_utc(value: str | datetime) -> datetime:
 
 @dataclass(frozen=True)
 class BookingInterval:
-    """A venue booking interval with published and buffer-occupied windows."""
+    """A venue booking interval with buffer-occupied windows (SCRUM-129 + SCRUM-79)."""
 
     booking_id: str | None
     venue_id: str
@@ -36,6 +36,7 @@ class BookingInterval:
     status: str
     setup_minutes: int = 0
     turnaround_minutes: int = 0
+    expires_at: datetime | None = None
 
     @classmethod
     def from_record(
@@ -47,6 +48,7 @@ class BookingInterval:
         # If record has its own buffer or venue buffer attached, prefer it
         setup = int(record.get("setup_minutes", setup_minutes) or 0)
         turnaround = int(record.get("turnaround_minutes", turnaround_minutes) or 0)
+        expires = record.get("expires_at")
         return cls(
             booking_id=record.get("id"),
             venue_id=str(record["venue_id"]),
@@ -55,7 +57,15 @@ class BookingInterval:
             status=str(record["status"]),
             setup_minutes=max(0, setup),
             turnaround_minutes=max(0, turnaround),
+            expires_at=_as_utc(expires) if expires else None,
         )
+
+    def is_expired(self, as_of: datetime | None = None) -> bool:
+        """SCRUM-79: A hold with expires_at <= as_of is expired and releases its slot."""
+        if not self.expires_at:
+            return False
+        current = as_of or datetime.now(UTC)
+        return current >= self.expires_at
 
     @property
     def occupied_start(self) -> datetime:
@@ -115,7 +125,7 @@ class OverlapEngine:
     """
 
     HARD_STATUSES = frozenset({"Confirmed", "Blocked"})
-    TENTATIVE_STATUSES = frozenset({"Requested", "Pending"})
+    TENTATIVE_STATUSES = frozenset({"Requested", "Pending", "Held"})
 
     def evaluate(
         self,
@@ -150,6 +160,10 @@ class OverlapEngine:
                 setup_minutes=setup_minutes,
                 turnaround_minutes=turnaround_minutes,
             )
+
+            # SCRUM-79: An expired hold is not treated as active/confirmed and does not block
+            if interval.is_expired():
+                continue
 
             # Check if this interval overlaps considering setup and turnaround buffers
             if not interval.overlaps(

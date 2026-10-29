@@ -406,6 +406,22 @@ case, the owner explicitly requested push and merge of the SCRUM-40 branch. Proc
 only after remote lint/build/e2e pass. Jerome owns these domain/API/access decisions.
 Shared Supabase migration deployment is separate and is not implied by the Git merge.
 
+### D21 — Tentative venue holds with auto-expiry and FCFS override (SCRUM-79)
+
+- **Context.** Venue Staff need to tentatively hold a venue slot while arrangements are finalised.
+  Customer Week 7 Change #4 requires that holds must have an expiry timestamp and release the venue
+  if unconfirmed; confirmed bookings (FCFS) override active holds.
+- **Decision.** Model tentative holds as booking records with `status = 'Held'` and `expires_at timestamptz`.
+  In `OverlapEngine`, holds block new tentative requests while active (`now < expires_at`), but release
+  the slot once expired (`now >= expires_at`). A confirmed booking wins over a tentative hold (`can_confirm = True`).
+- **Constraints / guardrails.** Enforce `expires_at` in the future and strictly before the event starts.
+  Single hold per venue/slot enforced by Postgres EXCLUDE gist constraint and the overlap engine.
+- **Verification.** `test_venue_overlap.py` unit tests for hold precedence and expiry; `test_booking_decision_route.py`
+  integration tests for Venue Staff placement, expiry validation, and coordinator notification.
+- **Trade-off.** Automatic slot release is evaluated on-demand during conflict checks (`is_expired()`) rather
+  than running a continuous background daemon, ensuring zero background compute overhead and high reliability.
+- **Owner.** Jessica Ang (Sprint 4 Overlap & Availability owner).
+
 ## AI usage summary
 
 Per-feature view of where AI assistance was applied, always under human specification and
