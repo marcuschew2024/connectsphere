@@ -1,9 +1,9 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { ApiError, apiRequest } from "@/lib/api";
+import { apiRequest } from "@/lib/api";
+import { loadSwitcherState, type DemoUser } from "@/lib/dev-switcher";
 
-type DemoUser = { id: number; display_name: string; role: string };
 type Session = { user: DemoUser | null };
 
 export default function DevRoleSwitcher({ onRoleChange, compact = false }: {
@@ -19,33 +19,27 @@ export default function DevRoleSwitcher({ onRoleChange, compact = false }: {
 
   useEffect(() => {
     const controller = new AbortController();
-    const options = { signal: controller.signal };
 
-    Promise.all([
-      apiRequest<{ users: DemoUser[] }>("/dev/users", options),
-      apiRequest<Session>("/dev/session", options),
-    ])
-      .then(([list, session]) => {
+    // Loading only displays state; the page's role comes from /session (SCRUM-139).
+    loadSwitcherState((path) => apiRequest(path, { signal: controller.signal }))
+      .then((state) => {
         if (controller.signal.aborted) return;
-        setUsers(list.users);
-        setUser(session.user);
-        onRoleChange?.(session.user?.role ?? null);
+        setVisible(state.visible);
+        if (state.visible) {
+          setUsers(state.users);
+          setUser(state.user);
+        }
       })
       .catch((error: unknown) => {
         if (controller.signal.aborted) return;
-        onRoleChange?.(null);
-        if (error instanceof ApiError && error.status === 404) {
-          setVisible(false);
-        } else {
-          setError(error instanceof Error ? error.message : "Could not load demo users.");
-        }
+        setError(error instanceof Error ? error.message : "Could not load demo users.");
       })
       .finally(() => {
         if (!controller.signal.aborted) setBusy(false);
       });
 
     return () => controller.abort();
-  }, [onRoleChange]);
+  }, []);
 
   async function switchUser(userId: string) {
     setBusy(true);
