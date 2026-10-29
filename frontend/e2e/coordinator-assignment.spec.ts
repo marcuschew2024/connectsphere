@@ -163,3 +163,30 @@ test("the Organiser is notified once a Coordinator is assigned", async ({ page }
   await expect(inbox).toContainText("and will review it.");
   await expect(inbox.getByRole("link", { name: /View request/ })).toHaveAttribute("href", `/events/${QUEUED}`);
 });
+
+test("status history names the Lead's routing in words, not snake_case", async ({ page }) => {
+  await page.route(`${API}/session`, (route) => route.fulfill({
+    json: { user: { id: 1, display_name: "Demo Organiser", role: "Organiser" } },
+  }));
+  await page.route(`${API}/events/${ROUTED}`, (route) => route.fulfill({ json: { event: {
+    ...base, id: ROUTED, title: "Career fair", status: "Planning", request_status: "Submitted",
+    coordinator_id: 7, submitted_at: "2026-10-01T01:00:00Z",
+    decision_at: null, decision_by: null, decision_reason: null,
+  } } }));
+  await page.route(`${API}/events/${ROUTED}/history`, (route) => route.fulfill({ json: { history: [
+    { id: 1, event_id: ROUTED, old_status: "Draft", new_status: "Submitted", changed_by: 1,
+      changed_at: "2026-10-01T01:00:00Z" },
+    { id: 2, event_id: ROUTED, old_status: "Submitted", new_status: "Submitted", changed_by: 8,
+      changed_at: "2026-10-01T02:00:00Z", action: "coordinator_assigned", note: "Assigned to Demo Coordinator" },
+    { id: 3, event_id: ROUTED, old_status: "Submitted", new_status: "Submitted", changed_by: 8,
+      changed_at: "2026-10-01T03:00:00Z", action: "coordinator_reassigned", note: "Assigned to Coordinator B" },
+  ] } }));
+  await page.route(`${API}/events/${ROUTED}/clarification`, (route) => route.fulfill({ json: { clarification: null } }));
+  await page.goto(`/events/${ROUTED}`);
+  await page.locator("summary").filter({ hasText: "Status history" }).click();
+
+  await expect(page.getByText("Coordinator Assigned", { exact: true })).toBeVisible();
+  await expect(page.getByText("Coordinator Reassigned", { exact: true })).toBeVisible();
+  await expect(page.getByText("Assigned to Coordinator B")).toBeVisible();
+  await expect(page.getByText("coordinator_assigned")).toHaveCount(0);
+});

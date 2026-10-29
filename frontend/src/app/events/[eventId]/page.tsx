@@ -25,15 +25,7 @@ import EventBookingsPanel from "./event-bookings-panel";
 import EventChangeRequests from "./event-change-requests";
 import EventCompleteForm from "./event-complete-form";
 import EventCapacityPanel from "./event-capacity-panel";
-
-const historyActionLabels: Record<string, string> = {
-  event_completed: "Event completed",
-  change_requested: "Change Request Pending",
-  change_request_under_review: "Change Request Under Review",
-  change_request_approved: "Change Request Approved",
-  change_request_rejected: "Change Request Rejected",
-  change_request_implemented: "Change Request Implemented",
-};
+import { historyActionLabel } from "@/lib/history";
 
 export default function EventStatusPage() {
   const params = useParams<{ eventId: string }>();
@@ -248,7 +240,7 @@ export default function EventStatusPage() {
             <div className="border-t border-border px-5 py-4">
               {history.length === 0 ? <p className="text-sm text-muted-foreground">No status history is available yet.</p> : <ol className="space-y-4">
                 {history.map((change) => <li key={change.id} className="border-l-2 border-primary/40 pl-4 text-sm">
-                  <p>{change.action ? (historyActionLabels[change.action] ?? change.action) : `${change.old_status ?? "Created"} → ${change.new_status}`}</p>
+                  <p>{change.action ? historyActionLabel(change.action) : `${change.old_status ?? "Created"} → ${change.new_status}`}</p>
                   {change.note && <p className="mt-1 whitespace-pre-wrap break-words text-muted-foreground">{change.note}</p>}
                   <p className="mt-1 text-xs text-muted-foreground">User {change.changed_by} · {new Date(change.changed_at).toLocaleString()}</p>
                 </li>)}
