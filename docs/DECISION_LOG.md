@@ -461,6 +461,27 @@ Shared Supabase migration deployment is separate and is not implied by the Git m
   user supplied the blocking-status decision; implementation review and green CI
   remain required before merge. Nothing here authorizes push, merge or deployment.
 
+### D23 — Venue requirement fragments must not invent requested features
+
+- **Context.** New requirement-matching regressions found that `quiet room` produced
+  warnings for both Classroom and Boardroom. The reverse substring check treated
+  `room` as a request for each longer canonical name.
+- **Decision.** Remove reverse fragment matching. Preserve normalised phrase/synonym
+  recognition and conservative typo hints. An ambiguous fragment such as `micro`
+  does not by itself request a microphone. Suitability warnings remain advisory;
+  no booking, capacity, overlap or authorisation policy changes here.
+- **Constraints.** Preserve existing test assertions and coverage settings. This is a
+  matching correction, not a new schema, API or value-object interface. No shared
+  database writes form part of the coverage verification.
+- **Verification.** A regression asserts no warning for `quiet room` in a venue that
+  supports Theatre. Existing suitability and boundary suites still pass; the full
+  local Python 3.12 run passed 1,403 tests with 96.95% backend line coverage.
+- **Trade-off.** Truncated names are not silently accepted as full requirements;
+  users can use the complete supported feature or an existing normalised synonym.
+- **Owner.** Marcus for scope/merge, with Jessica for venue-suitability review. The
+  user requested merging this regression increment behind green CI; this entry
+  does not certify a separate teammate review or completion of 100% coverage.
+
 ## AI usage summary
 
 Per-feature view of where AI assistance was applied, always under human specification and

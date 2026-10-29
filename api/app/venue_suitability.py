@@ -69,9 +69,7 @@ def find_requested(canonical: str, request_text: str) -> tuple[bool, str | None]
                         coordinator should fix it before we trust it as a
                         requirement.
 
-    Matching is tried in order: whole-phrase match, then single-token substring
-    (multi-word canonicals are skipped here to avoid false positives such as
-    "access" matching "accessible"), then a conservative near-miss check that
+    Matching is tried in order: normalised phrase match, then a near-miss check that
     only reports typos at edit distance 1 on tokens of length 5 or more.
     """
     req_norm = _normalise(request_text)
@@ -83,13 +81,9 @@ def find_requested(canonical: str, request_text: str) -> tuple[bool, str | None]
     if canonical_norm in req_norm:
         return True, None
 
-    # 2. Single-token canonical: allow a token to be a substring of a request word.
-    if " " not in canonical_norm:
-        for word in _tokens(request_text):
-            if canonical_norm in word or word in canonical_norm:
-                return True, None
-
-    # 3. Near-miss: obvious single-character typos on longer tokens.
+    # Do not reverse-match fragments: "room" must not request both classroom
+    # and boardroom, and "micro" is not an unambiguous microphone requirement.
+    # 2. Near-miss: obvious single-character typos on longer tokens.
     #    Conservative on purpose: distance must be exactly 1 and the lengths must
     #    differ by at most 1, so genuinely ambiguous pairs — e.g. "seating" vs
     #    "stage" (distance 2) or "lyout" vs "banquet" (distance 2) — do not
