@@ -39,10 +39,15 @@ from .event_validation import TEXT_LIMITS, validate_event
 from .rbac import log_access_denied, public_event_view, require_related_user, require_role
 from .registration_capacity import valid_capacity
 from .registration_repository import (
+    CONFLICT_MESSAGES,
     capacity_for_event,
+    get_own_registration,
+    get_registration_confirmations,
+    list_registration_events,
     register_attendee,
     set_registration_capacity,
 )
+from .registration_request import RegistrationRequest
 from .safety_decision import SafetyDecision
 
 events = Blueprint("events", __name__, url_prefix="/events")
@@ -244,30 +249,93 @@ def registration_capacity(event_id):
         return jsonify({"error": "Please check the highlighted field.", "fields": {
             "capacity": "Enter a whole number between 1 and 10,000.",
         }}), 400
+    if not capacity_for_event(event).can_set(event["status"]):
+        raise Conflict(CONFLICT_MESSAGES["capacity_locked"])
     saved = set_registration_capacity(str(event_id), user["id"], data["capacity"])
     return jsonify({"registration_capacity": capacity_for_event(saved).as_dict()})
 
 
 @events.post("/<uuid:event_id>/registrations")
 def create_registration(event_id):
-    """Minimal capacity-protected write seam for SCRUM-40's attendee UI."""
+    """Session-only identity; SQL commits the place, access and receipt together."""
     if request.headers.get("Origin") != current_app.config["FRONTEND_ORIGIN"]:
         raise Forbidden("Request must come from the configured frontend origin.")
     user = require_acting_user()
     require_role(user, "Attendee", action="register_event")
     data = request.get_json(silent=True)
-    if data != {}:
-        raise BadRequest("Send an empty JSON object. The attendee comes from your session.")
+    if not isinstance(data, dict) or set(data) - {"information"}:
+        raise BadRequest(
+            "Send only registration information. The attendee comes from your session."
+        )
     event = get_event_by_id(str(event_id))
     if event is None:
         raise NotFound("Event not found.")
-    refusal = capacity_for_event(event).refusal(event["status"])
+    rules = registration_rules(event)
+    refusal = rules.refusal(datetime.now(UTC))
     if refusal:
         raise Conflict(refusal)
+    error = rules.information_error(data.get("information", ""))
+    if error:
+        return jsonify({"error": "Please check the highlighted field.",
+                        "fields": {"information": error}}), 400
     # Signup must not require a pre-existing participant link. SQL checks the actual
     # stored status, actor role, uniqueness and capacity atomically before inserting.
-    registration = register_attendee(str(event_id), user["id"])
+    registration = (register_attendee(str(event_id), user["id"], data["information"].strip())
+                    if "information" in data else register_attendee(str(event_id), user["id"]))
     return jsonify({"registration": registration}), 201
+
+
+def registration_rules(event: dict) -> RegistrationRequest:
+    return RegistrationRequest(capacity_for_event(event), event["status"],
+                               event.get("registration_requirements"),
+                               event.get("registration_opens_at"),
+                               event.get("registration_closes_at"))
+
+
+def registration_offer(event: dict) -> dict:
+    """An explicit attendee projection, separate from internal event/planning APIs."""
+    return {"event": {**public_event_view(event),
+                      "registration_requirements": event.get("registration_requirements")},
+            "capacity": capacity_for_event(event).as_dict(),
+            "unavailable_reason": registration_rules(event).refusal(datetime.now(UTC))}
+
+
+@events.get("/registration-offers")
+def registration_offers():
+    if request.headers.get("Origin") != current_app.config["FRONTEND_ORIGIN"]:
+        raise Forbidden("Request must come from the configured frontend origin.")
+    user = require_acting_user()
+    require_role(user, "Attendee", action="browse_registration_events")
+    page = request.args.get("page", "1")
+    if not page.isascii() or not page.isdecimal() or len(page) > 5 or not 1 <= int(page) <= 10000:
+        raise BadRequest("Choose an event page from 1 to 10000.")
+    rows, has_more = list_registration_events(int(page))
+    return jsonify({"offers": [registration_offer(row) for row in rows],
+                    "page": int(page), "has_more": has_more})
+
+
+@events.get("/registration-confirmations")
+def registration_confirmations():
+    if request.headers.get("Origin") != current_app.config["FRONTEND_ORIGIN"]:
+        raise Forbidden("Request must come from the configured frontend origin.")
+    user = require_acting_user()
+    require_role(user, "Attendee", action="view_registration_confirmations")
+    return jsonify({"confirmations": get_registration_confirmations(user["id"])})
+
+
+@events.get("/<uuid:event_id>/registration-offer")
+def get_registration_offer(event_id):
+    if request.headers.get("Origin") != current_app.config["FRONTEND_ORIGIN"]:
+        raise Forbidden("Request must come from the configured frontend origin.")
+    user = require_acting_user()
+    require_role(user, "Attendee", action="view_registration_event")
+    event = get_event_by_id(str(event_id))
+    if event is None or event["status"] == "Draft":
+        raise NotFound("Event not found.")
+    registration = get_own_registration(str(event_id), user["id"])
+    if event["status"] != "Confirmed" and registration is None:
+        raise NotFound("Event not found.")
+    return jsonify({**registration_offer(event), "registration": registration})
 
 
 @events.patch("/<event_id>/status")

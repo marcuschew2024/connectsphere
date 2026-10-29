@@ -41,6 +41,7 @@ export default function ReviewEventsPage() {
           <p className="text-xs font-medium uppercase tracking-[0.18em] text-primary">Coordinator workspace</p>
           <h1 className="text-3xl font-semibold tracking-tight sm:text-4xl">Review event requests</h1>
           <p className="text-sm text-muted-foreground">Choose a submitted request to approve, reject or return for clarification.</p>
+          <Link href="/events/managed" className="inline-flex text-sm text-primary hover:underline">View my events →</Link>
           {!loading && !error && <p className="text-sm text-primary">{events.length} {events.length === 1 ? "request" : "requests"} awaiting review</p>}
         </header>
 

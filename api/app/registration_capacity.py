@@ -12,6 +12,15 @@ class RegistrationCapacity:
     capacity: int | None
     registered_count: int
 
+    def can_set(self, event_status: str) -> bool:
+        if event_status in {
+            "Draft", "Submitted", "Assigned", "Under review", "Approved", "Planning",
+        }:
+            return True
+        # First setup cannot invalidate an existing limit or any booked place.
+        return (event_status == "Confirmed" and self.capacity is None
+                and self.registered_count == 0)
+
     @property
     def remaining(self) -> int:
         return max(0, (self.capacity or 0) - self.registered_count)

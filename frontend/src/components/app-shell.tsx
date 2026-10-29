@@ -24,6 +24,10 @@ type NavItem = { label: string; href: string; icon: LucideIcon };
 
 // Navigation is role-aware: each role only sees what it can act on.
 const NAV_BY_ROLE: Record<string, NavItem[]> = {
+  Attendee: [
+    { label: "Home", href: "/", icon: Home },
+    { label: "Events", href: "/events/browse", icon: CalendarPlus },
+  ],
   "Safety Officer": [
     { label: "Home", href: "/", icon: Home },
     { label: "Safety reviews", href: "/events/safety", icon: ClipboardCheck },
@@ -37,6 +41,7 @@ const NAV_BY_ROLE: Record<string, NavItem[]> = {
   Coordinator: [
     { label: "Home", href: "/", icon: Home },
     { label: "Review requests", href: "/events/review", icon: ClipboardCheck },
+    { label: "My events", href: "/events/managed", icon: FileText },
     { label: "Venues", href: "/venues", icon: Building2 },
     { label: "Request venue", href: "/venues/bookings/new", icon: CalendarPlus },
     { label: "Equipment", href: "/equipment", icon: Package },
