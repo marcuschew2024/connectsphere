@@ -1,0 +1,36 @@
+{
+  "date": "2026-10-29",
+  "baseline_commit": "8e0a8f052184e5462c408a0fa6a279e6bae1150d",
+  "task": "Add meaningful backend regressions for uncovered database and runtime outcomes; this increment does not complete the 100% target.",
+  "constraints": [
+    "Existing tests, coverage thresholds and exclusions remain unchanged",
+    "No shared database is used by automated tests",
+    "Mock-data seed scripts and unrelated local files are excluded from this change"
+  ],
+  "new_regression_cases": 191,
+  "test_files": [
+    "api/tests/test_repository_failures.py",
+    "api/tests/test_repository_outcomes.py",
+    "api/tests/test_requirement_matching_boundaries.py",
+    "api/tests/test_runtime_safety.py"
+  ],
+  "evidence": {
+    "focused_run": "191 passed; Ruff passed",
+    "full_local_run": "1403 passed, zero skipped, Python 3.12.16, private disposable PostgreSQL/PostgREST network",
+    "coverage_measure": "Backend executable line coverage, not branch coverage or frontend coverage",
+    "executable_lines": 3077,
+    "covered_lines": 2983,
+    "missing_lines": 94,
+    "line_coverage_percent": 96.95
+  },
+  "remaining_uncovered_lines_by_module": {
+    "app/bookings.py": 34,
+    "app/equipment.py": 15,
+    "app/events.py": 42,
+    "app/venue_suitability.py": 1,
+    "app/venues.py": 2
+  },
+  "behaviour_fix": "Reverse substring matching made 'quiet room' request Classroom and Boardroom. Normalised phrase/synonym and conservative typo matching remain; ambiguous fragments no longer invent requirements.",
+  "human_review": "Marcus and Jessica should review the advisory matching expectation and test intent; the user explicitly requested pushing and merging this tested increment behind green CI.",
+  "accountable_owner": "Marcus for scope/merge; Jessica for venue suitability policy"
+}

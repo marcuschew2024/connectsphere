@@ -37,7 +37,7 @@ The current database permits Registered/Withdrawn, and Sprint 4 explicitly defer
 waiting-list feature to SCRUM-80. This story does not enable waiting-list signup or
 promotion. That part of the display contract is fixture-tested; database integration
 for waiting-list promotion belongs to SCRUM-80. This reconciliation of Jira's literal
-three-state wording needs Jerome's acceptance; see D23 in the Decision Log.
+three-state wording needs Jerome's acceptance; see D24 in the Decision Log.
 Withdrawal commands and organiser-defined conditions remain SCRUM-43.
 
 ## API
@@ -87,7 +87,9 @@ owns those semantics and the current database cannot store Waitlisted.
 - **Evidence:** HTTP tests, real disposable-database acceptance tests and Playwright
   flows, plus lint, unit tests, build and regression checks recorded above.
 - **Human review:** Jerome must review the API projection/session boundary, freshness
-  behaviour, attendee UX and the SCRUM-80 waiting-list scope reconciliation in D23.
+  behaviour, attendee UX and the SCRUM-80 waiting-list scope reconciliation in D24.
 - **Accountability:** Jerome owns the design and acceptance decision. Codex authors the
   proposal. Jira remains In Progress until review; Done follows an authorized merge
-  behind green CI. This task does not authorize pushing or merging.
+  behind green CI. On 30 October 2026, after the waiting-list limitation was disclosed, the user
+  explicitly authorized pushing and merging behind green CI. No shared database
+  deployment is included.
