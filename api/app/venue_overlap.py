@@ -1,47 +1,92 @@
-"""SCRUM-33: reusable venue booking overlap domain model."""
+"""SCRUM-33 + SCRUM-129: reusable venue booking overlap and buffer domain model.
+
+Adheres to:
+1. Pure domain engine with zero database dependencies.
+2. Configurable venue setup and turnaround time (SCRUM-129 / Week 7 Change #1).
+3. Published slot [start_at, end_at) expands to occupied window:
+   [start_at - setup_time, end_at + turnaround_time).
+4. Back-to-back published bookings conflict if their buffer windows overlap.
+5. Existing bookings that become conflicting under the new buffer rule are identified.
+"""
 
 from dataclasses import dataclass
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 from typing import Any
+
+
+def _as_utc(value: str | datetime) -> datetime:
+    """Ensure datetime has timezone and is converted to UTC."""
+    if isinstance(value, str):
+        if value.endswith("Z"):
+            value = value[:-1] + "+00:00"
+        value = datetime.fromisoformat(value)
+    if value.tzinfo is None or value.utcoffset() is None:
+        raise ValueError("Booking times must include a time zone.")
+    return value.astimezone(UTC)
 
 
 @dataclass(frozen=True)
 class BookingInterval:
-    """A published venue interval used by the overlap policy."""
+    """A venue booking interval with published and buffer-occupied windows."""
 
     booking_id: str | None
     venue_id: str
     start_at: datetime
     end_at: datetime
     status: str
+    setup_minutes: int = 0
+    turnaround_minutes: int = 0
 
     @classmethod
-    def from_record(cls, record: dict[str, Any]) -> "BookingInterval":
+    def from_record(
+        cls,
+        record: dict[str, Any],
+        setup_minutes: int = 0,
+        turnaround_minutes: int = 0,
+    ) -> "BookingInterval":
+        # If record has its own buffer or venue buffer attached, prefer it
+        setup = int(record.get("setup_minutes", setup_minutes) or 0)
+        turnaround = int(record.get("turnaround_minutes", turnaround_minutes) or 0)
         return cls(
             booking_id=record.get("id"),
-            venue_id=record["venue_id"],
+            venue_id=str(record["venue_id"]),
             start_at=_as_utc(record["start_at"]),
             end_at=_as_utc(record["end_at"]),
-            status=record["status"],
+            status=str(record["status"]),
+            setup_minutes=max(0, setup),
+            turnaround_minutes=max(0, turnaround),
         )
 
-    def overlaps(self, start_at: datetime, end_at: datetime) -> bool:
-        """Return True only when this interval and ``[start_at, end_at)`` truly overlap.
+    @property
+    def occupied_start(self) -> datetime:
+        """Start of physical room occupation, including setup time."""
+        return self.start_at - timedelta(minutes=self.setup_minutes)
 
-        Both bookings are treated as **half-open** intervals ``[start, end)``: the start
-        instant belongs to the booking, the end instant does not. Two intervals conflict
-        iff ``existing.start < new.end AND new.start < existing.end``. The consequence is
-        that **touching endpoints are compatible** — a booking ending at exactly 10:00 and
-        another starting at exactly 10:00 do *not* overlap, so **back-to-back bookings are
-        allowed** while any real overlap is rejected.
+    @property
+    def occupied_end(self) -> datetime:
+        """End of physical room occupation, including turnaround reset time."""
+        return self.end_at + timedelta(minutes=self.turnaround_minutes)
 
-        This is the boundary case that is easy to get wrong: using closed intervals (``<=``)
-        would reject legitimate back-to-back bookings, and a naive ``start < end`` check
-        across the wrong pair of endpoints would let a real overlap slip through. The two
-        strict ``<`` comparisons against the opposite endpoints are deliberate — do not
-        "simplify" them to ``<=``.
-        """
+    def overlaps_published(self, start_at: datetime, end_at: datetime) -> bool:
+        """Check raw published interval overlap: [start, end)."""
         return self.start_at < end_at and start_at < self.end_at
+
+    def overlaps(
+        self,
+        query_start: datetime,
+        query_end: datetime,
+        *,
+        query_setup_minutes: int = 0,
+        query_turnaround_minutes: int = 0,
+    ) -> bool:
+        """Check buffer-aware overlap using half-open intervals [occupied_start, occupied_end).
+
+        Touching endpoints are compatible:
+        Booking A occupied_end == Booking B occupied_start does NOT conflict.
+        """
+        q_start = query_start - timedelta(minutes=max(0, query_setup_minutes))
+        q_end = query_end + timedelta(minutes=max(0, query_turnaround_minutes))
+        return self.occupied_start < q_end and q_start < self.occupied_end
 
 
 @dataclass(frozen=True)
@@ -50,6 +95,7 @@ class OverlapResult:
 
     hard_conflict: BookingInterval | None = None
     tentative_conflict: BookingInterval | None = None
+    problematic_existing: tuple[BookingInterval, ...] = ()
 
     @property
     def can_request(self) -> bool:
@@ -62,11 +108,10 @@ class OverlapResult:
 
 
 class OverlapEngine:
-    """Apply the SCRUM-33 published-slot and status-precedence policy.
+    """Apply published-slot and buffer-extended overlap policy (SCRUM-33 + SCRUM-129).
 
-    No setup or turnaround buffer is added. Confirmed and maintenance-blocked periods
-    are hard conflicts. Requested/Pending rows are one tentative hold and only prevent
-    another request; they do not defeat a later confirmed decision.
+    Confirmed and maintenance-blocked periods are hard conflicts.
+    Requested/Pending rows are tentative holds.
     """
 
     HARD_STATUSES = frozenset({"Confirmed", "Blocked"})
@@ -80,20 +125,41 @@ class OverlapEngine:
         bookings: list[dict[str, Any]],
         *,
         exclude_booking_id: str | None = None,
+        setup_minutes: int = 0,
+        turnaround_minutes: int = 0,
     ) -> OverlapResult:
         start = _as_utc(start_at)
         end = _as_utc(end_at)
+        if end <= start:
+            raise ValueError("Booking end time must be strictly after start time.")
+
         hard: list[BookingInterval] = []
         tentative: list[BookingInterval] = []
 
         for record in bookings:
-            if record.get("id") == exclude_booking_id or record.get("venue_id") != venue_id:
+            if (
+                record.get("id") == exclude_booking_id
+                or str(record.get("venue_id")) != str(venue_id)
+            ):
                 continue
             if record.get("status") not in self.HARD_STATUSES | self.TENTATIVE_STATUSES:
                 continue
-            interval = BookingInterval.from_record(record)
-            if not interval.overlaps(start, end):
+
+            interval = BookingInterval.from_record(
+                record,
+                setup_minutes=setup_minutes,
+                turnaround_minutes=turnaround_minutes,
+            )
+
+            # Check if this interval overlaps considering setup and turnaround buffers
+            if not interval.overlaps(
+                start,
+                end,
+                query_setup_minutes=setup_minutes,
+                query_turnaround_minutes=turnaround_minutes,
+            ):
                 continue
+
             if interval.status in self.HARD_STATUSES:
                 hard.append(interval)
             else:
@@ -104,6 +170,65 @@ class OverlapEngine:
             tentative_conflict=_highest_priority(tentative),
         )
 
+    def identify_problematic_bookings(
+        self,
+        venue_id: str,
+        bookings: list[dict[str, Any]],
+        setup_minutes: int,
+        turnaround_minutes: int,
+    ) -> list[dict[str, Any]]:
+        """Identify existing bookings that became newly conflicting under the buffer rule.
+
+        Acceptance criterion 3: Existing bookings that become conflicting under the new rule
+        must be IDENTIFIED/flagged, rather than silently removed or mutated.
+        """
+        active_records = [
+            b for b in bookings
+            if str(b.get("venue_id")) == str(venue_id)
+            and b.get("status") in (self.HARD_STATUSES | self.TENTATIVE_STATUSES)
+        ]
+
+        problematic: list[dict[str, Any]] = []
+
+        for i, rec_a in enumerate(active_records):
+            int_a_raw = BookingInterval.from_record(rec_a, 0, 0)
+            int_a_buf = BookingInterval.from_record(rec_a, setup_minutes, turnaround_minutes)
+
+            conflicts_with: list[dict[str, Any]] = []
+
+            for j, rec_b in enumerate(active_records):
+                if i == j:
+                    continue
+                int_b_raw = BookingInterval.from_record(rec_b, 0, 0)
+
+                # Check if they did NOT conflict previously under raw times
+                did_conflict_raw = int_a_raw.overlaps_published(
+                    int_b_raw.start_at, int_b_raw.end_at
+                )
+                # But DO conflict now under the new buffer rule
+                does_conflict_buffered = int_a_buf.overlaps(
+                    int_b_raw.start_at,
+                    int_b_raw.end_at,
+                    query_setup_minutes=setup_minutes,
+                    query_turnaround_minutes=turnaround_minutes,
+                )
+
+                if not did_conflict_raw and does_conflict_buffered:
+                    conflicts_with.append(rec_b)
+
+            if conflicts_with:
+                problematic.append({
+                    "booking": rec_a,
+                    "conflicts_with": conflicts_with,
+                    "reason": (
+                        f"Booking occupies {int_a_buf.occupied_start.isoformat()} to "
+                        f"{int_a_buf.occupied_end.isoformat()} with buffers, conflicting with "
+                        f"{len(conflicts_with)} existing booking(s)."
+                    ),
+                })
+
+        return problematic
+
 
 def _highest_priority(bookings: list[BookingInterval]) -> BookingInterval | None:
     if not bookings:
@@ -111,11 +236,3 @@ def _highest_priority(bookings: list[BookingInterval]) -> BookingInterval | None
     return sorted(
         bookings, key=lambda booking: (booking.status != "Confirmed", booking.start_at)
     )[0]
-
-
-def _as_utc(value: str | datetime) -> datetime:
-    if isinstance(value, str):
-        value = datetime.fromisoformat(value)
-    if value.tzinfo is None or value.utcoffset() is None:
-        raise ValueError("Booking times must include a time zone.")
-    return value.astimezone(UTC)

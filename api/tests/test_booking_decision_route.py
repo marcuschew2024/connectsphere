@@ -40,7 +40,7 @@ def booking_db(monkeypatch):
     client = MagicMock()
 
     def table(name):
-        assert name in {"venue_bookings", "notifications"}
+        assert name in {"venue_bookings", "notifications", "venues"}
         q = MagicMock()
         eqs: dict = {}
         ins: dict = {}
@@ -80,6 +80,12 @@ def booking_db(monkeypatch):
                 for r in matching:
                     r.update(pend_upd)
                 return SimpleNamespace(data=matching)
+            if name == "venues":
+                return SimpleNamespace(data=[{
+                    "id": eqs.get("id", VENUE_A),
+                    "setup_time_minutes": 0,
+                    "turnaround_time_minutes": 0,
+                }])
             src = notifications if name == "notifications" else rows
             return SimpleNamespace(data=[r for r in src if _match(r)])
 
@@ -108,6 +114,7 @@ def booking_db(monkeypatch):
     client.notifications = notifications
     monkeypatch.setattr("app.booking_repository.get_supabase_client", lambda: client)
     monkeypatch.setattr("app.event_repository.get_supabase_client", lambda: client)
+    monkeypatch.setattr("app.venue_repository.get_supabase_client", lambda: client)
     return client
 
 

@@ -14,16 +14,30 @@ def _client():
     return client
 
 
-def find_overlapping_bookings(venue_id: str, start_at: str, end_at: str) -> list[dict]:
-    """Find active booking states whose half-open slots overlap the request."""
+def find_overlapping_bookings(
+    venue_id: str,
+    start_at: str,
+    end_at: str,
+    buffer_window_minutes: int = 0,
+) -> list[dict]:
+    """Find active booking states whose slots overlap the request (expanded for buffers)."""
     try:
+        query_start = start_at
+        query_end = end_at
+        if buffer_window_minutes > 0:
+            from datetime import timedelta
+            s_dt = datetime.fromisoformat(start_at.replace("Z", "+00:00"))
+            e_dt = datetime.fromisoformat(end_at.replace("Z", "+00:00"))
+            query_start = (s_dt - timedelta(minutes=buffer_window_minutes)).isoformat()
+            query_end = (e_dt + timedelta(minutes=buffer_window_minutes)).isoformat()
+
         result = _client().table("venue_bookings").select(
             "id,venue_id,start_at,end_at,status"
         ).eq("venue_id", venue_id).in_("status", [
             "Confirmed", "Blocked", "Requested", "Pending",
         ]).lt(
-            "start_at", end_at
-        ).gt("end_at", start_at).execute()
+            "start_at", query_end
+        ).gt("end_at", query_start).execute()
         return result.data or []
     except ServiceUnavailable:
         raise
