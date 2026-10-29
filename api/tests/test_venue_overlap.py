@@ -267,3 +267,117 @@ def test_excluded_booking_is_ignored_when_confirming_itself():
     )
 
     assert result.can_confirm is True
+
+
+# ==============================================================================
+# SCRUM-79: Tentatively Hold a Venue (TC-79-01, TC-79-02, TC-79-03)
+# ==============================================================================
+
+def test_tc_79_01_confirmed_booking_overrides_tentative_hold():
+    """AC2 (S1 Q3, Q17, Q31): A confirmed booking (FCFS) overrides a tentative hold."""
+    engine = OverlapEngine()
+    # Existing active hold on slot 10:00 - 12:00
+    existing_hold = [
+        {
+            "id": "hold-1",
+            "venue_id": "venue-1",
+            "start_at": START.isoformat(),
+            "end_at": (START + timedelta(hours=2)).isoformat(),
+            "status": "Held",
+            "expires_at": (datetime.now(UTC) + timedelta(days=2)).isoformat(),
+        }
+    ]
+
+    result = engine.evaluate(
+        "venue-1",
+        START,
+        START + timedelta(hours=2),
+        existing_hold,
+    )
+
+    # An active hold produces a tentative_conflict, but NOT a hard_conflict
+    assert result.tentative_conflict is not None
+    assert result.tentative_conflict.status == "Held"
+    assert result.hard_conflict is None
+    # can_confirm is True: confirmed booking wins over tentative hold
+    assert result.can_confirm is True
+    # but a normal new request is blocked
+    assert result.can_request is False
+
+
+def test_tc_79_02_only_one_hold_per_venue_slot():
+    """AC2: Only one hold per venue/slot; second tentative request is blocked."""
+    engine = OverlapEngine()
+    existing_hold = [
+        {
+            "id": "hold-1",
+            "venue_id": "venue-1",
+            "start_at": START.isoformat(),
+            "end_at": (START + timedelta(hours=2)).isoformat(),
+            "status": "Held",
+            "expires_at": (datetime.now(UTC) + timedelta(days=2)).isoformat(),
+        }
+    ]
+
+    # Another coordinator/staff tries to request or hold the same slot
+    result = engine.evaluate(
+        "venue-1",
+        START,
+        START + timedelta(hours=2),
+        existing_hold,
+    )
+
+    assert result.can_request is False
+    assert result.tentative_conflict.booking_id == "hold-1"
+
+
+def test_tc_79_03_expired_hold_releases_slot_at_exact_expiry_boundary():
+    """AC4 & AC6: Boundary test - hold blocks at 1:59pm, but releases at exactly 2:00pm."""
+    engine = OverlapEngine()
+    exact_expiry = datetime(2099, 10, 15, 14, 0, 0, tzinfo=UTC)  # 2:00pm
+
+    interval = BookingInterval(
+        booking_id="hold-boundary",
+        venue_id="venue-1",
+        start_at=START,
+        end_at=START + timedelta(hours=2),
+        status="Held",
+        expires_at=exact_expiry,
+    )
+
+    # 1 second before expiry (1:59:59pm) -> hold is still active and MUST NOT be expired
+    assert not interval.is_expired(as_of=exact_expiry - timedelta(seconds=1))
+
+    # At the exact boundary second (2:00:00pm) -> hold is expired
+    assert interval.is_expired(as_of=exact_expiry)
+
+    # In engine evaluation: an expired hold does not block new requests
+    expired_record = [
+        {
+            "id": "hold-boundary",
+            "venue_id": "venue-1",
+            "start_at": START.isoformat(),
+            "end_at": (START + timedelta(hours=2)).isoformat(),
+            "status": "Held",
+            "expires_at": (datetime.now(UTC) - timedelta(seconds=1)).isoformat(),
+        }
+    ]
+    result = engine.evaluate("venue-1", START, START + timedelta(hours=2), expired_record)
+    assert result.can_request is True
+    assert result.tentative_conflict is None
+
+
+def test_tc_79_04_hold_interval_is_expired_method():
+    """Unit test is_expired() on BookingInterval."""
+    now = datetime.now(UTC)
+    active_interval = BookingInterval(
+        booking_id="b-act",
+        venue_id="v-1",
+        start_at=now + timedelta(days=3),
+        end_at=now + timedelta(days=3, hours=2),
+        status="Held",
+        expires_at=now + timedelta(hours=24),
+    )
+    assert not active_interval.is_expired()
+    assert not active_interval.is_expired(as_of=now + timedelta(hours=23))
+    assert active_interval.is_expired(as_of=now + timedelta(hours=25))

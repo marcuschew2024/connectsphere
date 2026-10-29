@@ -56,6 +56,12 @@ done
 psql -v ON_ERROR_STOP=1 -f /sql/tests/venue_buffers.sql
 
 for pass in 1 2; do
+  psql -v ON_ERROR_STOP=1 -f /sql/migrations/20261029170000_scrum_79_tentative_venue_holds.sql > /tmp/migration-output.txt
+  echo "Tentative venue holds migration pass $pass: PASS"
+done
+psql -v ON_ERROR_STOP=1 -f /sql/tests/venue_holds.sql
+
+for pass in 1 2; do
   psql -v ON_ERROR_STOP=1 -f /sql/migrations/20261025120000_scrum_132_complete_event.sql > /tmp/migration-output.txt
   echo "Event completion migration pass $pass: PASS"
 done

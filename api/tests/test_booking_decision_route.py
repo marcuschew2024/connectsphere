@@ -207,3 +207,45 @@ def test_adjacent_touching_approve_allowed(venue_staff, booking_db):
     p = seed(booking_db, status="Requested", slot=SLOT_4_6PM)
     assert decide(venue_staff, p["id"], "approve").status_code == 200
     assert p["status"] == "Confirmed"
+
+
+# ==============================================================================
+# SCRUM-79: Tentative Venue Hold Integration Tests (TC-79-04, TC-79-05, TC-79-06)
+# ==============================================================================
+
+def test_tc_79_04_venue_staff_can_tentatively_hold_a_booking(venue_staff, booking_db):
+    """AC1 & AC3: Venue Staff places a tentative hold with default expiry."""
+    b = seed(booking_db, status="Requested", slot=SLOT_2_4PM)
+    r = decide(venue_staff, b["id"], "hold")
+    assert r.status_code == 200
+    assert r.json["booking"]["status"] == "Held"
+    assert r.json["booking"]["expires_at"] is not None
+    # Coordinator is notified
+    assert any(n["notification_type"] == "booking_held" for n in booking_db.notifications)
+
+
+def test_tc_79_05_coordinator_cannot_place_hold(coordinator, booking_db):
+    """AC1: Only Venue Staff can decide/hold a booking."""
+    b = seed(booking_db, status="Requested", slot=SLOT_2_4PM)
+    r = decide(coordinator, b["id"], "hold")
+    assert r.status_code == 403
+
+
+def test_tc_79_06_hold_with_custom_expiry(venue_staff, booking_db):
+    """AC3: Venue Staff can specify a valid custom expiry time."""
+    b = seed(booking_db, status="Requested", slot=SLOT_2_4PM)
+    exp = "2099-10-20T04:00:00Z"  # before 06:00:00Z start
+    r = decide(venue_staff, b["id"], "hold", expires_at=exp)
+    assert r.status_code == 200
+    assert r.json["booking"]["status"] == "Held"
+    assert r.json["booking"]["expires_at"] == "2099-10-20T04:00:00+00:00"
+
+
+def test_tc_79_07_hold_with_past_or_late_expiry_is_rejected(venue_staff, booking_db):
+    """AC3: Expiry must be in future and before event start."""
+    b = seed(booking_db, status="Requested", slot=SLOT_2_4PM)
+    # Expiry after start time
+    late_exp = "2099-10-20T07:00:00Z"
+    r = decide(venue_staff, b["id"], "hold", expires_at=late_exp)
+    assert r.status_code == 400
+    assert "before the event starts" in r.json["error"]

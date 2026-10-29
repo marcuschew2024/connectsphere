@@ -32,9 +32,9 @@ def find_overlapping_bookings(
             query_end = (e_dt + timedelta(minutes=buffer_window_minutes)).isoformat()
 
         result = _client().table("venue_bookings").select(
-            "id,venue_id,start_at,end_at,status"
+            "id,venue_id,start_at,end_at,status,expires_at"
         ).eq("venue_id", venue_id).in_("status", [
-            "Confirmed", "Blocked", "Requested", "Pending",
+            "Confirmed", "Blocked", "Requested", "Pending", "Held",
         ]).lt(
             "start_at", query_end
         ).gt("end_at", query_start).execute()
@@ -169,6 +169,7 @@ def record_booking_decision(
     reason: str | None,
     alternative: str | None,
     user_id: int,
+    expires_at: str | None = None,
 ) -> dict:
     """Record a Venue Staff decision while the booking still awaits one (SCRUM-32).
 
@@ -178,13 +179,18 @@ def record_booking_decision(
     """
     try:
         now = datetime.now(UTC).isoformat()
-        result = _client().table("venue_bookings").update({
+        payload = {
             "status": status,
             "decision_reason": reason,
             "suggested_alternative": alternative,
             "decided_by": user_id,
             "decision_at": now,
-        }).eq("id", booking_id).in_("status", ["Requested", "Pending"]).execute()
+        }
+        if expires_at is not None:
+            payload["expires_at"] = expires_at
+        result = _client().table("venue_bookings").update(payload).eq(
+            "id", booking_id
+        ).in_("status", ["Requested", "Pending", "Held"]).execute()
         if not result.data:
             raise Conflict("This booking has already been decided.")
         return result.data[0]

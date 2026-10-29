@@ -141,7 +141,7 @@ def test_overlap_query_keeps_half_open_boundaries_and_includes_tentative_holds(m
     monkeypatch.setattr("app.booking_repository.get_supabase_client", lambda: db)
     assert find_overlapping_bookings("venue-1", "start", "end") == []
     query.in_.assert_called_once_with(
-        "status", ["Confirmed", "Blocked", "Requested", "Pending"]
+        "status", ["Confirmed", "Blocked", "Requested", "Pending", "Held"]
     )
     query.lt.assert_called_once_with("start_at", "end")
     query.gt.assert_called_once_with("end_at", "start")
