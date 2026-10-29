@@ -26,9 +26,10 @@ function localDateTime(value: string | null | undefined) {
   return new Date(date.getTime() - date.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
 }
 
-export default function EventRequestForm({ canCreate, initialEvent }: {
+export default function EventRequestForm({ canCreate, initialEvent, onSaved }: {
   canCreate: boolean;
   initialEvent?: EventRecord;
+  onSaved?: (event: EventRecord) => void;
 }) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
@@ -47,7 +48,7 @@ export default function EventRequestForm({ canCreate, initialEvent }: {
 
     const attendanceInput = event.currentTarget.elements.namedItem("expected_attendance") as HTMLInputElement;
     if (attendanceInput.validity.badInput) {
-      setFieldErrors({ expected_attendance: "Enter a whole number greater than zero." });
+      setFieldErrors({ expected_attendance: "Enter a whole number between 1 and 10,000." });
       return;
     }
     const form = new FormData(event.currentTarget);
@@ -74,6 +75,7 @@ export default function EventRequestForm({ canCreate, initialEvent }: {
           expected_attendance: attendance === "" ? null : Number(attendance),
         }),
       });
+      onSaved?.(result.event);
       if (editing && result.event.status === "Draft") {
         // Keep the form open after saving edits. This is still the same event ID.
         setLastSaved(result.event.updated_at);
@@ -118,6 +120,9 @@ export default function EventRequestForm({ canCreate, initialEvent }: {
           <Link href={saved.status === "Draft" ? `/events/drafts/${saved.id}` : `/events/${saved.id}`} className="inline-flex rounded-full bg-primary px-5 py-2.5 font-semibold text-primary-foreground hover:bg-primary/90">
             {saved.status === "Draft" ? "Continue editing" : "View event status"}
           </Link>
+          {saved.status === "Draft" && saved.registration_capacity !== undefined && (
+            <Link href={`/events/drafts/${saved.id}`} className="inline-flex px-4 py-2 text-sm text-primary hover:underline">Set registration capacity</Link>
+          )}
           <Link href="/events/drafts" className="inline-flex px-4 py-2 text-sm text-muted-foreground hover:text-foreground">My drafts</Link>
           {!editing && <button type="button" disabled={!canCreate} onClick={() => setSaved(null)}
             className="rounded-full border border-border px-4 py-2 font-medium hover:bg-muted disabled:cursor-not-allowed disabled:opacity-40">
@@ -167,7 +172,7 @@ export default function EventRequestForm({ canCreate, initialEvent }: {
           </div>
           <div>
             <label htmlFor="expected_attendance" className="mb-2 block font-medium">Expected attendance *</label>
-            <input id="expected_attendance" name="expected_attendance" type="number" min="1" step="1" max="2147483647"
+            <input id="expected_attendance" name="expected_attendance" type="number" min="1" step="1" max="10000"
               defaultValue={initialEvent?.expected_attendance ?? ""}
               aria-required="true" aria-invalid={!!fieldErrors.expected_attendance}
               aria-describedby={fieldErrors.expected_attendance ? "expected_attendance-error" : undefined}

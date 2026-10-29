@@ -33,6 +33,8 @@ export default function VenueForm({ venue }: { venue?: Venue }) {
         method: editing ? "PUT" : "POST",
         body: JSON.stringify({
           ...(editing ? { revision: venue.revision } : { name: form.get("name"), location: form.get("location") }), capacity: Number(form.get("capacity")),
+          setup_time_minutes: Number(form.get("setup_time_minutes") ?? 0),
+          turnaround_time_minutes: Number(form.get("turnaround_time_minutes") ?? 0),
           facilities: features("facilities"), accessibility: features("accessibility"),
           supported_layouts: form.getAll("supported_layouts"), operating_hours: hours,
         }),
@@ -75,6 +77,18 @@ export default function VenueForm({ venue }: { venue?: Venue }) {
             {fieldError(key)}
           </div>)}
           <div><label htmlFor="capacity" className="mb-2 block text-sm font-medium">Capacity *</label><input id="capacity" name="capacity" defaultValue={venue?.capacity} type="number" required min="1" max="2147483647" step="1" placeholder="Maximum number of people" className={INPUT} aria-invalid={!!fields.capacity} aria-describedby={fields.capacity ? "capacity-error" : undefined} />{fieldError("capacity")}</div>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label htmlFor="setup_time_minutes" className="mb-2 block text-sm font-medium">Setup buffer (mins)</label>
+              <input id="setup_time_minutes" name="setup_time_minutes" defaultValue={venue?.setup_time_minutes ?? 0} type="number" min="0" max="1440" step="1" placeholder="0" className={INPUT} aria-invalid={!!fields.setup_time_minutes} aria-describedby={fields.setup_time_minutes ? "setup_time_minutes-error" : undefined} />
+              {fieldError("setup_time_minutes")}
+            </div>
+            <div>
+              <label htmlFor="turnaround_time_minutes" className="mb-2 block text-sm font-medium">Turnaround buffer (mins)</label>
+              <input id="turnaround_time_minutes" name="turnaround_time_minutes" defaultValue={venue?.turnaround_time_minutes ?? 0} type="number" min="0" max="1440" step="1" placeholder="0" className={INPUT} aria-invalid={!!fields.turnaround_time_minutes} aria-describedby={fields.turnaround_time_minutes ? "turnaround_time_minutes-error" : undefined} />
+              {fieldError("turnaround_time_minutes")}
+            </div>
+          </div>
         </section>
         <section className={CARD}>
           <h2 className="font-semibold">Facilities & layouts</h2>

@@ -67,10 +67,19 @@ def _validated_booking_fields(data, event: dict, existing: dict | None = None) -
     special = data.get("special_requirements", source.get("special_requirements") or "")
     if not isinstance(special, str) or len(special.strip()) > 2000:
         raise BadRequest("Special requirements must be 2000 characters or fewer.")
-    conflicts = find_overlapping_bookings(venue_id, start.isoformat(), end.isoformat())
+
+    setup_m = int(venue.get("setup_time_minutes") or 0)
+    turnaround_m = int(venue.get("turnaround_time_minutes") or 0)
+    buffer_window = setup_m + turnaround_m
+
+    conflicts = find_overlapping_bookings(
+        venue_id, start.isoformat(), end.isoformat(), buffer_window_minutes=buffer_window
+    )
     overlap = OverlapEngine().evaluate(
         venue_id, start, end, conflicts,
         exclude_booking_id=source.get("id"),
+        setup_minutes=setup_m,
+        turnaround_minutes=turnaround_m,
     )
     if not overlap.can_request:
         if overlap.hard_conflict is not None:
@@ -162,11 +171,19 @@ def submit_booking():
     if not isinstance(special, str) or len(special.strip()) > 2000:
         raise BadRequest("Special requirements must be 2000 characters or fewer.")
 
+    setup_m = int(venue.get("setup_time_minutes") or 0)
+    turnaround_m = int(venue.get("turnaround_time_minutes") or 0)
+    buffer_window = setup_m + turnaround_m
+
     overlap = OverlapEngine().evaluate(
         venue_id,
         start,
         end,
-        find_overlapping_bookings(venue_id, start.isoformat(), end.isoformat()),
+        find_overlapping_bookings(
+            venue_id, start.isoformat(), end.isoformat(), buffer_window_minutes=buffer_window
+        ),
+        setup_minutes=setup_m,
+        turnaround_minutes=turnaround_m,
     )
     if not overlap.can_request:
         if overlap.hard_conflict is not None:
@@ -286,14 +303,24 @@ def decide_booking(booking_id):
     # Confirmed decisions hard-block only published-slot conflicts. A stale tentative
     # hold does not beat a confirmed booking (FCFS); the database remains the backstop.
     if decision.status == "Confirmed":
+        venue = get_venue(booking["venue_id"]) or {}
+        setup_m = int(venue.get("setup_time_minutes") or 0)
+        turnaround_m = int(venue.get("turnaround_time_minutes") or 0)
+        buffer_window = setup_m + turnaround_m
+
         overlap = OverlapEngine().evaluate(
             booking["venue_id"],
             booking["start_at"],
             booking["end_at"],
             find_overlapping_bookings(
-                booking["venue_id"], booking["start_at"], booking["end_at"]
+                booking["venue_id"],
+                booking["start_at"],
+                booking["end_at"],
+                buffer_window_minutes=buffer_window,
             ),
             exclude_booking_id=booking_id,
+            setup_minutes=setup_m,
+            turnaround_minutes=turnaround_m,
         )
         if not overlap.can_confirm:
             raise Conflict("The venue is already confirmed or blocked for that time slot.")

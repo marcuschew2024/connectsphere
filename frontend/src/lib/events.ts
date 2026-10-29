@@ -10,6 +10,9 @@ export type EventRecord = {
   category: string | null;
   event_datetime: string | null;
   expected_attendance: number | null;
+  // Optional while older deployments are upgraded; null keeps signup closed.
+  registration_capacity?: number | null;
+  registered_count?: number;
   venue_requirements: string | null;
   accessibility_requirements: string | null;
   equipment_requirements: string | null;

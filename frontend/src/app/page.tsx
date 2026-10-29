@@ -16,6 +16,7 @@ import { AppShell } from "@/components/app-shell";
 import { cn } from "@/lib/utils";
 import DevRoleSwitcher from "./dev-role-switcher";
 import OrganiserNotifications from "./organiser-notifications";
+import RegistrationConfirmations from "./registration-confirmations";
 
 type Action = {
   title: string;
@@ -26,6 +27,9 @@ type Action = {
 };
 
 const ROLE_ACTIONS: Record<string, Action[]> = {
+  Attendee: [
+    { title: "Browse events", description: "Find a campus event and book your place.", href: "/events/browse", icon: CalendarPlus, primary: true },
+  ],
   "Safety Officer": [
     { title: "Review operational safety", description: "Assess confirmed events before preparation.", href: "/events/safety", icon: ClipboardCheck, primary: true },
   ],
@@ -38,6 +42,7 @@ const ROLE_ACTIONS: Record<string, Action[]> = {
   ],
   Coordinator: [
     { title: "Review event requests", description: "Approve, reject or return submissions.", href: "/events/review", icon: ClipboardCheck, primary: true },
+    { title: "Manage events", description: "Continue planning, confirm or close an assigned event.", href: "/events/managed", icon: FileText },
     { title: "Venue catalogue", description: "Browse venues for an event.", href: "/venues", icon: Building2 },
     { title: "Request a venue", description: "Submit timing and requirements to Venue Staff.", href: "/venues/bookings/new", icon: CalendarPlus },
     { title: "Equipment catalogue", description: "Browse equipment and usable stock.", href: "/equipment", icon: Package },
@@ -133,6 +138,7 @@ export default function Home() {
           )}
 
           {actingRole === "Organiser" && <OrganiserNotifications />}
+          {actingRole === "Attendee" && <RegistrationConfirmations />}
 
           {actingRole && !actions && (
             <div className="rounded-2xl border border-border/80 bg-card p-6 text-sm text-muted-foreground shadow-sm">

@@ -261,6 +261,151 @@ An at-a-glance summary of where AI was and was not used sits in the
 
 ---
 
+### D15 — Registration capacity is a separate, atomic signup limit (SCRUM-41)
+
+- **Context.** Expected attendance is a planning estimate, and no registration table
+  previously existed. Counting signups before a separate insert could oversell the last
+  place when requests race.
+- **Decision proposed for Jerome's review.** Add an explicit nullable registration
+  capacity and counter to events, plus a unique event/attendee registration row. A table
+  trigger locks and conditionally updates the parent event in the signup transaction.
+  A pure `RegistrationCapacity` object supplies the application precheck. The organiser
+  sets capacity before confirmation through a separate, audited endpoint.
+- **Constraints.** No inferred limit/backfill from expected attendance; unset capacity
+  keeps signup closed. Existing confirmation and safety gates are preserved. SQL
+  independently validates status, role, uniqueness and capacity. RLS and backend-only
+  grants keep identities supplied by the session, not the browser. Invoker functions
+  use an empty search path. SCRUM-40/43/44 retain their full attendee workflows.
+- **Verification.** Boundary and endpoint tests, SQL replay/permissions/100-of-100
+  checks, real database final-slot concurrency/direct-write tests, and browser checks
+  for clear save, full, failure, read-only and mobile states; full regression evidence
+  is recorded in `docs/SCRUM-41.md`.
+- **Trade-off.** A stored counter avoids snapshot-based overselling and repeated counts;
+  all future registration state changes must preserve the trigger. Capacity is locked
+  after confirmation, matching the existing change-request model. Waiting-list
+  behaviour is deferred because it is not enabled.
+- **Owner.** Jerome. This design was proposed and implemented by Codex against the
+  story and sprint plan; human design/API/schema review is still required before merge.
+
+### D16 — Registration capacity input is limited to 10,000 (SCRUM-41)
+
+- **Context.** During manual review, the user requested a practical maximum instead
+  of displaying PostgreSQL's integer ceiling in the validation message.
+- **Decision.** Accept whole numbers from 1 to 10,000 in the organiser form and Flask
+  capacity endpoint; show the same range in both validation messages.
+- **Constraints.** Preserve ownership, confirmation locks and atomic signup checks.
+  No schema migration is needed: storage retains its integer representation; trusted
+  direct database operations can still exceed the application input limit.
+- **Verification.** API boundary tests accept 1/10,000 and reject 10,001 before storage;
+  browser checks cover the correction and saving 10,000. Existing maximum-integer
+  acceptance and correction expectations change to match the requested contract.
+- **Trade-off.** This is an application input limit, not a new database invariant.
+  Existing saved values are preserved; editing them requires a value within the range.
+- **Owner.** Jerome remains accountable for API/domain review before merge; the user
+  requested the 10,000 maximum during manual review on 28 Oct 2026.
+
+### D17 — Expected attendance uses the same practical input range
+
+- **Context.** The user's follow-up identified the old integer-ceiling error in
+  Expected attendance, a separate field from registration capacity.
+- **Decision.** Limit expected attendance to whole numbers from 1 to 10,000 in
+  event creation/draft/edit forms and their shared API validator; use the same error
+  wording as registration capacity. Blank attendance remains allowed for drafts.
+- **Constraints.** Keep expected attendance separate from the signup limit. Preserve
+  existing storage, events, authorisation and status gates.
+- **Verification.** Event API tests cover draft/submission boundaries at 1, 10,000
+  and 10,001. Run event regression tests, lint and the frontend production build.
+- **Trade-off.** Application input limit only; direct database writes and existing
+  saved values retain the database's integer range.
+- **Owner.** Jerome remains the SCRUM-41 review owner; event contract changes require
+  review by the event-lifecycle owner before merge. Requested by the user on 28 Oct 2026.
+
+### D18 — Account-only registration, atomic receipt and public discovery (SCRUM-40)
+
+- **Context.** SCRUM-41 supplies an atomic capacity-protected insert, but attendees
+  cannot discover events, supply required information, receive a confirmation or
+  retain participant access. Registration periods are separately owned by SCRUM-42.
+- **Decision proposed for Jerome's review.** Add attendee-only discovery and receipt
+  endpoints with explicit public projections. Store one text response to the
+  organiser's existing free-text registration requirements (maximum 4,000 characters).
+  Table triggers validate the stored requirements and optional opening/closing times,
+  then create participant access and an in-app confirmation in the signup transaction.
+  Keep SCRUM-41's two-argument RPC and empty HTTP payload compatible when no information
+  is required. Add a separate information-aware RPC and attendee confirmations endpoint.
+- **Constraints.** Session supplies identity; Origin and central role guards apply.
+  Private drafts and unrelated planning records stay hidden. Attendees retrieve only
+  their own receipt and registration confirmations, never organiser decision messages.
+  Existing organiser notifications, confirmation/safety gates and capacity locks remain
+  unchanged. Database functions are invoker-only with empty search paths and no browser
+  execution grants; registration RLS stays enabled.
+- **Verification.** Prescriptive route/browser tests, disposable Postgres/PostgREST
+  tests for real accounts, required information, period refusals, duplicates, receipt
+  isolation and simultaneous final-place writes. SQL checks force notification failure
+  and assert that count, signup, participant and receipt all roll back. Migration replay
+  and backend/browser regression evidence are recorded in `docs/SCRUM-40.md`.
+- **Trade-off.** Confirmation is in-app, not email. Requirements remain unstructured
+  text; a configurable form builder is outside the story. Optional period bounds use
+  `[open, close)`; NULL is unbounded, preserving SCRUM-41's Confirmed + capacity rule.
+  SCRUM-42 owns period editing. No waitlist is enabled, so full events report no places.
+  Previously stored registrations are preserved without fabricating historical receipts.
+- **Owner.** Jerome. Schema, API, data-collection, session and access design require his
+  explicit review before merge; these are AI-proposed decisions, not claimed human approval.
+
+### D19 — Action endpoints resolve the same account as /session (SCRUM-40)
+
+- **Context.** The existing `/session` endpoint prioritises password-authenticated
+  accounts, but `require_acting_user` used only the development switcher. Real attendees
+  could appear signed in while registration rejected them or used a different demo identity.
+- **Decision proposed for Jerome's review.** Resolve the existing real-account session
+  first, then fall back to the already gated development switcher. Reuse the current
+  authentication resolver; no new login flow, cookie, role source or request identity.
+- **Constraints.** Production ignores demo identities; deleted/absent real accounts
+  retain the existing resolver behaviour. Role/record guards still decide each action.
+- **Verification.** Signup acceptance runs with production configuration and real account
+  sessions. A conflicting real-Organiser/demo-Attendee test must deny signup. Existing
+  auth, switcher, RBAC and full regression suites remain unchanged.
+- **Trade-off.** This central helper change also enables existing guarded action endpoints
+  for real accounts, completing the documented login integration. It needs broader human
+  access review because its effect extends beyond registration.
+- **Owner.** Jerome, with the authentication/RBAC owner reviewing before merge.
+
+### D20 — One-time initial capacity setup for an empty Confirmed event (SCRUM-40 review)
+
+- **Context.** Confirmation deliberately does not require registration setup (SCRUM-39
+  AC2). Manual review reached a legitimate Confirmed event whose capacity was still
+  NULL. The blanket post-confirmation capacity lock then prevented the Organiser from
+  ever opening registration; the change-request workflow records decisions but does
+  not apply capacity values.
+- **Decision proposed for Jerome's review.** Permit the existing owning-Organiser
+  capacity endpoint/RPC to set the first limit when, under the event row lock, status
+  is exactly Confirmed, capacity is NULL and registered count is zero. After the first
+  save, the established post-confirmation limit remains locked. The UI explains this
+  one-time setup and hides its input immediately after a successful save.
+- **Constraints.** No exception for Preparation, terminal events, another Organiser
+  or other roles. No reduction or replacement of an existing limit, status rollback,
+  inferred limit from expected attendance, or bypass of confirmation/safety gates.
+  Retain session identity, Origin checks, input range, atomic signup counter, audit
+  record, invoker RPC, empty search path and backend-only execution grants.
+- **Verification.** Pure/route tests for the exact exception and retained locks;
+  disposable-database tests for owning actor, first setup → signup, auditing, later-state
+  refusal and two competing initial saves (one succeeds, one is locked). SQL replay and
+  privilege checks plus full browser/backend regressions are recorded in SCRUM-40.md.
+- **Trade-off.** This narrowly revises D15's pre-confirmation editing rule. Setting an
+  absent limit is treated as registration setup, while changing an existing limit still
+  requires the coordinator change process. That process still does not automatically
+  apply later capacity changes. The migration changes a function, without rewriting
+  events or selecting a signup limit for the Organiser.
+- **Owner.** Jerome. This is an AI-proposed domain/API/database rule change requiring
+  human design review before merge. It is prepared locally; applying the migration to
+  the shared development project awaits the owner's approval.
+
+### Merge authorization for D18–D20 — 29 Oct 2026
+
+Following manual workflow review and discussion of the unset Confirmed capacity
+case, the owner explicitly requested push and merge of the SCRUM-40 branch. Proceed
+only after remote lint/build/e2e pass. Jerome owns these domain/API/access decisions.
+Shared Supabase migration deployment is separate and is not implied by the Git merge.
+
 ## AI usage summary
 
 Per-feature view of where AI assistance was applied, always under human specification and

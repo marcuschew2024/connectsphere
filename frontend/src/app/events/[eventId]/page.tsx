@@ -24,6 +24,7 @@ import EventResubmitForm from "./event-resubmit-form";
 import EventBookingsPanel from "./event-bookings-panel";
 import EventChangeRequests from "./event-change-requests";
 import EventCompleteForm from "./event-complete-form";
+import EventCapacityPanel from "./event-capacity-panel";
 
 const historyActionLabels: Record<string, string> = {
   event_completed: "Event completed",
@@ -202,6 +203,9 @@ export default function EventStatusPage() {
           </div>
 
           {actingRole === "Organiser" && clarification && <EventResubmitForm event={event} clarification={clarification} onSaved={(updated) => { setEvent(updated); setClarification(null); }} />}
+          {event.registration_capacity !== undefined && (actingRole === "Organiser" || actingRole === "Coordinator") && (
+            <EventCapacityPanel key={event.id} event={event} actingRole={actingRole} onSaved={setEvent} />
+          )}
           {(actingRole === "Organiser" || actingRole === "Coordinator") && (
             <EventChangeRequests
               event={event}
