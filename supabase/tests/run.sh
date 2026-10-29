@@ -7,6 +7,7 @@ for pass in 1 2; do
   for migration in seed_users create_events login_auth rbac edit_planning event_decision_notifications auto_assign_coordinator request_clarification create_venues create_venue_bookings venue_search update_venues create_equipment create_equipment_requests create_equipment_reservations; do
     psql -v ON_ERROR_STOP=1 -f "/sql/$migration.sql" > /tmp/migration-output.txt
   done
+  psql -v ON_ERROR_STOP=1 -f /sql/migrations/20261025000000_scrum_46_change_requests.sql > /tmp/migration-output.txt
   psql -v ON_ERROR_STOP=1 -f /sql/migrations/20261018111728_scrum_38_equipment_request_status.sql > /tmp/migration-output.txt
   echo "Migration pass $pass: PASS"
 done
@@ -33,6 +34,13 @@ for pass in 1 2; do
 done
 psql -v ON_ERROR_STOP=1 -f /sql/tests/safety_officer.sql
 
+# SCRUM-131 (Week 7 Change #5): add the Event Coordinator Lead role. Applied twice to
+# prove the drop/recreate constraint + not-exists seed are rerun-safe.
+for pass in 1 2; do
+  psql -v ON_ERROR_STOP=1 -f /sql/migrations/20261026120000_scrum_131_event_coordinator_lead.sql > /tmp/migration-output.txt
+  echo "Event Coordinator Lead migration pass $pass: PASS"
+done
+
 
 # Check the original status migration above, then the reservation integration twice.
 for pass in 1 2; do
@@ -46,3 +54,15 @@ for pass in 1 2; do
   echo "Venue buffers migration pass $pass: PASS"
 done
 psql -v ON_ERROR_STOP=1 -f /sql/tests/venue_buffers.sql
+
+for pass in 1 2; do
+  psql -v ON_ERROR_STOP=1 -f /sql/migrations/20261025120000_scrum_132_complete_event.sql > /tmp/migration-output.txt
+  echo "Event completion migration pass $pass: PASS"
+done
+
+# SCRUM-41: apply twice to verify upgrade/replay safety, then check DB invariants.
+for pass in 1 2; do
+  psql -v ON_ERROR_STOP=1 -f /sql/migrations/20261026150854_scrum_41_registration_capacity.sql > /tmp/migration-output.txt
+  echo "Registration capacity migration pass $pass: PASS"
+done
+psql -v ON_ERROR_STOP=1 -f /sql/tests/registration_capacity.sql

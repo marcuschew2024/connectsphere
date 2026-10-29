@@ -179,3 +179,26 @@ test("draft list and editor fit a mobile screen and respect reduced motion", asy
   await expect(page.getByLabel("Event name")).toHaveValue(draft.title);
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
 });
+
+
+test("reopened draft exposes a working registration capacity control", async ({ page }) => {
+  let capacity: number | null = null;
+  await page.route(`**/events/${ID}`, (route) => route.fulfill({ json: {
+    event: { ...draft, registration_capacity: capacity, registered_count: 0 },
+  } }));
+  await page.route(`**/events/${ID}/registration-capacity`, async (route) => {
+    expect(route.request().method()).toBe("PUT");
+    capacity = route.request().postDataJSON().capacity;
+    await route.fulfill({ json: { registration_capacity: {
+      capacity, registered_count: 0, remaining: capacity, is_full: false,
+    } } });
+  });
+  await page.goto(`/events/drafts/${ID}`);
+  await page.getByLabel("Maximum attendees").fill("100");
+  await page.getByRole("button", { name: "Save capacity" }).click();
+  await expect(page.getByRole("region", { name: "Registration capacity" }).getByRole("status"))
+    .toContainText("Capacity saved");
+  await expect(page.getByLabel("Event name")).toHaveValue(draft.title);
+  await page.reload();
+  await expect(page.getByLabel("Maximum attendees")).toHaveValue("100");
+});

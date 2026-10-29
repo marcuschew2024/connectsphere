@@ -43,6 +43,13 @@ For the confirmed request clarification workflow, run
 event and notification migrations. Coordinators can return submitted requests with a
 note; organisers revise and resubmit them before they return to the review queue.
 
+For organiser change requests after submission or confirmation, run
+[`supabase/migrations/20261025000000_scrum_46_change_requests.sql`](supabase/migrations/20261025000000_scrum_46_change_requests.sql).
+This is also included in the current `create_events.sql`, so rerunning that safe
+setup script repairs an existing project that was created before SCRUM-46. Organisers
+cannot edit submitted events directly; requests are routed to the assigned Coordinator
+and can be raised at any time.
+
 For venue booking requests, run
 [`supabase/create_venue_bookings.sql`](supabase/create_venue_bookings.sql) after the
 event, venue, and notification migrations. Coordinators can request a venue from a
@@ -122,6 +129,25 @@ Tech Support opens an equipment request with **Review request**, selects its new
 status and records optional update notes. Coordinators use **View request** to see
 the latest status and who changed it, without editing controls. Stock reservations
 remain a separate operation. See the [setup, status rules and test evidence](docs/SCRUM-38.md).
+
+## Complete and close an event (SCRUM-132)
+
+Apply [`20261025120000_scrum_132_complete_event.sql`](supabase/migrations/20261025120000_scrum_132_complete_event.sql)
+after the event, venue booking and equipment migrations. The assigned Coordinator opens
+an event in **Preparation** and chooses **Mark event complete**, with optional post-event
+notes. The event becomes Completed and read-only, and its remaining equipment
+reservations and future venue bookings are released. See the
+[workflow, read-only rules and test evidence](docs/SCRUM-132.md).
+
+## Registration capacity (SCRUM-41)
+
+Apply [`20261026150854_scrum_41_registration_capacity.sql`](supabase/migrations/20261026150854_scrum_41_registration_capacity.sql)
+after the event and `edit_planning.sql` setup. The event's Organiser can set
+**Maximum attendees** in **Registration capacity** before confirmation. This signup
+limit is separate from expected attendance; full events reject further signups,
+including concurrent attempts. Existing events start with registration closed until
+a limit is set. See the [setup, API handoff and test evidence](docs/SCRUM-41.md).
+The attendee registration screens remain SCRUM-40 work.
 
 ## Prerequisites
 
