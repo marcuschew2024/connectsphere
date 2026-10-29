@@ -118,6 +118,14 @@ begin
     insert into public.notifications (recipient_id, event_id, notification_type, message)
     values (p_coordinator_id, p_event_id, 'coordinator_assigned',
             'You have been assigned the event request "' || event_title || '".');
+    -- The Organiser learns once that the request has left the Lead's queue; later
+    -- moves between Coordinators are internal routing and are not relayed.
+    if previous.coordinator_id is null then
+        insert into public.notifications (recipient_id, event_id, notification_type, message)
+        values (previous.organiser_id, p_event_id, 'request_assigned',
+                'A Coordinator has been assigned to your request "' || event_title
+                || '" and will review it.');
+    end if;
     if previous.coordinator_id is not null then
         insert into public.notifications (recipient_id, event_id, notification_type, message)
         values (previous.coordinator_id, p_event_id, 'coordinator_unassigned',

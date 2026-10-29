@@ -263,7 +263,9 @@ def test_decision_and_notification_reach_only_the_organiser(live, decision):
     for user_id in (1, 6):
         response = users[user_id].get("/notifications?recipient_id=1", headers=ORIGIN)
         assert response.status_code == 200
-        matching = [row for row in response.json["notifications"] if row["event_id"] == event["id"]]
+        # SCRUM-130: the Organiser's earlier "Coordinator assigned" notice is not a decision.
+        matching = [row for row in response.json["notifications"] if row["event_id"] == event["id"]
+                    and row["notification_type"] != "request_assigned"]
         assert len(matching) == (1 if user_id == 1 else 0)
         if matching:
             kind = "event_rejected" if decision == "reject" else "event_approved"
@@ -279,10 +281,12 @@ def test_decision_and_notification_reach_only_the_organiser(live, decision):
     assert users[2].post(f"/events/{event['id']}/decision", json={
         "decision": decision, "reason": "A repeated decision",
     }, headers=ORIGIN).status_code == 409
-    # SCRUM-130 also notifies the assigned Coordinator; the Organiser still gets one.
+    # SCRUM-130 also sends assignment notices; the Organiser still gets one decision.
     notifications = database.table("notifications").select("id").eq(
         "event_id", event["id"]
-    ).eq("recipient_id", 1).execute().data
+    ).eq("recipient_id", 1).in_(
+        "notification_type", ["event_approved", "event_rejected"]
+    ).execute().data
     assert len(notifications) == 1
 
 

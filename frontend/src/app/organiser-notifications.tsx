@@ -146,7 +146,9 @@ export default function OrganiserNotifications({
               {notifications.slice(page * pageSize, (page + 1) * pageSize).map((notification) => {
                 const assigned = notification.notification_type === "coordinator_assigned";
                 const movedAway = notification.notification_type === "coordinator_unassigned";
-                const accepted = notification.notification_type === "event_approved" || assigned;
+                // The Organiser's notice that the request left the Lead's queue.
+                const routed = notification.notification_type === "request_assigned";
+                const accepted = notification.notification_type === "event_approved" || assigned || routed;
                 const rejected = notification.notification_type === "event_rejected";
                 return (
                   <li key={notification.id} className="px-5 py-4 sm:px-6">
@@ -178,6 +180,8 @@ export default function OrganiserNotifications({
                           >
                             {assigned
                               ? "Event assigned to you"
+                              : routed
+                                ? "Coordinator assigned"
                               : movedAway
                                 ? "Event reassigned"
                                 : accepted

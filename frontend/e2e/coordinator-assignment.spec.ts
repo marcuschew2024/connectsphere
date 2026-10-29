@@ -146,3 +146,20 @@ for (const [coordinatorId, expected] of [
     await expect(page.getByText("Your request is with", { exact: false })).toHaveCount(1);
   });
 }
+
+test("the Organiser is notified once a Coordinator is assigned", async ({ page }) => {
+  await page.route(`${API}/session`, (route) => route.fulfill({
+    json: { user: { id: 1, display_name: "Demo Organiser", role: "Organiser" } },
+  }));
+  await page.route(`${API}/notifications`, (route) => route.fulfill({ json: { notifications: [
+    { id: 3, event_id: QUEUED, notification_type: "request_assigned",
+      message: 'A Coordinator has been assigned to your request "Robotics open day" and will review it.',
+      created_at: "2026-10-30T01:00:00Z", event: { title: "Robotics open day" } },
+  ] } }));
+  await page.goto("/");
+
+  const inbox = page.getByRole("region", { name: "Notifications" });
+  await expect(inbox.getByRole("heading", { name: "Coordinator assigned" })).toBeVisible();
+  await expect(inbox).toContainText("and will review it.");
+  await expect(inbox.getByRole("link", { name: /View request/ })).toHaveAttribute("href", `/events/${QUEUED}`);
+});

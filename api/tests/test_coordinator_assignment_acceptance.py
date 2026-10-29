@@ -97,6 +97,10 @@ def test_tc_130_02_lead_assigns_and_the_coordinator_is_notified(live, lead):
     [note] = notifications_for(users[2], event)
     assert note["notification_type"] == "coordinator_assigned"
     assert event["title"] in note["message"]
+    [organiser_note] = notifications_for(users[1], event)
+    assert organiser_note["notification_type"] == "request_assigned"
+    assert event["title"] in organiser_note["message"]
+    assert "will review it" in organiser_note["message"]
     history = database.table("event_status_history").select("*").eq(
         "event_id", event["id"]).eq("action", "coordinator_assigned").execute().data
     assert len(history) == 1 and history[0]["changed_by"] == lead.user_id
@@ -127,9 +131,10 @@ def test_tc_130_03_lead_reassigns_and_both_coordinators_are_notified(live, lead,
         "coordinator_assigned"]
     assert "coordinator_unassigned" in [
         n["notification_type"] for n in notifications_for(users[2], event)]
-    # The Organiser is not told about internal routing.
-    assert not [n for n in notifications_for(users[1], event)
-                if n["notification_type"].startswith("coordinator_")]
+    # The Organiser heard once, on first assignment; the reassignment stays internal.
+    organiser_types = [n["notification_type"] for n in notifications_for(users[1], event)]
+    assert organiser_types.count("request_assigned") == 1
+    assert not [kind for kind in organiser_types if kind.startswith("coordinator_")]
 
 
 def test_tc_130_04_coordinators_only_manage_events_assigned_to_them(live, lead, other):

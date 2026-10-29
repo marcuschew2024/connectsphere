@@ -40,6 +40,9 @@ begin
             and action = 'coordinator_assigned' and changed_by = lead_id) = 1;
     assert (select count(*) from public.notifications where event_id = saved.id
             and recipient_id = coordinator_a and notification_type = 'coordinator_assigned') = 1;
+    assert (select count(*) from public.notifications where event_id = saved.id
+            and recipient_id = 1 and notification_type = 'request_assigned') = 1,
+        'The Organiser is told once the request leaves the Lead queue';
 
     -- AC3/AC4: reassign. The previous Coordinator loses membership and is told.
     result := public.assign_coordinator_by_lead(saved.id, coordinator_b, lead_id);
@@ -51,6 +54,8 @@ begin
             and recipient_id = coordinator_b and notification_type = 'coordinator_assigned') = 1;
     assert (select count(*) from public.notifications where event_id = saved.id
             and recipient_id = coordinator_a and notification_type = 'coordinator_unassigned') = 1;
+    assert (select count(*) from public.notifications where event_id = saved.id
+            and recipient_id = 1) = 1, 'Reassignment is not relayed to the Organiser';
 
     -- Refusals leave everything unchanged.
     begin
