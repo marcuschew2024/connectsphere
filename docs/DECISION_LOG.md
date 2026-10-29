@@ -193,6 +193,8 @@ It remains a description of the previously merged baseline, not the updated gate
   successor work is not forgotten.
 - **Owner.** Event-intake work.
 
+**30 October 2026 update:** auto-assignment is superseded by D26 (SCRUM-130).
+
 ### D10 — Isolated, ephemeral test database in CI
 - **Context.** Integration tests need a real Postgres/PostgREST surface without touching
   any shared or production data.
@@ -565,6 +567,74 @@ Shared Supabase migration deployment is separate and is not implied by the Git m
 - **Owner verification — 30 Oct 2026.** Ernest Wong ran a production build and confirmed
   that a signed-out visit to `/` lands on `/login`. Push and merge still require the
   owner's explicit instruction and green CI.
+
+### D26 — Unassigned queue; the Event Coordinator Lead assigns and reassigns (SCRUM-130)
+
+- **Context.** Week 7 Customer Change #5. Requests must enter an unassigned queue that
+  the Event Coordinator Lead routes, instead of the SCRUM-17 trigger auto-assigning the
+  first Coordinator (D9). Coordinators manage only their assigned events, and relevant
+  users are notified. SCRUM-17 stays Done as historical work.
+- **Decision.** The owner chose these on 30 Oct 2026:
+  - **No auto-assignment.** The migration drops `events_assign_coordinator`, so a
+    submission is `Submitted` with no Coordinator.
+  - **Status is unchanged by assignment.** "Unassigned vs assigned" is
+    `coordinator_id` null or set; the stored status stays `Submitted`, so the existing
+    approve/reject and clarification flows are untouched.
+  - **Reassignment in any active state.** Submitted, Planning, Confirmed and
+    Preparation (plus the legacy intake sub-states) can be reassigned; Draft is
+    hidden (404) and Completed, Rejected and Cancelled are closed (409).
+  - **Notifications.** The new Coordinator is told "assigned", and on reassignment
+    the previous Coordinator is told "moved away". After manual testing the owner
+    revised this (30 Oct 2026): the Organiser is also told once, on first
+    assignment (`request_assigned`), that the request has left the Lead's queue.
+    Reassignments stay internal. `/notifications` and the Home panel now include
+    Coordinators; each user still reads only their own rows.
+  - **The Organiser's status box names the holder:** the Event Coordinator Lead
+    while unassigned, then the Coordinator. Status history shows "Coordinator
+    Assigned" / "Coordinator Reassigned" rather than the stored action.
+- **How.** `POST /events/<id>/coordinator` and `GET /events/coordinators` are
+  Lead-only. The `CoordinatorAssignment` value object checks the payload and state.
+  The `assign_coordinator_by_lead()` database function re-checks the Lead, the
+  Coordinator and the event state under the event row lock. In one transaction it
+  updates the event, moves the Coordinator's `event_participants` membership,
+  records history (`coordinator_assigned` / `coordinator_reassigned`) and writes the
+  notifications. Moving the membership matters: `require_related_user` grants access
+  to participants, so a previous Coordinator who kept the row would keep access.
+- **Constraints.** `events_submitted_assignment_check` (every submission has a
+  Coordinator) is replaced by `events_coordinator_assignment_check`: an assignment
+  has a timestamp, and only Draft, Submitted or Cancelled events may be unassigned.
+  The old trigger's timestamping is kept as `events_stamp_coordinator_assignment`
+  (it never picks a Coordinator). Existing assignments are untouched. The function
+  is `security definer`, has an empty search path and is executable only by the
+  backend role, like `complete_event` (D13). No table grant changes.
+- **Verification.** `supabase/tests/coordinator_assignment.sql` checks the
+  unassigned submission, assign, reassign, membership move, history, notifications,
+  every refusal and the new constraint. The migration is replayed twice.
+  `api/tests/test_coordinator_assignment.py` covers the value object and non-Lead
+  denials. `api/tests/test_coordinator_assignment_acceptance.py` maps to
+  TC-130-01..04 on the disposable database. A mutation check confirmed TC-130-03/04
+  fail if the membership move is removed. `e2e/coordinator-assignment.spec.ts`
+  covers the queue, assign, reassign, refusal and Coordinator notifications.
+  Regression of the intake flow (SCRUM-13/17/18/21): the full API and browser
+  suites pass.
+- **Changed existing tests (reviewable).** Only assertions encoding the superseded
+  SCRUM-17 behaviour were changed, with the owner's approval. No other assertion was
+  removed. The changes are in `test_events.py` (fake no longer auto-assigns; the
+  submission, multiple-submission and assignment-route tests),
+  `test_request_acceptance.py` (TC-US3.3-02, TC-US4.1-01/02/04/05 and the decision
+  test now assign through the Lead, and its notification checks count decision
+  notices only, since the Organiser also gets `request_assigned`), `test_change_request_acceptance.py` (assign through the Lead;
+  history starts with `coordinator_assigned`), `test_event_decisions.py`
+  (Coordinators may read notifications) and `e2e/notifications.spec.ts` (Coordinator
+  removed from the "no notifications" loop). `supabase/tests/assignment.sql` is
+  unchanged: it still verifies SCRUM-17 at its point in the replayed migration order.
+- **Trade-off.** The Lead's queue reuses `GET /events`, which is unpaginated, as
+  before. The Lead's event detail page can still fail on another Coordinator's
+  clarification lookup; that is SCRUM-140 (Marcus), not fixed here. Demo Coordinators
+  appear in the assignable list wherever demo users exist.
+- **Owner.** Ernest Wong. This changes the API contract, RBAC (notifications), the
+  schema/trigger and an intake rule, so it needs human review before merge. Applying
+  the migration to the shared Supabase project is a separate step for the owner.
 
 ## AI usage summary
 

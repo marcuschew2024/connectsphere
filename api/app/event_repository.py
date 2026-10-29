@@ -601,3 +601,59 @@ def log_event_edit(
         raise
     except Exception as error:
         raise ServiceUnavailable("Could not save the edit audit record.") from error
+
+
+# assign_coordinator_by_lead() database refusals (SCRUM-130), re-checked under the row lock.
+_ASSIGNMENT_CONFLICTS = {
+    "closed": "This event is closed, so its Coordinator cannot change.",
+    "already_assigned": "This Coordinator is already assigned to the event.",
+}
+
+
+def list_coordinators() -> list[dict]:
+    """Every account the Event Coordinator Lead may assign an event to (SCRUM-130)."""
+    try:
+        client = get_supabase_client()
+        if client is None:
+            raise ServiceUnavailable("The database is not configured. Contact the team.")
+        return (client.table("app_users").select("id,display_name")
+                .eq("role", "Coordinator").order("display_name").order("id")
+                .execute().data or [])
+    except ServiceUnavailable:
+        raise
+    except Exception as error:
+        raise ServiceUnavailable("Could not load Coordinators. Please try again.") from error
+
+
+def assign_event_coordinator(event_id: str, coordinator_id: int, lead_id: int) -> dict:
+    """Assign or reassign in one transaction: event, membership, history, notifications."""
+    try:
+        client = get_supabase_client()
+        if client is None:
+            raise ServiceUnavailable("The database is not configured. Contact the team.")
+        result = client.rpc("assign_coordinator_by_lead", {
+            "p_event_id": event_id, "p_coordinator_id": coordinator_id, "p_lead_id": lead_id,
+        }).execute()
+        if not isinstance(result.data, dict) or "event" not in result.data:
+            raise ServiceUnavailable("The database did not confirm the assignment.")
+        return result.data
+    except APIError as error:
+        if error.code == "PT403":
+            raise Forbidden("Only the Event Coordinator Lead can assign Coordinators.") from error
+        if error.code == "PT404":
+            raise NotFound("Event not found.") from error
+        if error.code == "PT409":
+            raise Conflict(_ASSIGNMENT_CONFLICTS.get(
+                error.message, "This event cannot be assigned. Reload it and try again."
+            )) from error
+        if error.code == "22023":
+            raise BadRequest("Choose an existing Coordinator.") from error
+        raise ServiceUnavailable(
+            "Could not assign the Coordinator. Reload the event before retrying."
+        ) from error
+    except ServiceUnavailable:
+        raise
+    except Exception as error:
+        raise ServiceUnavailable(
+            "Could not assign the Coordinator. Reload the event before retrying."
+        ) from error

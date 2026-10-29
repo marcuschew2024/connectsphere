@@ -7,6 +7,7 @@ from werkzeug.exceptions import BadRequest, Conflict, Forbidden, HTTPException, 
 
 from .acting_user import require_acting_user
 from .booking_repository import list_bookings_for_event
+from .coordinator_assignment import AssignmentRefused, CoordinatorAssignment
 from .equipment_request_repository import list_confirmation_requests
 from .event_completion import EventCompletion
 from .event_confirmation import EventConfirmation
@@ -14,6 +15,7 @@ from .event_decision import EventDecision
 from .event_repository import (
     add_event_participant,
     add_status_history,
+    assign_event_coordinator,
     complete_event_record,
     create_change_request,
     create_clarification,
@@ -25,6 +27,7 @@ from .event_repository import (
     get_status_history,
     insert_event,
     list_all_supervised_events,
+    list_coordinators,
     list_event_equipment_requests,
     list_safety_review_events,
     log_event_edit,
@@ -181,6 +184,51 @@ def safety_review_queue():
     rows, has_more = list_safety_review_events(int(page))
     return jsonify({"events": [event_response(row, user) for row in rows],
                     "page": int(page), "has_more": has_more})
+
+
+@events.get("/coordinators")
+def assignable_coordinators():
+    """The Coordinators the Event Coordinator Lead can route a request to (SCRUM-130)."""
+    if request.headers.get("Origin") != current_app.config["FRONTEND_ORIGIN"]:
+        raise Forbidden("Request must come from the configured frontend origin.")
+    user = require_acting_user()
+    require_role(user, "Event Coordinator Lead", action="list_coordinators")
+    return jsonify({"coordinators": list_coordinators()}), 200
+
+
+@events.post("/<event_id>/coordinator")
+def assign_coordinator(event_id):
+    """Assign an unassigned request, or reassign an active event (SCRUM-130).
+
+    Status is unchanged. The database function re-checks the Lead, the Coordinator and
+    the event state under the row lock, moves the Coordinator's event membership (so a
+    previous Coordinator loses access), records history and notifies both Coordinators.
+    """
+    if request.headers.get("Origin") != current_app.config["FRONTEND_ORIGIN"]:
+        raise Forbidden("Request must come from the configured frontend origin.")
+    user = require_acting_user()
+    require_role(user, "Event Coordinator Lead", action="assign_coordinator")
+
+    try:
+        assignment = CoordinatorAssignment.from_payload(request.get_json(silent=True))
+    except ValueError as error:
+        raise BadRequest(str(error)) from error
+
+    event = get_event_by_id(event_id)
+    if event is None or event["status"] == "Draft":
+        raise NotFound("Event not found.")
+    try:
+        assignment.outcome(status=event["status"],
+                           current_coordinator_id=event.get("coordinator_id"))
+    except AssignmentRefused as error:
+        raise Conflict(str(error)) from error
+
+    result = assign_event_coordinator(event_id, assignment.coordinator_id, user["id"])
+    return jsonify({
+        "event": event_response(result["event"], user),
+        "outcome": result["outcome"],
+        "previous_coordinator_id": result.get("previous_coordinator_id"),
+    }), 200
 
 
 @events.get("/<event_id>")

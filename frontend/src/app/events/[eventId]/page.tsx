@@ -25,15 +25,7 @@ import EventBookingsPanel from "./event-bookings-panel";
 import EventChangeRequests from "./event-change-requests";
 import EventCompleteForm from "./event-complete-form";
 import EventCapacityPanel from "./event-capacity-panel";
-
-const historyActionLabels: Record<string, string> = {
-  event_completed: "Event completed",
-  change_requested: "Change Request Pending",
-  change_request_under_review: "Change Request Under Review",
-  change_request_approved: "Change Request Approved",
-  change_request_rejected: "Change Request Rejected",
-  change_request_implemented: "Change Request Implemented",
-};
+import { historyActionLabel } from "@/lib/history";
 
 export default function EventStatusPage() {
   const params = useParams<{ eventId: string }>();
@@ -166,7 +158,10 @@ export default function EventStatusPage() {
             <h2 id="acceptance-heading" className="font-semibold text-emerald-700 dark:text-emerald-400">Request accepted</h2>
             <p role="status" className="mt-1 text-sm text-muted-foreground">The Coordinator accepted this request on {new Date(event.decision_at!).toLocaleString()}.{event.status === "Planning" ? " Your event is now in Planning." : ""}</p>
           </section>}
-          {!accepted && event.request_status === "Submitted" && actingRole === "Organiser" && !clarification && <p className="rounded-xl border border-primary/20 bg-primary/5 p-4 text-sm text-foreground">Your request is with the Coordinator. The decision will appear in your notifications.</p>}
+          {/* SCRUM-130: a new request waits with the Event Coordinator Lead until assigned. */}
+          {!accepted && event.request_status === "Submitted" && actingRole === "Organiser" && !clarification && <p className="rounded-xl border border-primary/20 bg-primary/5 p-4 text-sm text-foreground">{event.coordinator_id === null
+            ? "Your request is with the Event Coordinator Lead, who will assign a Coordinator to review it. You will be notified when a Coordinator is assigned."
+            : "Your request is with the Coordinator. The decision will appear in your notifications."}</p>}
           {event.status === "Rejected" && (actingRole === "Organiser" || actingRole === "Coordinator") && <section aria-labelledby="rejection-heading" className="rounded-2xl border border-destructive/30 bg-destructive/5 p-5">
             <h2 id="rejection-heading" className="font-semibold text-destructive">Rejection reason</h2>
             <p className="mt-2 whitespace-pre-wrap break-words text-sm text-foreground">{event.decision_reason || "No rejection reason was recorded."}</p>
@@ -245,7 +240,7 @@ export default function EventStatusPage() {
             <div className="border-t border-border px-5 py-4">
               {history.length === 0 ? <p className="text-sm text-muted-foreground">No status history is available yet.</p> : <ol className="space-y-4">
                 {history.map((change) => <li key={change.id} className="border-l-2 border-primary/40 pl-4 text-sm">
-                  <p>{change.action ? (historyActionLabels[change.action] ?? change.action) : `${change.old_status ?? "Created"} → ${change.new_status}`}</p>
+                  <p>{change.action ? historyActionLabel(change.action) : `${change.old_status ?? "Created"} → ${change.new_status}`}</p>
                   {change.note && <p className="mt-1 whitespace-pre-wrap break-words text-muted-foreground">{change.note}</p>}
                   <p className="mt-1 text-xs text-muted-foreground">User {change.changed_by} · {new Date(change.changed_at).toLocaleString()}</p>
                 </li>)}

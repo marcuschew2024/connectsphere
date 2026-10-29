@@ -15,7 +15,23 @@ type Notification = {
   event?: { title: string | null } | null;
 };
 
-export default function OrganiserNotifications() {
+// SCRUM-130: Coordinators also receive notifications (assigned to them / moved away).
+const COPY = {
+  Organiser: {
+    subtitle: "Decisions and updates on your requests.",
+    empty: "Your Coordinator’s decisions will appear here.",
+  },
+  Coordinator: {
+    subtitle: "Events assigned to you or moved to another Coordinator.",
+    empty: "Assignments from the Event Coordinator Lead will appear here.",
+  },
+} as const;
+
+export default function OrganiserNotifications({
+  audience = "Organiser",
+}: {
+  audience?: keyof typeof COPY;
+}) {
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -59,7 +75,7 @@ export default function OrganiserNotifications() {
             Notifications
           </h2>
           <p className="mt-1 text-xs text-muted-foreground">
-            Decisions and updates on your requests.
+            {COPY[audience].subtitle}
           </p>
         </div>
         <Button
@@ -93,7 +109,7 @@ export default function OrganiserNotifications() {
           <div className="px-6 py-12 text-center">
             <p className="font-medium text-foreground">No notifications yet.</p>
             <p className="mt-2 text-sm text-muted-foreground">
-              Your Coordinator’s decisions will appear here.
+              {COPY[audience].empty}
             </p>
           </div>
         ) : (
@@ -128,7 +144,11 @@ export default function OrganiserNotifications() {
             </div>
             <ul className="divide-y divide-border">
               {notifications.slice(page * pageSize, (page + 1) * pageSize).map((notification) => {
-                const accepted = notification.notification_type === "event_approved";
+                const assigned = notification.notification_type === "coordinator_assigned";
+                const movedAway = notification.notification_type === "coordinator_unassigned";
+                // The Organiser's notice that the request left the Lead's queue.
+                const routed = notification.notification_type === "request_assigned";
+                const accepted = notification.notification_type === "event_approved" || assigned || routed;
                 const rejected = notification.notification_type === "event_rejected";
                 return (
                   <li key={notification.id} className="px-5 py-4 sm:px-6">
@@ -158,7 +178,13 @@ export default function OrganiserNotifications() {
                                   : "text-amber-700 dark:text-amber-400",
                             )}
                           >
-                            {accepted
+                            {assigned
+                              ? "Event assigned to you"
+                              : routed
+                                ? "Coordinator assigned"
+                              : movedAway
+                                ? "Event reassigned"
+                                : accepted
                               ? "Request accepted"
                               : rejected
                                 ? "Request rejected"
@@ -186,12 +212,15 @@ export default function OrganiserNotifications() {
                         <p className="mt-1 line-clamp-2 whitespace-pre-wrap break-words text-sm leading-relaxed text-muted-foreground">
                           {notification.message}
                         </p>
-                        <Link
-                          href={`/events/${notification.event_id}`}
-                          className="mt-2 inline-flex items-center gap-2 text-xs font-medium text-primary hover:underline"
-                        >
-                          View request <span aria-hidden="true">→</span>
-                        </Link>
+                        {/* A Coordinator moved off an event can no longer open it. */}
+                        {!movedAway && (
+                          <Link
+                            href={`/events/${notification.event_id}`}
+                            className="mt-2 inline-flex items-center gap-2 text-xs font-medium text-primary hover:underline"
+                          >
+                            View request <span aria-hidden="true">→</span>
+                          </Link>
+                        )}
                       </div>
                     </div>
                   </li>

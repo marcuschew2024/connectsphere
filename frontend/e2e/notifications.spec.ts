@@ -92,7 +92,8 @@ test("failed notifications can be refreshed", async ({ page }) => {
   await expect(inbox.getByRole("alert")).toHaveCount(0);
 });
 
-for (const role of ["Coordinator", "Venue Staff", "Tech Support", "Attendee", null]) {
+// SCRUM-130: Coordinators now receive assignment notifications (coordinator-assignment.spec.ts).
+for (const role of ["Venue Staff", "Tech Support", "Attendee", null]) {
   test(`notifications are not loaded for ${role ?? "no user"}`, async ({ page }) => {
     let reads = 0;
     await page.route("**/session", (route) => route.fulfill({ json: {

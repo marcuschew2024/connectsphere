@@ -152,6 +152,7 @@ export default function Home() {
           )}
 
           {actingRole === "Organiser" && <OrganiserNotifications />}
+          {actingRole === "Coordinator" && <OrganiserNotifications audience="Coordinator" />}
           {actingRole === "Attendee" && <RegistrationConfirmations />}
 
           {actingRole && !actions && (

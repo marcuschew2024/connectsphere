@@ -93,3 +93,11 @@ for pass in 1 2; do
   echo "Initial confirmed capacity migration pass $pass: PASS"
 done
 psql -v ON_ERROR_STOP=1 -f /sql/tests/initial_confirmed_capacity.sql
+
+# SCRUM-130: stop auto-assignment; the Event Coordinator Lead assigns instead.
+for pass in 1 2; do
+  psql -v ON_ERROR_STOP=1 -f /sql/migrations/20261030120000_scrum_130_unassigned_queue.sql > /tmp/migration-output.txt
+  echo "Unassigned queue migration pass $pass: PASS"
+done
+psql -v ON_ERROR_STOP=1 -f /sql/tests/coordinator_assignment.sql
+echo "coordinator_assignment database checks: PASS"
