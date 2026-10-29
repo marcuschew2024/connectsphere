@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import { ApiError, apiRequest } from "@/lib/api";
-import { eventTime, type Registration, type RegistrationOffer } from "@/lib/registrations";
+import { eventTime, registrationStatus, type Registration, type RegistrationOffer } from "@/lib/registrations";
 import { useActingRole } from "@/lib/use-acting-role";
 import { AppShell } from "@/components/app-shell";
 import { Button } from "@/components/ui/button";
@@ -39,7 +39,7 @@ export default function RegisterEventPage() {
   }, [eventId, role, roleLoading, attempt]);
 
   function refresh() {
-    setError(""); setLoading(true); setAttempt((value) => value + 1);
+    setError(""); setOffer(null); setLoading(true); setAttempt((value) => value + 1);
   }
 
   async function register(event: FormEvent<HTMLFormElement>) {
@@ -86,12 +86,16 @@ export default function RegisterEventPage() {
               <p className="whitespace-pre-wrap break-words leading-relaxed">{offer.event.description}</p>
             </header>
             {registration ? <section aria-labelledby="receipt-heading" className="space-y-3 rounded-2xl border border-primary/30 bg-primary/5 p-5 sm:p-6">
-              <h2 id="receipt-heading" className="text-xl font-semibold">{registration.status === "Registered" ? "Registration confirmed" : "Registration withdrawn"}</h2>
-              <p role="status">{registration.status === "Registered" ? "Your place is booked. A confirmation is also available on Home under Registration confirmations." : "Your previous registration has been withdrawn."}</p>
+              <h2 id="receipt-heading" className="text-xl font-semibold">{registrationStatus(registration.status).heading}</h2>
+              <p role="status">{registrationStatus(registration.status).description}</p>
               <dl className="space-y-3 text-sm">
                 <div><dt className="text-muted-foreground">Registration reference</dt><dd className="break-all font-mono">{registration.id}</dd></div>
                 <div><dt className="text-muted-foreground">Registered at</dt><dd>{eventTime(registration.registered_at)}</dd></div>
               </dl>
+              <div className="flex flex-wrap items-center gap-4">
+                <Button variant="outline" onClick={refresh}>Refresh registration</Button>
+                <Link href="/registrations" className="text-sm text-primary hover:underline">My registrations</Link>
+              </div>
             </section> : <section aria-labelledby="signup-heading" className="space-y-4 rounded-2xl border border-border bg-card p-5 shadow-sm sm:p-6">
               <h2 id="signup-heading" className="text-xl font-semibold">Book your place</h2>
               {offer.unavailable_reason ? <p role="status" className="text-muted-foreground">{offer.unavailable_reason}</p> : <>
