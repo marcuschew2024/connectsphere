@@ -1,4 +1,4 @@
-"""Read the current Organiser's in-app notifications."""
+"""Read the current user's in-app notifications (Organisers; Coordinators since SCRUM-130)."""
 
 from flask import Blueprint, current_app, jsonify, request
 from werkzeug.exceptions import Forbidden, HTTPException
@@ -27,5 +27,7 @@ def list_notifications():
         raise Forbidden("Request must come from the configured frontend origin.")
 
     user = require_acting_user()
-    require_role(user, "Organiser", action="view_notifications")
+    # SCRUM-130: Coordinators are told when an event is assigned to or moved away
+    # from them. Each user only ever reads notifications addressed to them.
+    require_role(user, "Organiser", "Coordinator", action="view_notifications")
     return jsonify({"notifications": get_notifications_for_user(user["id"])}), 200

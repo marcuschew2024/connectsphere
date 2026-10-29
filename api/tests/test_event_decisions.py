@@ -163,8 +163,8 @@ def test_notifications_require_selected_user(app):
     assert "notifications" not in response.json
 
 
-# Only Organisers may read decision notifications.
-@pytest.mark.parametrize("user_id", [2, 3, 4, 5])
+# Only Organisers (and, since SCRUM-130, Coordinators) may read notifications.
+@pytest.mark.parametrize("user_id", [3, 4, 5])
 def test_notifications_are_only_available_to_organisers(app, user_id, monkeypatch):
     monkeypatch.setattr("app.rbac.get_supabase_client", lambda: None)
     client = app.test_client()

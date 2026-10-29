@@ -23,6 +23,8 @@ pytestmark = pytest.mark.skipif(
 def submitted_event(users):
     draft = request_acceptance.new_draft(users, request_acceptance.details())
     event = request_acceptance.submit(users, draft).json["event"]
+    # SCRUM-130: the Lead routes the request; Coordinator 2 then owns its changes.
+    event = request_acceptance.assign_coordinator(users[1].application, event)
     assert event["coordinator_id"] == 2
     return event
 
@@ -103,6 +105,7 @@ def test_review_lifecycle_is_audited_and_notifies_each_party(live):
     history = users[1].get(f"/events/{event['id']}/history", headers=ORIGIN).json["history"]
     actions = [row["action"] for row in history if row.get("action")]
     assert actions == [
+        "coordinator_assigned",  # SCRUM-130: the Lead's routing is recorded first.
         "change_requested",
         "change_request_under_review",
         "change_request_approved",

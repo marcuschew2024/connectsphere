@@ -62,6 +62,18 @@ def submit(users, draft):
     return response
 
 
+def assign_coordinator(app, event, coordinator_id=2):
+    """SCRUM-130: route a submitted request through the Event Coordinator Lead."""
+    lead = app.test_client()
+    demo_users = lead.get("/dev/users").json["users"]
+    lead_id = next(user["id"] for user in demo_users if user["role"] == "Event Coordinator Lead")
+    assert select_user(lead, lead_id).status_code == 200
+    response = lead.post(f"/events/{event['id']}/coordinator",
+                         json={"coordinator_id": coordinator_id}, headers=ORIGIN)
+    assert response.status_code == 200, response.json
+    return response.json["event"]
+
+
 def test_tc_us33_01_invalid_draft_cannot_submit(live):
     _, database, users = live
     draft = new_draft(users, {**details(), "purpose": ""})
@@ -75,12 +87,14 @@ def test_tc_us33_01_invalid_draft_cannot_submit(live):
 
 
 def test_tc_us33_02_valid_draft_reaches_coordinator_queue(live):
-    _, database, users = live
+    app, database, users = live
     draft = new_draft(users, details())
     submitted = submit(users, draft).json["event"]
     assert submitted["id"] == draft["id"]
     stored = database.table("events").select("*").eq("id", draft["id"]).execute().data[0]
     assert stored["status"] == "Submitted"
+    # SCRUM-130: the request reaches a Coordinator's queue once the Lead assigns it.
+    assign_coordinator(app, submitted)
     queue = users[2].get("/events", headers=ORIGIN).json["events"]
     assert any(row["id"] == draft["id"] and row["status"] == "Submitted" for row in queue)
 
@@ -147,9 +161,14 @@ def test_tc_us33_05_confirmation_contains_reference_without_organiser_email(live
 
 
 def test_tc_us41_01_exactly_one_coordinator_and_assignment_time(live):
-    _, database, users = live
+    app, database, users = live
     draft = new_draft(users, details())
     event = submit(users, draft).json["event"]
+    # SCRUM-130 supersedes auto-assignment: submission is unassigned until the Lead acts.
+    assert event["coordinator_id"] is None and event["coordinator_assigned_at"] is None
+    assert not database.table("event_participants").select("user_id").eq(
+        "event_id", event["id"]).eq("role", "Coordinator").execute().data
+    event = assign_coordinator(app, event)
     assert event["coordinator_id"] == 2 and event["coordinator_assigned_at"]
     participants = database.table("event_participants").select("*").eq(
         "event_id", event["id"]
@@ -158,8 +177,13 @@ def test_tc_us41_01_exactly_one_coordinator_and_assignment_time(live):
 
 
 def test_tc_us41_02_only_assigned_coordinator_sees_request_in_queue(live):
-    _, _, users = live
+    app, database, users = live
     event = submit(users, new_draft(users, details())).json["event"]
+    for user_id in (2, 7):
+        # SCRUM-130: no Coordinator sees an unassigned request.
+        queue = users[user_id].get("/events", headers=ORIGIN).json["events"]
+        assert all(row["id"] != event["id"] for row in queue)
+    assign_coordinator(app, event)
     for user_id in (2, 7):
         queue = users[user_id].get("/events", headers=ORIGIN).json["events"]
         matching = [row for row in queue if row["id"] == event["id"]]
@@ -181,17 +205,24 @@ def test_tc_us41_03_customer_sees_planning_on_write_read_and_list(live):
 def test_tc_us41_04_no_manual_assignment_route_or_writable_coordinator(live):
     app, database, users = live
     event = submit(users, new_draft(users, details())).json["event"]
-    assert not any("assign" in rule.rule for rule in app.url_map.iter_rules())
+    # SCRUM-130: only the Lead's assignment route may set a Coordinator; the Organiser
+    # and Coordinators cannot use it, and nobody can write coordinator_id directly.
+    for user_id in (1, 2):
+        response = users[user_id].post(f"/events/{event['id']}/coordinator",
+                                       json={"coordinator_id": 7}, headers=ORIGIN)
+        assert response.status_code == 403
     response = users[1].post("/events", json={**details(), "coordinator_id": 7}, headers=ORIGIN)
     assert response.status_code == 400
     stored = database.table("events").select("*").eq("id", event["id"]).execute().data[0]
-    assert stored["coordinator_id"] == 2
+    assert stored["coordinator_id"] is None
 
 
 def test_tc_us41_05_multiple_requests_each_get_one_coordinator(live):
-    _, database, users = live
+    app, database, users = live
     for _ in range(5):
         event = submit(users, new_draft(users, details())).json["event"]
+        assert event["coordinator_id"] is None  # SCRUM-130: waits for the Lead.
+        event = assign_coordinator(app, event)
         assert event["coordinator_id"] == 2 and event["coordinator_assigned_at"]
         members = database.table("event_participants").select("user_id").eq(
             "event_id", event["id"]
@@ -221,8 +252,9 @@ def test_tc_us32_01_to_05_private_draft_can_be_saved_reopened_and_submitted(live
 
 @pytest.mark.parametrize("decision", ["approve", "reject"])
 def test_decision_and_notification_reach_only_the_organiser(live, decision):
-    _, database, users = live
+    app, database, users = live
     event = submit(users, new_draft(users, details())).json["event"]
+    assign_coordinator(app, event)  # SCRUM-130: decisions follow assignment.
     reason = "The requested venue is unavailable." if decision == "reject" else None
     response = users[2].post(f"/events/{event['id']}/decision", json={
         "decision": decision, **({"reason": reason} if reason else {}),
@@ -247,9 +279,10 @@ def test_decision_and_notification_reach_only_the_organiser(live, decision):
     assert users[2].post(f"/events/{event['id']}/decision", json={
         "decision": decision, "reason": "A repeated decision",
     }, headers=ORIGIN).status_code == 409
+    # SCRUM-130 also notifies the assigned Coordinator; the Organiser still gets one.
     notifications = database.table("notifications").select("id").eq(
         "event_id", event["id"]
-    ).execute().data
+    ).eq("recipient_id", 1).execute().data
     assert len(notifications) == 1
 
 

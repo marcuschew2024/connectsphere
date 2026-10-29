@@ -82,10 +82,9 @@ def event_database(monkeypatch):
                 row = {
                     **pending_insert,
                     "id": str(uuid4()),
-                    "coordinator_id": 2 if pending_insert.get("status") == "Submitted" else None,
-                    "coordinator_assigned_at": (
-                        now if pending_insert.get("status") == "Submitted" else None
-                    ),
+                    # SCRUM-130: submission enters the unassigned queue (no auto-assign).
+                    "coordinator_id": None,
+                    "coordinator_assigned_at": None,
                     "created_at": now, "updated_at": now,
                 }
                 rows.append(row)
@@ -205,7 +204,6 @@ def event_database(monkeypatch):
             row["updated_at"] = now
             if params["p_submit"]:
                 row.update(status="Submitted", submitted_at=now,
-                           coordinator_id=2, coordinator_assigned_at=now,
                            last_status_changed_by=params["p_organiser_id"],
                            last_status_changed_at=now)
                 history.append({"id": len(history) + 1, "event_id": row["id"],
@@ -254,8 +252,9 @@ def test_submit_persists_details_identity_status_and_timestamps(organiser, detai
     assert event_database[0][0]["status"] == "Submitted"
     assert event["title"] == "Campus workshop"
     assert event["organiser_id"] == 1
-    assert event["coordinator_id"] == 2
-    assert event["coordinator_assigned_at"]
+    # SCRUM-130 supersedes SCRUM-17: a submission enters the Lead's unassigned queue.
+    assert event["coordinator_id"] is None
+    assert event["coordinator_assigned_at"] is None
     assert event["submitted_at"]
     assert event["created_at"]
     for field in ("description", "purpose", "category", "venue_requirements",
@@ -271,7 +270,6 @@ def test_submit_persists_details_identity_status_and_timestamps(organiser, detai
     }
     assert event_database[1].participants == [
         {"event_id": event["id"], "user_id": 1, "role": "Organiser"},
-        {"event_id": event["id"], "user_id": 2, "role": "Coordinator"},
     ]
     assert response.headers["Cache-Control"] == "no-store"
 
@@ -285,24 +283,24 @@ def test_multiple_submissions_have_one_coordinator_each(organiser, details, even
     assert all(response.status_code == 201 for response in submitted)
     events = [response.json["event"] for response in submitted]
     assert len({event["id"] for event in events}) == 3
-    assert all(event["coordinator_id"] == 2 for event in events)
-    assert all(event["coordinator_assigned_at"] for event in events)
-    assert all(
-        [participant for participant in event_database[1].participants
-         if participant["event_id"] == event["id"] and participant["role"] == "Coordinator"]
-        == [{"event_id": event["id"], "user_id": 2, "role": "Coordinator"}]
-        for event in events
-    )
+    # SCRUM-130: every new submission waits, unassigned, for the Lead to route it.
+    assert all(event["coordinator_id"] is None for event in events)
+    assert all(event["coordinator_assigned_at"] is None for event in events)
+    assert not [participant for participant in event_database[1].participants
+                if participant["role"] == "Coordinator"]
 
 
 def test_no_manual_reassignment_endpoint_exists(app):
-    reassignment_routes = {
-        rule.rule
+    # SCRUM-130 adds exactly one assignment route, reserved for the Event Coordinator
+    # Lead (see test_coordinator_assignment.py); no other route can set a Coordinator.
+    assignment_routes = {
+        (rule.rule, method)
         for rule in app.url_map.iter_rules()
-        if "assign" in rule.rule.lower() or "reassign" in rule.rule.lower()
+        for method in rule.methods - {"HEAD", "OPTIONS"}
+        if "assign" in rule.rule.lower() or rule.rule.endswith("/coordinator")
     }
 
-    assert reassignment_routes == set()
+    assert assignment_routes == {("/events/<event_id>/coordinator", "POST")}
 
 
 @pytest.mark.parametrize("field", [
