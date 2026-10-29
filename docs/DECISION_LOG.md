@@ -134,6 +134,9 @@ An at-a-glance summary of where AI was and was not used sits in the
   unresolved. Resolution: wire the confirm endpoint to real equipment-request status.
 - **Owner.** Event-lifecycle / readiness work.
 
+**29 October 2026 update:** the deferred seam above is superseded locally by D21.
+It remains a description of the previously merged baseline, not the updated gate.
+
 ### D6 — Operational safety check as a distinct lifecycle stage
 - **Context.** A confirmed event must pass an operational safety review before
   preparation begins.
@@ -227,7 +230,8 @@ An at-a-glance summary of where AI was and was not used sits in the
 - **Verification.** Unit and acceptance tests across catalogue, availability, requests, and
   reservation status, plus e2e specs for the equipment screens.
 - **Trade-off.** A sizeable surface delivered late in the project; it is built and merged,
-  but is **not yet wired into the event confirmation gate** (see D5).
+  but was initially not wired into the event confirmation gate (D5). D21 supplies
+  that integration locally; merge/review is still required.
 - **Owner.** Equipment / technical-support work.
 
 ### D13 — Event completion gate (Preparation → Completed)
@@ -406,6 +410,41 @@ case, the owner explicitly requested push and merge of the SCRUM-40 branch. Proc
 only after remote lint/build/e2e pass. Jerome owns these domain/API/access decisions.
 Shared Supabase migration deployment is separate and is not implied by the Git merge.
 
+### D21 — Confirmation requires fully reserved equipment (SCRUM-39)
+
+- **Context.** Database-backed regression tests reproduced confirmation returning
+  200 with approved venues but a Requested equipment request. D5 documented this
+  deferred seam. On 29 October 2026 the owner explicitly instructed that both
+  Partially fulfilled and Unavailable must also block until fully reserved.
+- **Decision.** The confirmation value object requires every recorded equipment
+  request to be Reserved. Requested, Partially fulfilled, Unavailable, unknown and
+  unreadable statuses block. The repository derives current request status from
+  required quantities and active Reserved allocations; a stale stored Reserved
+  label, Pending allocation or released/cancelled allocation is insufficient.
+  All requests are checked without UI pagination. No equipment requests means no
+  recorded equipment arrangements need resolving; programme and registration setup
+  remain non-blocking. A failed readiness lookup returns 503 before mutation.
+- **Constraints.** Keep pure decision logic in EventConfirmation and I/O in the
+  existing repository. Retain Coordinator, relationship, Planning-only and venue
+  gates. No schema, grants or hosted-database changes. Existing venue-route tests
+  explicitly stub an empty equipment collection; no assertion was removed or
+  weakened. This fixture extension is reviewable and does not substitute for the
+  real database regressions.
+- **Verification.** New unit/repository cases cover all request statuses, malformed
+  data, stale labels, current quantities, read failures and a blocking request beyond
+  the first UI page. Database tests reject each of the three unresolved outcomes,
+  verify unchanged event/bookings/history, then fully reserve that same request and
+  confirm successfully with actor/time history. They also cover no-equipment events,
+  independent booking writes, denied access and failed writes.
+- **Trade-off.** Reads and the existing event/history writes are separate operations;
+  this does not establish a serializable transaction across concurrent reservation
+  changes and confirmation, or rollback of a later history-write failure. Atomic
+  confirmation requires a separately reviewed database/API change. Free-text needs
+  that have not been recorded as equipment requests are not inferred by this gate.
+- **Owner.** Marcus (product owner), with Jessica/Jerome for equipment review. The
+  user supplied the blocking-status decision; implementation review and green CI
+  remain required before merge. Nothing here authorizes push, merge or deployment.
+
 ## AI usage summary
 
 Per-feature view of where AI assistance was applied, always under human specification and
@@ -433,5 +472,6 @@ system, test scaffolding, and boilerplate following existing patterns.
 under human-authored specifications. Every safety-critical decision — the overlap engine,
 the confirmation and safety gates, and the authentication/authorisation model — was
 human-designed, documented in this log, and review-gated in CI before merge. Known
-trade-offs (notably the deferred technical-arrangements seam in D5 and the interim
+trade-offs (notably the former deferred technical-arrangements seam in D5, addressed
+locally by D21, and the interim
 auto-assign in D9) are recorded explicitly rather than left implicit.

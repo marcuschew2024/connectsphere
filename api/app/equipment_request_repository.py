@@ -64,6 +64,30 @@ def list_requests(user: dict, page: int) -> tuple[list[dict], bool]:
         raise ServiceUnavailable("Could not load equipment requests. Please try again.") from error
 
 
+def list_confirmation_requests(event_id: str) -> list[dict]:
+    """Read all requests for an authorised event, deriving readiness from current stock links.
+
+    The caller has already checked Coordinator/event access. Do not paginate a gate:
+    a later unresolved request must block just as an earlier one does.
+    """
+    try:
+        rows = _client().table("equipment_requests").select(READ_FIELDS).eq(
+            "event_id", event_id,
+        ).execute().data
+        for row in rows:
+            # Pending, Released and Cancelled allocations are not fully reserved.
+            row["reservations"] = [
+                reservation for reservation in row["reservations"]
+                if reservation["status"] == "Reserved"
+            ]
+            _summarize_reservations(row)
+        return [{"id": row["id"], "status": row["status"]} for row in rows]
+    except Exception as error:
+        raise ServiceUnavailable(
+            "Could not verify technical arrangements. Please try again."
+        ) from error
+
+
 def list_request_events(actor_id: int, page: int) -> tuple[list[dict], bool]:
     try:
         start = (page - 1) * PAGE_SIZE

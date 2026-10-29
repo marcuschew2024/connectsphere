@@ -31,9 +31,12 @@ An event may be confirmed only when **all** of the following hold:
 - **No venue booking is still awaiting approval.** Anything that is not a *settled*
   `Confirmed`/`Rejected` status — `Requested`, `Pending`, or an unrecognised value —
   blocks. Unknown statuses block defensively rather than slipping through.
-- **Technical arrangements are resolved.** This is the `technical_resolved` flag — the
-  seam for equipment reservations (SCRUM-37). Until that story lands, the endpoint
-  passes `True`; the gate logic is already complete and unit-tested both ways.
+- **Technical arrangements are resolved.** The endpoint reads every equipment request
+  and its linked reservations. Each request must be fully Reserved; Requested,
+  Partially fulfilled, Unavailable and unknown states block. Released/cancelled or
+  Pending allocations cannot satisfy required quantities. No recorded equipment
+  requests means no equipment gate is outstanding. This replaces the former hardcoded
+  readiness flag; see Decision Log D21 for the owner's decision and concurrency limits.
 
 `Rejected` bookings are **settled history and do not block** (PO decision): a declined
 venue request sitting in the log does not stop the event being confirmed, as long as

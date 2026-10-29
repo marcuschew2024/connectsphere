@@ -1,0 +1,1526 @@
+{
+  "date": "2026-10-29",
+  "baseline_commit": "94e23abe9bb32066e03159cb8b6393d758ae7873",
+  "scope": "Targeted Sprint 1\u20133 rule and login regressions; coverage denominator remains the entire backend.",
+  "overall_100_percent_achieved": false,
+  "before": {
+    "covered_lines": 2546,
+    "num_statements": 2997,
+    "percent_covered": 84.16035199217795,
+    "percent_covered_display": "84",
+    "missing_lines": 451,
+    "excluded_lines": 5,
+    "percent_statements_covered": 84.95161828495162,
+    "percent_statements_covered_display": "85",
+    "num_branches": 1094,
+    "num_partial_branches": 153,
+    "covered_branches": 897,
+    "missing_branches": 197,
+    "percent_branches_covered": 81.9926873857404,
+    "percent_branches_covered_display": "82"
+  },
+  "after": {
+    "covered_lines": 2574,
+    "num_statements": 2997,
+    "percent_covered": 85.5047665607431,
+    "percent_covered_display": "86",
+    "missing_lines": 423,
+    "excluded_lines": 5,
+    "percent_statements_covered": 85.88588588588588,
+    "percent_statements_covered_display": "86",
+    "num_branches": 1094,
+    "num_partial_branches": 130,
+    "covered_branches": 924,
+    "missing_branches": 170,
+    "percent_branches_covered": 84.46069469835466,
+    "percent_branches_covered_display": "84"
+  },
+  "validation": {
+    "backend": "1159 passed, zero skipped, fresh disposable PostgreSQL/PostgREST",
+    "frontend": "33 unit cases passed (16 existing + 17 new)",
+    "static_checks": "Backend Ruff, frontend ESLint and TypeScript noEmit passed",
+    "new_backend_cases": 60,
+    "existing_tests_modified": false,
+    "application_code_changed": false,
+    "coverage_configuration_changed": false
+  },
+  "measurement_command": "POSTGREST_TEST_URL=http://127.0.0.1:55433 .venv/bin/pytest -q --cov=app --cov-branch --cov-report=json:REPORT.json --cov-report=term-missing",
+  "baseline_method": "Same command, excluding only the two new backend test files, on a separate fresh database.",
+  "changed_modules": {
+    "app/auth.py": {
+      "before": {
+        "covered_lines": 103,
+        "num_statements": 119,
+        "percent_covered": 80.50314465408805,
+        "percent_covered_display": "81",
+        "missing_lines": 16,
+        "excluded_lines": 0,
+        "percent_statements_covered": 86.5546218487395,
+        "percent_statements_covered_display": "87",
+        "num_branches": 40,
+        "num_partial_branches": 15,
+        "covered_branches": 25,
+        "missing_branches": 15,
+        "percent_branches_covered": 62.5,
+        "percent_branches_covered_display": "62"
+      },
+      "after": {
+        "covered_lines": 112,
+        "num_statements": 119,
+        "percent_covered": 91.82389937106919,
+        "percent_covered_display": "92",
+        "missing_lines": 7,
+        "excluded_lines": 0,
+        "percent_statements_covered": 94.11764705882354,
+        "percent_statements_covered_display": "94",
+        "num_branches": 40,
+        "num_partial_branches": 6,
+        "covered_branches": 34,
+        "missing_branches": 6,
+        "percent_branches_covered": 85.0,
+        "percent_branches_covered_display": "85"
+      }
+    },
+    "app/equipment_availability.py": {
+      "before": {
+        "covered_lines": 81,
+        "num_statements": 84,
+        "percent_covered": 95.53571428571429,
+        "percent_covered_display": "96",
+        "missing_lines": 3,
+        "excluded_lines": 2,
+        "percent_statements_covered": 96.42857142857143,
+        "percent_statements_covered_display": "96",
+        "num_branches": 28,
+        "num_partial_branches": 2,
+        "covered_branches": 26,
+        "missing_branches": 2,
+        "percent_branches_covered": 92.85714285714286,
+        "percent_branches_covered_display": "93"
+      },
+      "after": {
+        "covered_lines": 84,
+        "num_statements": 84,
+        "percent_covered": 100.0,
+        "percent_covered_display": "100",
+        "missing_lines": 0,
+        "excluded_lines": 2,
+        "percent_statements_covered": 100.0,
+        "percent_statements_covered_display": "100",
+        "num_branches": 28,
+        "num_partial_branches": 0,
+        "covered_branches": 28,
+        "missing_branches": 0,
+        "percent_branches_covered": 100.0,
+        "percent_branches_covered_display": "100"
+      }
+    },
+    "app/event_confirmation.py": {
+      "before": {
+        "covered_lines": 29,
+        "num_statements": 31,
+        "percent_covered": 90.2439024390244,
+        "percent_covered_display": "90",
+        "missing_lines": 2,
+        "excluded_lines": 0,
+        "percent_statements_covered": 93.54838709677419,
+        "percent_statements_covered_display": "94",
+        "num_branches": 10,
+        "num_partial_branches": 2,
+        "covered_branches": 8,
+        "missing_branches": 2,
+        "percent_branches_covered": 80.0,
+        "percent_branches_covered_display": "80"
+      },
+      "after": {
+        "covered_lines": 31,
+        "num_statements": 31,
+        "percent_covered": 100.0,
+        "percent_covered_display": "100",
+        "missing_lines": 0,
+        "excluded_lines": 0,
+        "percent_statements_covered": 100.0,
+        "percent_statements_covered_display": "100",
+        "num_branches": 10,
+        "num_partial_branches": 0,
+        "covered_branches": 10,
+        "missing_branches": 0,
+        "percent_branches_covered": 100.0,
+        "percent_branches_covered_display": "100"
+      }
+    },
+    "app/safety_decision.py": {
+      "before": {
+        "covered_lines": 26,
+        "num_statements": 27,
+        "percent_covered": 97.14285714285714,
+        "percent_covered_display": "97",
+        "missing_lines": 1,
+        "excluded_lines": 0,
+        "percent_statements_covered": 96.29629629629629,
+        "percent_statements_covered_display": "96",
+        "num_branches": 8,
+        "num_partial_branches": 0,
+        "covered_branches": 8,
+        "missing_branches": 0,
+        "percent_branches_covered": 100.0,
+        "percent_branches_covered_display": "100"
+      },
+      "after": {
+        "covered_lines": 27,
+        "num_statements": 27,
+        "percent_covered": 100.0,
+        "percent_covered_display": "100",
+        "missing_lines": 0,
+        "excluded_lines": 0,
+        "percent_statements_covered": 100.0,
+        "percent_statements_covered_display": "100",
+        "num_branches": 8,
+        "num_partial_branches": 0,
+        "covered_branches": 8,
+        "missing_branches": 0,
+        "percent_branches_covered": 100.0,
+        "percent_branches_covered_display": "100"
+      }
+    },
+    "app/venue_overlap.py": {
+      "before": {
+        "covered_lines": 84,
+        "num_statements": 87,
+        "percent_covered": 93.16239316239316,
+        "percent_covered_display": "93",
+        "missing_lines": 3,
+        "excluded_lines": 0,
+        "percent_statements_covered": 96.55172413793103,
+        "percent_statements_covered_display": "97",
+        "num_branches": 30,
+        "num_partial_branches": 5,
+        "covered_branches": 25,
+        "missing_branches": 5,
+        "percent_branches_covered": 83.33333333333333,
+        "percent_branches_covered_display": "83"
+      },
+      "after": {
+        "covered_lines": 87,
+        "num_statements": 87,
+        "percent_covered": 100.0,
+        "percent_covered_display": "100",
+        "missing_lines": 0,
+        "excluded_lines": 0,
+        "percent_statements_covered": 100.0,
+        "percent_statements_covered_display": "100",
+        "num_branches": 30,
+        "num_partial_branches": 0,
+        "covered_branches": 30,
+        "missing_branches": 0,
+        "percent_branches_covered": 100.0,
+        "percent_branches_covered_display": "100"
+      }
+    },
+    "app/venue_suitability.py": {
+      "before": {
+        "covered_lines": 138,
+        "num_statements": 152,
+        "percent_covered": 88.15789473684211,
+        "percent_covered_display": "88",
+        "missing_lines": 14,
+        "excluded_lines": 1,
+        "percent_statements_covered": 90.78947368421052,
+        "percent_statements_covered_display": "91",
+        "num_branches": 76,
+        "num_partial_branches": 9,
+        "covered_branches": 63,
+        "missing_branches": 13,
+        "percent_branches_covered": 82.89473684210526,
+        "percent_branches_covered_display": "83"
+      },
+      "after": {
+        "covered_lines": 146,
+        "num_statements": 152,
+        "percent_covered": 94.73684210526316,
+        "percent_covered_display": "95",
+        "missing_lines": 6,
+        "excluded_lines": 1,
+        "percent_statements_covered": 96.05263157894737,
+        "percent_statements_covered_display": "96",
+        "num_branches": 76,
+        "num_partial_branches": 6,
+        "covered_branches": 70,
+        "missing_branches": 6,
+        "percent_branches_covered": 92.10526315789474,
+        "percent_branches_covered_display": "92"
+      }
+    },
+    "app/venue_validation.py": {
+      "before": {
+        "covered_lines": 50,
+        "num_statements": 52,
+        "percent_covered": 95.34883720930233,
+        "percent_covered_display": "95",
+        "missing_lines": 2,
+        "excluded_lines": 0,
+        "percent_statements_covered": 96.15384615384616,
+        "percent_statements_covered_display": "96",
+        "num_branches": 34,
+        "num_partial_branches": 2,
+        "covered_branches": 32,
+        "missing_branches": 2,
+        "percent_branches_covered": 94.11764705882354,
+        "percent_branches_covered_display": "94"
+      },
+      "after": {
+        "covered_lines": 52,
+        "num_statements": 52,
+        "percent_covered": 100.0,
+        "percent_covered_display": "100",
+        "missing_lines": 0,
+        "excluded_lines": 0,
+        "percent_statements_covered": 100.0,
+        "percent_statements_covered_display": "100",
+        "num_branches": 34,
+        "num_partial_branches": 0,
+        "covered_branches": 34,
+        "missing_branches": 0,
+        "percent_branches_covered": 100.0,
+        "percent_branches_covered_display": "100"
+      }
+    }
+  },
+  "remaining_backend_gaps": {
+    "app/acting_user.py": {
+      "missing_lines": [],
+      "missing_branches": [
+        [
+          23,
+          28
+        ]
+      ]
+    },
+    "app/auth.py": {
+      "missing_lines": [
+        40,
+        62,
+        71,
+        72,
+        79,
+        92,
+        107
+      ],
+      "missing_branches": [
+        [
+          39,
+          40
+        ],
+        [
+          61,
+          62
+        ],
+        [
+          78,
+          79
+        ],
+        [
+          91,
+          92
+        ],
+        [
+          100,
+          121
+        ],
+        [
+          106,
+          107
+        ]
+      ]
+    },
+    "app/booking_repository.py": {
+      "missing_lines": [
+        13,
+        28,
+        29,
+        30,
+        31,
+        32,
+        42,
+        43,
+        44,
+        45,
+        50,
+        51,
+        57,
+        58,
+        59,
+        60,
+        61,
+        62,
+        63,
+        64,
+        65,
+        69,
+        70,
+        73,
+        74,
+        75,
+        76,
+        77,
+        86,
+        87,
+        88,
+        89,
+        94,
+        95,
+        98,
+        99,
+        100,
+        101,
+        102,
+        109,
+        110,
+        118,
+        119,
+        120,
+        121,
+        122,
+        123,
+        124,
+        125,
+        126,
+        133,
+        134,
+        142,
+        143,
+        144,
+        145,
+        146,
+        147,
+        148,
+        158,
+        159,
+        160,
+        161,
+        189,
+        192,
+        196,
+        206,
+        207,
+        212,
+        213,
+        214,
+        215,
+        216
+      ],
+      "missing_branches": [
+        [
+          12,
+          13
+        ],
+        [
+          27,
+          28
+        ],
+        [
+          57,
+          58
+        ],
+        [
+          57,
+          59
+        ],
+        [
+          63,
+          64
+        ],
+        [
+          63,
+          65
+        ],
+        [
+          118,
+          119
+        ],
+        [
+          118,
+          120
+        ],
+        [
+          124,
+          125
+        ],
+        [
+          124,
+          126
+        ],
+        [
+          142,
+          143
+        ],
+        [
+          142,
+          144
+        ],
+        [
+          188,
+          189
+        ],
+        [
+          194,
+          196
+        ]
+      ]
+    },
+    "app/bookings.py": {
+      "missing_lines": [
+        36,
+        37,
+        38,
+        39,
+        40,
+        41,
+        42,
+        43,
+        44,
+        45,
+        46,
+        47,
+        48,
+        49,
+        50,
+        51,
+        52,
+        53,
+        54,
+        58,
+        59,
+        60,
+        61,
+        64,
+        65,
+        66,
+        67,
+        68,
+        69,
+        71,
+        72,
+        73,
+        75,
+        78,
+        84,
+        85,
+        86,
+        87,
+        88,
+        100,
+        104,
+        105,
+        106,
+        107,
+        108,
+        129,
+        133,
+        138,
+        145,
+        148,
+        158,
+        215,
+        224,
+        227,
+        241,
+        246,
+        258,
+        260,
+        263,
+        277,
+        326
+      ],
+      "missing_branches": [
+        [
+          36,
+          37
+        ],
+        [
+          36,
+          38
+        ],
+        [
+          41,
+          42
+        ],
+        [
+          41,
+          43
+        ],
+        [
+          50,
+          51
+        ],
+        [
+          50,
+          52
+        ],
+        [
+          52,
+          53
+        ],
+        [
+          52,
+          54
+        ],
+        [
+          58,
+          59
+        ],
+        [
+          58,
+          60
+        ],
+        [
+          60,
+          61
+        ],
+        [
+          60,
+          64
+        ],
+        [
+          65,
+          66
+        ],
+        [
+          65,
+          67
+        ],
+        [
+          68,
+          69
+        ],
+        [
+          68,
+          71
+        ],
+        [
+          84,
+          85
+        ],
+        [
+          84,
+          88
+        ],
+        [
+          85,
+          86
+        ],
+        [
+          85,
+          87
+        ],
+        [
+          99,
+          100
+        ],
+        [
+          105,
+          106
+        ],
+        [
+          105,
+          107
+        ],
+        [
+          128,
+          129
+        ],
+        [
+          132,
+          133
+        ],
+        [
+          137,
+          138
+        ],
+        [
+          144,
+          145
+        ],
+        [
+          147,
+          148
+        ],
+        [
+          157,
+          158
+        ],
+        [
+          223,
+          224
+        ],
+        [
+          226,
+          227
+        ],
+        [
+          240,
+          241
+        ],
+        [
+          242,
+          246
+        ],
+        [
+          257,
+          258
+        ],
+        [
+          259,
+          260
+        ],
+        [
+          262,
+          263
+        ],
+        [
+          276,
+          277
+        ],
+        [
+          325,
+          326
+        ],
+        [
+          335,
+          337
+        ]
+      ]
+    },
+    "app/dev_auth.py": {
+      "missing_lines": [
+        15
+      ],
+      "missing_branches": [
+        [
+          14,
+          15
+        ]
+      ]
+    },
+    "app/equipment.py": {
+      "missing_lines": [
+        95,
+        124,
+        125,
+        151,
+        155,
+        159,
+        168,
+        169,
+        170,
+        189,
+        190,
+        214,
+        215,
+        217,
+        218
+      ],
+      "missing_branches": [
+        [
+          94,
+          95
+        ],
+        [
+          150,
+          151
+        ],
+        [
+          154,
+          155
+        ],
+        [
+          158,
+          159
+        ],
+        [
+          167,
+          168
+        ]
+      ]
+    },
+    "app/equipment_repository.py": {
+      "missing_lines": [
+        18,
+        37,
+        56,
+        80,
+        98,
+        99,
+        100,
+        101,
+        126,
+        127,
+        128,
+        129,
+        161,
+        168,
+        171,
+        172,
+        173,
+        174,
+        181,
+        182,
+        191,
+        192,
+        193,
+        194,
+        201,
+        202,
+        211,
+        212,
+        213,
+        214
+      ],
+      "missing_branches": [
+        [
+          17,
+          18
+        ],
+        [
+          79,
+          80
+        ],
+        [
+          123,
+          125
+        ],
+        [
+          160,
+          161
+        ],
+        [
+          164,
+          168
+        ]
+      ]
+    },
+    "app/equipment_request_repository.py": {
+      "missing_lines": [
+        21,
+        63,
+        64,
+        83,
+        84,
+        114,
+        115,
+        142,
+        143,
+        223,
+        224,
+        245,
+        263,
+        264,
+        265,
+        266
+      ],
+      "missing_branches": [
+        [
+          20,
+          21
+        ],
+        [
+          244,
+          245
+        ]
+      ]
+    },
+    "app/event_repository.py": {
+      "missing_lines": [
+        27,
+        43,
+        50,
+        51,
+        52,
+        53,
+        63,
+        84,
+        85,
+        86,
+        87,
+        97,
+        104,
+        105,
+        106,
+        107,
+        117,
+        121,
+        122,
+        123,
+        124,
+        134,
+        159,
+        165,
+        166,
+        167,
+        168,
+        178,
+        183,
+        184,
+        185,
+        186,
+        203,
+        215,
+        216,
+        217,
+        218,
+        228,
+        260,
+        261,
+        262,
+        263,
+        273,
+        281,
+        283,
+        284,
+        285,
+        286,
+        296,
+        301,
+        302,
+        303,
+        304,
+        314,
+        319,
+        320,
+        321,
+        322,
+        332,
+        340,
+        342,
+        343,
+        344,
+        345,
+        355,
+        363,
+        365,
+        366,
+        367,
+        368,
+        378,
+        383,
+        384,
+        385,
+        386,
+        403,
+        413,
+        415,
+        416,
+        417,
+        418,
+        428,
+        436,
+        438,
+        439,
+        440,
+        441,
+        451,
+        456,
+        457,
+        458,
+        459,
+        469,
+        474,
+        476,
+        477,
+        478,
+        479,
+        480,
+        481,
+        482,
+        485,
+        486,
+        487,
+        490,
+        491,
+        492,
+        493,
+        505,
+        517,
+        519,
+        520,
+        521,
+        522,
+        532,
+        539,
+        551,
+        558,
+        559,
+        560,
+        561,
+        571,
+        576,
+        578,
+        579,
+        580,
+        581,
+        593,
+        600,
+        601,
+        602,
+        603
+      ],
+      "missing_branches": [
+        [
+          26,
+          27
+        ],
+        [
+          42,
+          43
+        ],
+        [
+          62,
+          63
+        ],
+        [
+          96,
+          97
+        ],
+        [
+          116,
+          117
+        ],
+        [
+          133,
+          134
+        ],
+        [
+          158,
+          159
+        ],
+        [
+          177,
+          178
+        ],
+        [
+          202,
+          203
+        ],
+        [
+          227,
+          228
+        ],
+        [
+          246,
+          244
+        ],
+        [
+          272,
+          273
+        ],
+        [
+          280,
+          281
+        ],
+        [
+          295,
+          296
+        ],
+        [
+          313,
+          314
+        ],
+        [
+          331,
+          332
+        ],
+        [
+          339,
+          340
+        ],
+        [
+          354,
+          355
+        ],
+        [
+          362,
+          363
+        ],
+        [
+          377,
+          378
+        ],
+        [
+          402,
+          403
+        ],
+        [
+          412,
+          413
+        ],
+        [
+          427,
+          428
+        ],
+        [
+          435,
+          436
+        ],
+        [
+          450,
+          451
+        ],
+        [
+          468,
+          469
+        ],
+        [
+          473,
+          474
+        ],
+        [
+          477,
+          478
+        ],
+        [
+          477,
+          479
+        ],
+        [
+          479,
+          480
+        ],
+        [
+          479,
+          481
+        ],
+        [
+          481,
+          482
+        ],
+        [
+          481,
+          485
+        ],
+        [
+          485,
+          486
+        ],
+        [
+          485,
+          487
+        ],
+        [
+          504,
+          505
+        ],
+        [
+          516,
+          517
+        ],
+        [
+          531,
+          532
+        ],
+        [
+          550,
+          551
+        ],
+        [
+          570,
+          571
+        ],
+        [
+          575,
+          576
+        ],
+        [
+          592,
+          593
+        ]
+      ]
+    },
+    "app/events.py": {
+      "missing_lines": [
+        149,
+        156,
+        198,
+        244,
+        272,
+        385,
+        386,
+        387,
+        388,
+        389,
+        406,
+        413,
+        450,
+        459,
+        581,
+        587,
+        590,
+        592,
+        614,
+        618,
+        632,
+        671,
+        676,
+        685,
+        731,
+        736,
+        738,
+        739,
+        742,
+        746,
+        749,
+        752,
+        784,
+        787,
+        788,
+        825,
+        828,
+        833,
+        838,
+        839,
+        846,
+        847
+      ],
+      "missing_branches": [
+        [
+          148,
+          149
+        ],
+        [
+          155,
+          156
+        ],
+        [
+          197,
+          198
+        ],
+        [
+          243,
+          244
+        ],
+        [
+          271,
+          272
+        ],
+        [
+          384,
+          385
+        ],
+        [
+          405,
+          406
+        ],
+        [
+          412,
+          413
+        ],
+        [
+          449,
+          450
+        ],
+        [
+          458,
+          459
+        ],
+        [
+          580,
+          581
+        ],
+        [
+          586,
+          587
+        ],
+        [
+          589,
+          590
+        ],
+        [
+          591,
+          592
+        ],
+        [
+          613,
+          614
+        ],
+        [
+          617,
+          618
+        ],
+        [
+          631,
+          632
+        ],
+        [
+          670,
+          671
+        ],
+        [
+          675,
+          676
+        ],
+        [
+          684,
+          685
+        ],
+        [
+          730,
+          731
+        ],
+        [
+          735,
+          736
+        ],
+        [
+          737,
+          738
+        ],
+        [
+          741,
+          742
+        ],
+        [
+          745,
+          746
+        ],
+        [
+          748,
+          749
+        ],
+        [
+          751,
+          752
+        ],
+        [
+          783,
+          784
+        ],
+        [
+          824,
+          825
+        ],
+        [
+          827,
+          828
+        ],
+        [
+          832,
+          833
+        ],
+        [
+          837,
+          838
+        ]
+      ]
+    },
+    "app/main.py": {
+      "missing_lines": [
+        99
+      ],
+      "missing_branches": [
+        [
+          98,
+          99
+        ]
+      ]
+    },
+    "app/rbac.py": {
+      "missing_lines": [
+        43,
+        44
+      ],
+      "missing_branches": []
+    },
+    "app/registration_repository.py": {
+      "missing_lines": [
+        28,
+        31,
+        35,
+        37,
+        44,
+        46,
+        50,
+        54,
+        89,
+        97,
+        98,
+        99,
+        100,
+        107,
+        113,
+        114,
+        115,
+        116,
+        124,
+        129,
+        130,
+        131,
+        132
+      ],
+      "missing_branches": [
+        [
+          27,
+          28
+        ],
+        [
+          30,
+          31
+        ],
+        [
+          34,
+          35
+        ],
+        [
+          36,
+          37
+        ],
+        [
+          42,
+          50
+        ],
+        [
+          43,
+          44
+        ],
+        [
+          45,
+          46
+        ],
+        [
+          88,
+          89
+        ],
+        [
+          106,
+          107
+        ],
+        [
+          123,
+          124
+        ]
+      ]
+    },
+    "app/venue_repository.py": {
+      "missing_lines": [
+        23,
+        30,
+        49,
+        58,
+        59,
+        60,
+        61,
+        81,
+        97,
+        98,
+        99,
+        100
+      ],
+      "missing_branches": [
+        [
+          22,
+          23
+        ],
+        [
+          28,
+          30
+        ],
+        [
+          80,
+          81
+        ]
+      ]
+    },
+    "app/venue_search.py": {
+      "missing_lines": [],
+      "missing_branches": [
+        [
+          124,
+          141
+        ]
+      ]
+    },
+    "app/venue_suitability.py": {
+      "missing_lines": [
+        56,
+        57,
+        90,
+        117,
+        119,
+        202
+      ],
+      "missing_branches": [
+        [
+          89,
+          90
+        ],
+        [
+          105,
+          100
+        ],
+        [
+          116,
+          117
+        ],
+        [
+          118,
+          119
+        ],
+        [
+          197,
+          201
+        ],
+        [
+          201,
+          202
+        ]
+      ]
+    },
+    "app/venues.py": {
+      "missing_lines": [
+        64,
+        138
+      ],
+      "missing_branches": [
+        [
+          63,
+          64
+        ],
+        [
+          137,
+          138
+        ]
+      ]
+    }
+  },
+  "limits": [
+    "Overall coverage includes unit, mocked HTTP and database acceptance tests; it is not a unit-only percentage.",
+    "Frontend coverage percentage was not measured.",
+    "Existing acceptance tests retain future-dated notifications; repeated full runs require a fresh disposable database.",
+    "Known confirmation equipment-readiness wiring and weak existing multi-booking sibling assertions remain unresolved.",
+    "No hosted CI, shared database deployment, push or merge performed."
+  ],
+  "human_review": {
+    "accountable_scope_owner": "Marcus (product owner), with the relevant Jira story owners",
+    "required": "Review the new expectations against approved acceptance criteria; human acceptance and integration correctness are not established by 100% module coverage."
+  },
+  "follow_up_confirmation": {
+    "reference": "booking-behaviour-review-2026-10-29.json",
+    "decision": "D21",
+    "overall_100_percent_achieved": false,
+    "full_backend_passed": 1201,
+    "totals": {
+      "covered_lines": 2646,
+      "num_statements": 3013,
+      "percent_covered": 87.35100948674288,
+      "percent_covered_display": "87",
+      "missing_lines": 367,
+      "excluded_lines": 5,
+      "percent_statements_covered": 87.81944905409891,
+      "percent_statements_covered_display": "88",
+      "num_branches": 1098,
+      "num_partial_branches": 141,
+      "covered_branches": 945,
+      "missing_branches": 153,
+      "percent_branches_covered": 86.06557377049181,
+      "percent_branches_covered_display": "86"
+    }
+  }
+}
