@@ -12,7 +12,7 @@ and trade-offs: Decision Log **D26**. Owner: Ernest Wong.
 | 2 | The Lead sees the queue with basic event info: title, category, date, expected attendance, submitted time. | TC-130-01 (API + e2e) |
 | 3 | The Lead assigns, and reassigns in any active state. Closed events can't be moved. | TC-130-02/03 (API + e2e), refusal tests |
 | 4 | Coordinators manage only events assigned to them. A reassigned Coordinator loses access. | TC-130-04 (API), mutation-checked |
-| 5 | The new Coordinator is notified "assigned"; on reassignment the previous one is notified "moved away". | TC-130-02/03 (API), e2e Coordinator notifications |
+| 5 | The new Coordinator is notified "assigned"; on reassignment the previous one is notified "moved away". The Organiser is notified once, when a Coordinator is first assigned. | TC-130-02/03 (API), `coordinator_assignment.sql`, e2e Coordinator and Organiser notifications |
 
 ## What changed
 
@@ -26,6 +26,19 @@ and trade-offs: Decision Log **D26**. Owner: Ernest Wong.
 | `frontend/src/app/events/supervised/page.tsx` | Unassigned queue with Assign; assigned events with Reassign. |
 | `frontend/src/app/organiser-notifications.tsx`, `page.tsx` | The notifications panel on Coordinator Home. |
 | `frontend/src/lib/assignment.ts` | Queue split, reassign rule and API calls. |
+| `frontend/src/app/events/[eventId]/page.tsx` | The Organiser's status box names who holds the request (see below). |
+| `frontend/src/lib/history.ts` | Readable status-history labels: "Coordinator Assigned" / "Coordinator Reassigned". |
+
+### What each person sees
+
+| Who | When | What |
+| --- | --- | --- |
+| Organiser | Request submitted, not yet assigned | Status box: "Your request is with the Event Coordinator Lead, who will assign a Coordinator to review it. You will be notified when a Coordinator is assigned." |
+| Organiser | First assignment | Notification **Coordinator assigned**: "A Coordinator has been assigned to your request "…" and will review it." Status box: "Your request is with the Coordinator. The decision will appear in your notifications." |
+| Organiser | Reassignment | Nothing; moves between Coordinators are internal routing. |
+| New Coordinator | Assign or reassign | Notification **Event assigned to you**, linking to the event. |
+| Previous Coordinator | Reassignment | Notification **Event reassigned**, with no link (they can no longer open it). |
+| Anyone who can see the event's history | Assign or reassign | Status history entry **Coordinator Assigned** or **Coordinator Reassigned**, noting "Assigned to <Coordinator>". |
 
 ### API
 
@@ -53,8 +66,9 @@ Use the SCRUM-139 password accounts on `/login`, all with the same seed password
 Run a production build (`npm run build && npm run start`) with the API on port 5001.
 
 1. **AC1 (queue).** Sign in as `organiser.a@connectsphere.test` and submit a new
-   event request. Sign in as `coordinator.a@…` and `coordinator.b@…`: neither sees
-   it in Review requests.
+   event request. Opening it shows "Your request is with the Event Coordinator
+   Lead…". Sign in as `coordinator.a@…` and `coordinator.b@…`: neither sees it in
+   Review requests.
 2. **AC2 (Lead view).** Sign in as `coordinator-lead@connectsphere.test`, then open
    Supervised events. The request is under **Unassigned queue**, showing its title,
    category, date, expected attendance and submitted time, and the header counts
@@ -72,8 +86,10 @@ Run a production build (`npm run build && npm run start`) with the API on port 5
    you", and B can approve it.
 7. **Closed events.** Reject or complete an event as its Coordinator. On the Lead's
    page it shows no Reassign control.
-8. **Organiser view.** As `organiser.a@…`, there is no assignment notification, and
-   the request still shows *Planning*.
+8. **Organiser view.** As `organiser.a@…`, Home shows exactly one **Coordinator
+   assigned** notification (none for the reassignment). The request shows *Planning*,
+   its box now reads "Your request is with the Coordinator…", and its status history
+   lists **Coordinator Assigned** and **Coordinator Reassigned**.
 
 ## Run the tests
 

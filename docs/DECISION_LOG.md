@@ -583,9 +583,15 @@ Shared Supabase migration deployment is separate and is not implied by the Git m
   - **Reassignment in any active state.** Submitted, Planning, Confirmed and
     Preparation (plus the legacy intake sub-states) can be reassigned; Draft is
     hidden (404) and Completed, Rejected and Cancelled are closed (409).
-  - **Notifications go to the new and previous Coordinator only.** The Organiser is
-    not told, because assignment is internal routing. `/notifications` and the Home
-    panel now include Coordinators; each user still reads only their own rows.
+  - **Notifications.** The new Coordinator is told "assigned", and on reassignment
+    the previous Coordinator is told "moved away". After manual testing the owner
+    revised this (30 Oct 2026): the Organiser is also told once, on first
+    assignment (`request_assigned`), that the request has left the Lead's queue.
+    Reassignments stay internal. `/notifications` and the Home panel now include
+    Coordinators; each user still reads only their own rows.
+  - **The Organiser's status box names the holder:** the Event Coordinator Lead
+    while unassigned, then the Coordinator. Status history shows "Coordinator
+    Assigned" / "Coordinator Reassigned" rather than the stored action.
 - **How.** `POST /events/<id>/coordinator` and `GET /events/coordinators` are
   Lead-only. The `CoordinatorAssignment` value object checks the payload and state.
   The `assign_coordinator_by_lead()` database function re-checks the Lead, the
@@ -616,8 +622,8 @@ Shared Supabase migration deployment is separate and is not implied by the Git m
   removed. The changes are in `test_events.py` (fake no longer auto-assigns; the
   submission, multiple-submission and assignment-route tests),
   `test_request_acceptance.py` (TC-US3.3-02, TC-US4.1-01/02/04/05 and the decision
-  test now assign through the Lead, and the "one notification" check counts the
-  Organiser's), `test_change_request_acceptance.py` (assign through the Lead;
+  test now assign through the Lead, and its notification checks count decision
+  notices only, since the Organiser also gets `request_assigned`), `test_change_request_acceptance.py` (assign through the Lead;
   history starts with `coordinator_assigned`), `test_event_decisions.py`
   (Coordinators may read notifications) and `e2e/notifications.spec.ts` (Coordinator
   removed from the "no notifications" loop). `supabase/tests/assignment.sql` is
