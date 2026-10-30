@@ -157,3 +157,17 @@ def test_an_invalid_resubmission_is_explained_by_field(organiser, event_database
     assert field in response.json["fields"]
     assert event_database[1].clarifications[0]["status"] == "Pending"
     assert event["title"] == "Original title"
+
+
+def test_a_related_organiser_who_does_not_own_it_cannot_resubmit(organiser, event_database,
+                                                                 monkeypatch):
+    """Even with access to the event, only its owning Organiser may resubmit it."""
+    monkeypatch.setattr("app.events.require_related_user", lambda user, event, action: user)
+    event = _seed_planning_event(event_database, status="Submitted")
+    event["organiser_id"] = 7
+    _pending(event_database, event)
+    response = organiser.post(f"/events/{event['id']}/resubmit", json=_edit_payload(event),
+                              headers=ORIGIN)
+    assert response.status_code == 403
+    assert response.json["error"] == "Only the organiser can resubmit this request."
+    assert event_database[1].clarifications[0]["status"] == "Pending"

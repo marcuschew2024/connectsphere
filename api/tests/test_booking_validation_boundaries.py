@@ -227,3 +227,12 @@ def test_other_roles_cannot_read_the_queue(app, monkeypatch, user_id):
     client = app.test_client()
     select_user(client, user_id)
     assert client.get("/venues/bookings", headers=ORIGIN).status_code == 403
+
+
+def test_a_venue_that_does_not_exist_is_refused(booking_api, monkeypatch):  # noqa: F811
+    client, created, _, _ = booking_api
+    monkeypatch.setattr("app.bookings.get_venue", lambda venue_id: None)
+    response = client.post("/venues/bookings", json=payload(venue_id="venue-gone"), headers=ORIGIN)
+    assert response.status_code == 400
+    assert response.json["error"] == "Choose a valid venue."
+    assert created == []
