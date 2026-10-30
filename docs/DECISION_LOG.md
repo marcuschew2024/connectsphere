@@ -112,6 +112,8 @@ An at-a-glance summary of where AI was and was not used sits in the
   independently (see D7).
 - **Trade-off.** No buffer means consecutive events have zero changeover gap — accepted
   for the MVP; a configurable turnaround is a known future change (venue setup/turnaround).
+  **Update:** delivered by SCRUM-129 (Week 7 Customer Change #1), which adds per-venue
+  setup/turnaround buffers to the same half-open check; zero buffers keep this rule.
 - **Owner.** Venue & booking work.
 
 ### D5 — Event confirmation gate (multi-venue), with a documented deferred seam
