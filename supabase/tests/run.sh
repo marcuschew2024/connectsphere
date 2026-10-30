@@ -134,3 +134,9 @@ for pass in 1 2; do
   psql -v ON_ERROR_STOP=1 -f /sql/migrations/20261030180000_scrum_69_cancel_event.sql > /tmp/migration-output.txt
   echo "Event cancellation migration pass $pass: PASS"
 done
+
+# SCRUM-26: retire a venue (audit columns, retire_venue() and the new-booking guard).
+for pass in 1 2; do
+  psql -v ON_ERROR_STOP=1 -f /sql/migrations/20261031090000_scrum_26_retire_venue.sql > /tmp/migration-output.txt
+  echo "Venue retirement migration pass $pass: PASS"
+done
