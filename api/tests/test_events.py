@@ -39,6 +39,7 @@ def event_database(monkeypatch):
         pending_update = None
         pending_upsert = None
         related_user_id = None
+        or_expression = None
 
         def equals(column, value):
             filters[column] = value
@@ -141,6 +142,26 @@ def event_database(monkeypatch):
                 ])
 
             if name == "notifications":
+                # SCRUM-49 / R07: the reader queries with a hybrid OR filter
+                # (recipient_id.eq.<id>,recipient_role.eq."<role>"). Mirror
+                # notification_visibility.can_see: a row matches when its
+                # recipient_id OR recipient_role matches the acting user.
+                if or_expression is not None:
+                    wanted_id = wanted_role = None
+                    for clause in or_expression.split(","):
+                        clause = clause.strip()
+                        if clause.startswith("recipient_id.eq."):
+                            try:
+                                wanted_id = int(clause[len("recipient_id.eq."):])
+                            except ValueError:
+                                wanted_id = None
+                        elif clause.startswith("recipient_role.eq."):
+                            wanted_role = clause[len("recipient_role.eq."):].strip().strip('"')
+                    return SimpleNamespace(data=[
+                        row for row in notifications
+                        if (wanted_id is not None and row.get("recipient_id") == wanted_id)
+                        or (wanted_role is not None and row.get("recipient_role") == wanted_role)
+                    ])
                 return SimpleNamespace(data=[
                     row for row in notifications
                     if all(row.get(key) == value for key, value in filters.items())
@@ -177,8 +198,12 @@ def event_database(monkeypatch):
             return query
 
         def related_users(expression):
-            nonlocal related_user_id
-            related_user_id = int(expression.split("eq.")[1].split(",")[0])
+            nonlocal related_user_id, or_expression
+            or_expression = expression
+            try:
+                related_user_id = int(expression.split("eq.")[1].split(",")[0])
+            except (IndexError, ValueError):
+                related_user_id = None
             return query
 
         query.insert.side_effect = insert

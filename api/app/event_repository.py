@@ -524,15 +524,25 @@ def record_event_decision(
         ) from error
 
 
-def get_notifications_for_user(user_id: int) -> list[dict]:
-    """Return the latest 50 messages addressed to this user, newest first."""
+def get_notifications_for_user(user_id: int, user_role: str) -> list[dict]:
+    """Return the latest 50 messages this user may see, newest first.
+
+    Hybrid recipient model (SCRUM-49 / R07): rows addressed to this user
+    (recipient_id) OR to this user's role pool (recipient_role). This mirrors
+    notification_visibility.can_see; the DB check constraint enforces the same
+    exactly-one-target shape. A non-pool role (Organiser/Coordinator/Attendee)
+    simply matches no recipient_role rows, which is correct.
+    """
     try:
         client = get_supabase_client()
         if client is None:
             raise ServiceUnavailable("The database is not configured. Contact the team.")
         return client.table("notifications").select(
-            "id,event_id,notification_type,message,created_at,event:events(title)"
-        ).eq("recipient_id", user_id).order("created_at", desc=True).order(
+            "id,event_id,notification_type,message,recipient_id,recipient_role,"
+            "read_at,created_at,event:events(title)"
+        ).or_(
+            f'recipient_id.eq.{user_id},recipient_role.eq."{user_role}"'
+        ).order("created_at", desc=True).order(
             "id", desc=True
         ).limit(50).execute().data
     except ServiceUnavailable:
@@ -542,18 +552,26 @@ def get_notifications_for_user(user_id: int) -> list[dict]:
 
 
 def create_notification(
-    recipient_id: int, event_id: str, notification_type: str, message: str
+    recipient_id, event_id: str, notification_type: str, message: str,
+    *, recipient_role: str | None = None,
 ) -> None:
-    """Create an in-app notification for a user."""
+    """Create an in-app notification (SCRUM-49).
+
+    Targets exactly one of a specific user (recipient_id, default) or an
+    unassigned role pool (recipient_role, keyword-only). recipient_fields
+    validates the choice before the insert so a bad target never reaches the DB.
+    """
+    from .notification_visibility import recipient_fields
+
     try:
         client = get_supabase_client()
         if client is None:
             raise ServiceUnavailable("The database is not configured. Contact the team.")
         client.table("notifications").insert({
-            "recipient_id": recipient_id,
             "event_id": event_id,
             "notification_type": notification_type,
             "message": message,
+            **recipient_fields(recipient_id=recipient_id, recipient_role=recipient_role),
         }).execute()
     except ServiceUnavailable:
         raise

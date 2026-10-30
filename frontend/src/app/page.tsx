@@ -17,7 +17,7 @@ import { useActingRole } from "@/lib/use-acting-role";
 import { AppShell } from "@/components/app-shell";
 import { cn } from "@/lib/utils";
 import DevRoleSwitcher from "./dev-role-switcher";
-import OrganiserNotifications from "./organiser-notifications";
+import NotificationsFeed from "./notifications-feed";
 import RegistrationConfirmations from "./registration-confirmations";
 
 type Action = {
@@ -151,8 +151,9 @@ export default function Home() {
             </section>
           )}
 
-          {actingRole === "Organiser" && <OrganiserNotifications />}
-          {actingRole === "Coordinator" && <OrganiserNotifications audience="Coordinator" />}
+          {/* SCRUM-49 / R07: every role has a Home notifications feed. Attendees keep
+              their tailored registration-confirmations view instead. */}
+          {actingRole && actingRole !== "Attendee" && <NotificationsFeed audience={actingRole} />}
           {actingRole === "Attendee" && <RegistrationConfirmations />}
 
           {actingRole && !actions && (

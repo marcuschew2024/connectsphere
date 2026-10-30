@@ -17,6 +17,7 @@ from .equipment_request_repository import (
     save_request_reservations,
     update_request_status,
 )
+from .event_repository import create_notification
 from .rbac import require_role
 
 equipment_requests = Blueprint("equipment_requests", __name__, url_prefix="/equipment/requests")
@@ -114,7 +115,14 @@ def submit_request():
     if errors:
         return jsonify({"error": "Please check the highlighted fields.", "fields": errors}), 400
     # The database verifies event ownership and writes every line in one transaction.
-    return jsonify({"request": record_request(event_id, items, user["id"])}), 201
+    saved = record_request(event_id, items, user["id"])
+    # SCRUM-49 / R07: Tech Support reviews new equipment requests from a shared queue.
+    create_notification(
+        None, event_id, "equipment_request_submitted",
+        "A new equipment request needs review.",
+        recipient_role="Tech Support",
+    )
+    return jsonify({"request": saved}), 201
 
 
 @equipment_requests.get("")

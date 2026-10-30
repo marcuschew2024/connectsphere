@@ -69,7 +69,7 @@ CASES = [
     ("event_repository", "list_event_equipment_requests", ("event",)),
     ("event_repository", "complete_event_record", ("event", 2, None)),
     ("event_repository", "record_event_decision", ("event", "Planning", None, 2)),
-    ("event_repository", "get_notifications_for_user", (1,)),
+    ("event_repository", "get_notifications_for_user", (1, "Organiser")),
     ("event_repository", "create_notification", (1, "event", "event_approved", "Approved")),
     ("event_repository", "update_event_fields", ("event", {"title": "Updated"})),
     ("event_repository", "log_event_edit", ("event", 2, ["title"], "ordinary")),

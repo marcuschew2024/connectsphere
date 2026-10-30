@@ -43,9 +43,9 @@ def booking_api(app, monkeypatch):
         "app.bookings.get_venue", lambda venue_id: {"id": venue_id, "capacity": 300}
     )
     monkeypatch.setattr("app.bookings.find_overlapping_bookings", lambda *args, **kwargs: [])
-    monkeypatch.setattr("app.bookings._venue_staff_ids", lambda: [3])
     monkeypatch.setattr(
-        "app.bookings.create_notification", lambda *args: notifications.append(args)
+        "app.bookings.create_notification",
+        lambda *args, **kwargs: notifications.append((args, kwargs)),
     )
 
     def save(fields, actor):
@@ -60,7 +60,7 @@ def booking_api(app, monkeypatch):
     return client, created, notifications, event
 
 
-def test_coordinator_submission_records_requested_actor_and_notifies_staff(booking_api):
+def test_coordinator_submission_records_requested_actor_and_notifies_venue_staff_pool(booking_api):
     client, created, notifications, _ = booking_api
 
     response = client.post("/venues/bookings", json=payload(), headers=ORIGIN)
@@ -73,9 +73,12 @@ def test_coordinator_submission_records_requested_actor_and_notifies_staff(booki
     assert booking["expected_attendance"] == 80
     assert booking["layout"] == "Classroom"
     assert created == [booking]
+    # SCRUM-49 / R07: one notification to the Venue Staff pool (recipient_role),
+    # not one per staff id.
     assert notifications == [(
-        3, "event-1", "venue_booking_requested",
-        "Venue booking requested for Campus workshop.",
+        (None, "event-1", "venue_booking_requested",
+         "Venue booking requested for Campus workshop."),
+        {"recipient_role": "Venue Staff"},
     )]
 
 

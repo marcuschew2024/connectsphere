@@ -636,6 +636,43 @@ Shared Supabase migration deployment is separate and is not implied by the Git m
   schema/trigger and an intake rule, so it needs human review before merge. Applying
   the migration to the shared Supabase project is a separate step for the owner.
 
+### D27 — R07: notifications use a hybrid user-or-role recipient model; the reader serves every role (SCRUM-49)
+
+- **Context.** The notifications reader was gated to Organiser (then Organiser/Coordinator
+  after SCRUM-130), so Venue Staff, Tech Support, Attendee and other recipients never saw
+  notifications written for them — "persisted but not delivered" (Codex review R07). This
+  folds into SCRUM-49 (its refined acceptance criteria), not a Done-story bug.
+- **Decision (PO, Marcus).** Each notification targets **exactly one** of a specific user
+  (`recipient_id` — Organiser / Coordinator / Attendee, who are tied to an event) **or** an
+  unassigned role pool (`recipient_role` — Venue Staff / Tech Support, who work a shared
+  queue). `GET /notifications` returns rows where `recipient_id = current user OR
+  recipient_role = current user's role`; the role gate is removed and the Home feed is shown
+  for every role. Record-level isolation is preserved: a user sees only their own and their
+  pool's notifications, and attendees never see internal planning content.
+- **Why a pool for those two roles.** No per-event assignment of Venue Staff / Tech Support
+  exists in Release 1 (Customer Clarification S1 Q10/Q16, S2 Q9/Q13); they review from a
+  shared queue, so the former per-staff-id fan-out for venue booking requests is replaced by
+  one pool notification, and submitting an equipment request now notifies the Tech Support
+  pool.
+- **Recipient matrix (implemented triggers).** Organiser ← decision / clarification / change
+  update · Coordinator ← change requested, booking outcome, assignment/reassignment · Venue
+  Staff (pool) ← new booking request · Tech Support (pool) ← new equipment request. Deferred
+  to their owning stories (the primitive is now available): booking outcome SCRUM-119,
+  hold-expiry SCRUM-79, event cancelled/rescheduled SCRUM-69/48, waitlist SCRUM-80.
+- **Constraints / guardrails.** The DB enforces the shape: a CHECK that exactly one of
+  `recipient_id` / `recipient_role` is set, and a whitelist allowing `recipient_role` only
+  for `Venue Staff` / `Tech Support`. The pure `notification_visibility` value object mirrors
+  the read rule and is unit-tested; the repository mirrors it in a PostgREST `.or_()` query.
+- **Verification.** Unit tests (visibility rule), route tests (all roles 200; pool + isolation),
+  and a real-database acceptance test (constraints + `.or_()` filtering incl. the quoted role
+  value). Frontend e2e covers the Venue Staff / Tech Support pool feeds.
+- **Trade-off.** Pool notifications have no "claimed by X" dedup — every holder of a pool role
+  sees every pool item — which is acceptable for Release 1 because no assignment model exists;
+  per-staff routing would be a future story.
+- **Owner.** Marcus (SCRUM-49). Changes schema and authorisation, so it is human-reviewed and
+  merged only behind green CI. Applying the migration to the shared Supabase project is a
+  separate step for the owner.
+
 ## AI usage summary
 
 Per-feature view of where AI assistance was applied, always under human specification and
