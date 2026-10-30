@@ -92,7 +92,7 @@ def test_lead_cancels_any_event_including_an_unassigned_submission(
     ]
 
 
-# Only authorised users may cancel (D33).
+# Only authorised users may cancel (D34).
 @pytest.mark.parametrize("user_id", [1, 3, 4, 5])
 def test_other_roles_cannot_cancel(app, event_database, cancelled, user_id):
     client = app.test_client()

@@ -3,7 +3,7 @@
 An authorised user cancels an event. Cancelling releases its venue bookings and
 equipment reservations and tells registered Attendees, all in one database
 transaction. Who counts as authorised is recorded in
-[Decision Log D33](DECISION_LOG.md).
+[Decision Log D34](DECISION_LOG.md).
 
 ## Who can cancel
 

@@ -122,6 +122,13 @@ for pass in 1 2; do
 done
 psql -v ON_ERROR_STOP=1 -f /sql/tests/registration_withdrawal.sql
 
+# SCRUM-141 (R12): atomic failed-login increment + lockout. Applied twice to prove the
+# create-or-replace function is replay-safe.
+for pass in 1 2; do
+  psql -v ON_ERROR_STOP=1 -f /sql/migrations/20261030140000_scrum_141_atomic_failed_login.sql > /tmp/migration-output.txt
+  echo "Atomic failed-login migration pass $pass: PASS"
+done
+
 # SCRUM-69: cancel an event, release its resources and notify attendees atomically.
 for pass in 1 2; do
   psql -v ON_ERROR_STOP=1 -f /sql/migrations/20261030180000_scrum_69_cancel_event.sql > /tmp/migration-output.txt
