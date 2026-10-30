@@ -20,9 +20,10 @@ directly by the organiser.
 - Every request is recorded in `event_change_requests`, appears in the event
   history, and creates an in-app notification for the other party.
 
-The request has no time-based expiry or penalty. It does not mutate event details;
-the Coordinator remains responsible for applying an approved change through the
-appropriate operational workflow.
+The request has no time-based expiry or penalty. A request that only describes a
+change does not mutate event details. Since SCRUM-138 an Organiser can also propose
+new values, and approving such a request applies them atomically; see
+[SCRUM-138](SCRUM-138.md).
 
 ## Database setup
 

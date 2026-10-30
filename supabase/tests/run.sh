@@ -146,3 +146,9 @@ for pass in 1 2; do
   psql -v ON_ERROR_STOP=1 -f /sql/migrations/20261031090000_scrum_26_retire_venue.sql > /tmp/migration-output.txt
   echo "Venue retirement migration pass $pass: PASS"
 done
+
+# SCRUM-138 (R06): approving a structured change request applies it atomically.
+for pass in 1 2; do
+  psql -v ON_ERROR_STOP=1 -f /sql/migrations/20261031120000_scrum_138_apply_change_request.sql > /tmp/migration-output.txt
+  echo "Change request apply migration pass $pass: PASS"
+done
