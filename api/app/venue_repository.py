@@ -4,6 +4,7 @@ from postgrest.exceptions import APIError
 from werkzeug.exceptions import Conflict, Forbidden, NotFound, ServiceUnavailable
 
 from .supabase_client import get_supabase_client
+from .venue_retirement import VenueRetirement
 
 PAGE_SIZE = 6
 
@@ -100,3 +101,46 @@ def update_venue(venue_id: str, fields: dict, actor_id: int, revision: int) -> d
         raise ServiceUnavailable(
             "Could not confirm the update. Reload the venue before retrying."
         ) from error
+
+
+def retire_venue_record(venue_id: str, actor_id: int) -> dict:
+    """SCRUM-26: retire_venue() re-checks the rules, then records actor and time atomically."""
+    try:
+        result = _client().rpc(
+            "retire_venue", {"p_venue_id": venue_id, "p_actor_id": actor_id}
+        ).execute()
+        if not isinstance(result.data, dict) or not isinstance(result.data.get("venue"), dict):
+            raise ServiceUnavailable("Could not confirm the retirement. Reload the venue.")
+        return result.data
+    except APIError as error:
+        if error.code == "PT403":
+            raise Forbidden("Only Venue Staff can retire a venue.") from error
+        if error.code == "PT404":
+            raise NotFound("Venue not found.") from error
+        if error.code == "PT409" and error.message == "already_retired":
+            raise Conflict("This venue is already retired.") from error
+        if error.code == "PT409" and error.message == "outstanding_requests":
+            count = int(error.details) if str(error.details or "").isdecimal() else 0
+            if count:
+                raise Conflict(VenueRetirement.outstanding_reason(count)) from error
+            raise Conflict(
+                "Decide this venue's outstanding booking requests before retiring it."
+            ) from error
+        raise ServiceUnavailable(
+            "Could not retire the venue. Reload it before retrying."
+        ) from error
+    except ServiceUnavailable:
+        raise
+    except Exception as error:
+        raise ServiceUnavailable(
+            "Could not retire the venue. Reload it before retrying."
+        ) from error
+
+
+def get_display_name(user_id: int) -> str | None:
+    """The name shown beside a venue's retirement record; None if it cannot be read."""
+    try:
+        rows = _client().table("app_users").select("display_name").eq("id", user_id).execute().data
+        return rows[0]["display_name"] if rows else None
+    except Exception:
+        return None
