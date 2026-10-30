@@ -1,0 +1,155 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<testsuites name="vitest tests" tests="67" failures="0" errors="0" time="0.038608291">
+    <testsuite name="src/lib/api-contract.test.ts" timestamp="2026-10-30T19:21:45.107Z" hostname="MacBook-Pro-3.local" tests="4" failures="0" errors="0" skipped="0" time="0.005987291">
+        <testcase classname="src/lib/api-contract.test.ts" name="sends the requested method, JSON body and session credentials to the API" time="0.004533083">
+        </testcase>
+        <testcase classname="src/lib/api-contract.test.ts" name="does not add a JSON content type to a bodyless request" time="0.00024025">
+        </testcase>
+        <testcase classname="src/lib/api-contract.test.ts" name="provides the HTTP status in its fallback error when JSON has no error message" time="0.000526417">
+        </testcase>
+        <testcase classname="src/lib/api-contract.test.ts" name="propagates connection failures without claiming a successful response" time="0.000147167">
+        </testcase>
+    </testsuite>
+    <testsuite name="src/lib/api.test.ts" timestamp="2026-10-30T19:21:45.108Z" hostname="MacBook-Pro-3.local" tests="5" failures="0" errors="0" skipped="0" time="0.005121792">
+        <testcase classname="src/lib/api.test.ts" name="ApiError &gt; carries message, status and fields" time="0.001268958">
+        </testcase>
+        <testcase classname="src/lib/api.test.ts" name="ApiError &gt; defaults fields to an empty object" time="0.000091208">
+        </testcase>
+        <testcase classname="src/lib/api.test.ts" name="apiRequest &gt; returns parsed JSON on a successful response" time="0.002083833">
+        </testcase>
+        <testcase classname="src/lib/api.test.ts" name="apiRequest &gt; throws ApiError with the server&apos;s error message and fields on failure" time="0.000828625">
+        </testcase>
+        <testcase classname="src/lib/api.test.ts" name="apiRequest &gt; falls back to a generic message when the error body is not valid JSON" time="0.000229583">
+        </testcase>
+    </testsuite>
+    <testsuite name="src/lib/assignment.test.ts" timestamp="2026-10-30T19:21:45.108Z" hostname="MacBook-Pro-3.local" tests="9" failures="0" errors="0" skipped="0" time="0.008675541">
+        <testcase classname="src/lib/assignment.test.ts" name="splitQueue &gt; queues only unassigned submitted requests, oldest submission first" time="0.007627042">
+        </testcase>
+        <testcase classname="src/lib/assignment.test.ts" name="canReassign &gt; allows Submitted" time="0.00014325">
+        </testcase>
+        <testcase classname="src/lib/assignment.test.ts" name="canReassign &gt; allows Planning" time="0.000044709">
+        </testcase>
+        <testcase classname="src/lib/assignment.test.ts" name="canReassign &gt; allows Confirmed" time="0.000030667">
+        </testcase>
+        <testcase classname="src/lib/assignment.test.ts" name="canReassign &gt; allows Preparation" time="0.000026">
+        </testcase>
+        <testcase classname="src/lib/assignment.test.ts" name="canReassign &gt; refuses closed Completed" time="0.000036709">
+        </testcase>
+        <testcase classname="src/lib/assignment.test.ts" name="canReassign &gt; refuses closed Rejected" time="0.000024666">
+        </testcase>
+        <testcase classname="src/lib/assignment.test.ts" name="canReassign &gt; refuses closed Cancelled" time="0.000024583">
+        </testcase>
+        <testcase classname="src/lib/assignment.test.ts" name="coordinatorName &gt; names known, unknown and missing Coordinators" time="0.000079542">
+        </testcase>
+    </testsuite>
+    <testsuite name="src/lib/availability-boundaries.test.ts" timestamp="2026-10-30T19:21:45.109Z" hostname="MacBook-Pro-3.local" tests="13" failures="0" errors="0" skipped="0" time="0.002166417">
+        <testcase classname="src/lib/availability-boundaries.test.ts" name="SCRUM-30 calendar boundaries &gt; uses the same Singapore Monday for 2026-09-28T00:00:00+08:00" time="0.000643416">
+        </testcase>
+        <testcase classname="src/lib/availability-boundaries.test.ts" name="SCRUM-30 calendar boundaries &gt; uses the same Singapore Monday for 2026-10-04T23:59:59+08:00" time="0.0000655">
+        </testcase>
+        <testcase classname="src/lib/availability-boundaries.test.ts" name="SCRUM-30 calendar boundaries &gt; uses the same Singapore Monday for 2026-09-27T16:00:00Z" time="0.000038084">
+        </testcase>
+        <testcase classname="src/lib/availability-boundaries.test.ts" name="SCRUM-30 calendar boundaries &gt; advances to a new week at Singapore midnight, before UTC Monday" time="0.000043209">
+        </testcase>
+        <testcase classname="src/lib/availability-boundaries.test.ts" name="SCRUM-30 calendar boundaries &gt; provides a display range when every day is closed" time="0.000368167">
+        </testcase>
+        <testcase classname="src/lib/availability-boundaries.test.ts" name="SCRUM-30 calendar boundaries &gt; rounds partial opening hours outward but marks incomplete cells unavailable" time="0.000160917">
+        </testcase>
+        <testcase classname="src/lib/availability-boundaries.test.ts" name="SCRUM-30 calendar boundaries &gt; does not occupy a slot for Rejected history" time="0.000046792">
+        </testcase>
+        <testcase classname="src/lib/availability-boundaries.test.ts" name="SCRUM-30 calendar boundaries &gt; does not occupy a slot for Cancelled history" time="0.000079166">
+        </testcase>
+        <testcase classname="src/lib/availability-boundaries.test.ts" name="SCRUM-30 calendar boundaries &gt; does not occupy a slot for Unknown history" time="0.000029833">
+        </testcase>
+        <testcase classname="src/lib/availability-boundaries.test.ts" name="SCRUM-30 calendar boundaries &gt; labels hour 0 as 12am" time="0.000045625">
+        </testcase>
+        <testcase classname="src/lib/availability-boundaries.test.ts" name="SCRUM-30 calendar boundaries &gt; labels hour 9 as 9am" time="0.000022833">
+        </testcase>
+        <testcase classname="src/lib/availability-boundaries.test.ts" name="SCRUM-30 calendar boundaries &gt; labels hour 12 as 12pm" time="0.00002225">
+        </testcase>
+        <testcase classname="src/lib/availability-boundaries.test.ts" name="SCRUM-30 calendar boundaries &gt; labels hour 14 as 2pm" time="0.000021375">
+        </testcase>
+    </testsuite>
+    <testsuite name="src/lib/availability.test.ts" timestamp="2026-10-30T19:21:45.109Z" hostname="MacBook-Pro-3.local" tests="11" failures="0" errors="0" skipped="0" time="0.005628417">
+        <testcase classname="src/lib/availability.test.ts" name="toMinutes / hourWindow &gt; parses HH:MM" time="0.001351458">
+        </testcase>
+        <testcase classname="src/lib/availability.test.ts" name="toMinutes / hourWindow &gt; spans min opens..max closes" time="0.000840583">
+        </testcase>
+        <testcase classname="src/lib/availability.test.ts" name="classifyCell &gt; is unavailable when the venue is closed that day" time="0.000221166">
+        </testcase>
+        <testcase classname="src/lib/availability.test.ts" name="classifyCell &gt; is unavailable outside operating hours" time="0.0001175">
+        </testcase>
+        <testcase classname="src/lib/availability.test.ts" name="classifyCell &gt; is available in-hours with no booking" time="0.000160041">
+        </testcase>
+        <testcase classname="src/lib/availability.test.ts" name="classifyCell &gt; shows a confirmed booking as confirmed" time="0.001447541">
+        </testcase>
+        <testcase classname="src/lib/availability.test.ts" name="classifyCell &gt; shows a requested or pending booking as tentative" time="0.000092417">
+        </testcase>
+        <testcase classname="src/lib/availability.test.ts" name="classifyCell &gt; shows a blocked/maintenance booking as blocked" time="0.000047417">
+        </testcase>
+        <testcase classname="src/lib/availability.test.ts" name="classifyCell &gt; lets confirmed win over an overlapping pending" time="0.000045583">
+        </testcase>
+        <testcase classname="src/lib/availability.test.ts" name="classifyCell &gt; treats a touching slot as free (boundary: end == next start)" time="0.000045625">
+        </testcase>
+        <testcase classname="src/lib/availability.test.ts" name="classifyCell &gt; does not bleed a booking into another day" time="0.000031625">
+        </testcase>
+    </testsuite>
+    <testsuite name="src/lib/change-requests.test.ts" timestamp="2026-10-30T19:21:45.110Z" hostname="MacBook-Pro-3.local" tests="5" failures="0" errors="0" skipped="0" time="0.0019635">
+        <testcase classname="src/lib/change-requests.test.ts" name="change request proposals (SCRUM-138) &gt; sends only filled-in values, trimmed, with attendance as a number" time="0.00092975">
+        </testcase>
+        <testcase classname="src/lib/change-requests.test.ts" name="change request proposals (SCRUM-138) &gt; sends no changes when nothing was filled in" time="0.000089875">
+        </testcase>
+        <testcase classname="src/lib/change-requests.test.ts" name="change request proposals (SCRUM-138) &gt; leaves a non-numeric attendance as typed so the API can explain the problem" time="0.000090041">
+        </testcase>
+        <testcase classname="src/lib/change-requests.test.ts" name="change request proposals (SCRUM-138) &gt; labels fields and empty values for people" time="0.00015525">
+        </testcase>
+        <testcase classname="src/lib/change-requests.test.ts" name="change request proposals (SCRUM-138) &gt; flags re-review only for an approved significant change" time="0.000108208">
+        </testcase>
+    </testsuite>
+    <testsuite name="src/lib/dev-switcher.test.ts" timestamp="2026-10-30T19:21:45.110Z" hostname="MacBook-Pro-3.local" tests="4" failures="0" errors="0" skipped="0" time="0.005060875">
+        <testcase classname="src/lib/dev-switcher.test.ts" name="loadSwitcherState &gt; hides the switcher and never touches demo endpoints for a password session" time="0.002692875">
+        </testcase>
+        <testcase classname="src/lib/dev-switcher.test.ts" name="loadSwitcherState &gt; shows demo users and the current selection when nobody is signed in" time="0.000384458">
+        </testcase>
+        <testcase classname="src/lib/dev-switcher.test.ts" name="loadSwitcherState &gt; hides itself when the API has the switcher disabled" time="0.000172084">
+        </testcase>
+        <testcase classname="src/lib/dev-switcher.test.ts" name="loadSwitcherState &gt; surfaces other failures instead of guessing an identity" time="0.000733083">
+        </testcase>
+    </testsuite>
+    <testsuite name="src/lib/history.test.ts" timestamp="2026-10-30T19:21:45.110Z" hostname="MacBook-Pro-3.local" tests="6" failures="0" errors="0" skipped="0" time="0.001530583">
+        <testcase classname="src/lib/history.test.ts" name="historyActionLabel &gt; labels coordinator_assigned" time="0.000653166">
+        </testcase>
+        <testcase classname="src/lib/history.test.ts" name="historyActionLabel &gt; labels coordinator_reassigned" time="0.000060958">
+        </testcase>
+        <testcase classname="src/lib/history.test.ts" name="historyActionLabel &gt; labels change_request_approved" time="0.000034167">
+        </testcase>
+        <testcase classname="src/lib/history.test.ts" name="historyActionLabel &gt; labels event_completed" time="0.000029583">
+        </testcase>
+        <testcase classname="src/lib/history.test.ts" name="historyActionLabel &gt; labels event_cancelled" time="0.000025041">
+        </testcase>
+        <testcase classname="src/lib/history.test.ts" name="historyActionLabel &gt; turns an unlabelled action into words instead of showing snake_case" time="0.000082875">
+        </testcase>
+    </testsuite>
+    <testsuite name="src/lib/registration-status.test.ts" timestamp="2026-10-30T19:21:45.111Z" hostname="MacBook-Pro-3.local" tests="10" failures="0" errors="0" skipped="0" time="0.002473875">
+        <testcase classname="src/lib/registration-status.test.ts" name="registration status presentation &gt; never describes a waiting-list entry as a booked or withdrawn place" time="0.000976">
+        </testcase>
+        <testcase classname="src/lib/registration-status.test.ts" name="registration status presentation &gt; does not mistake an unknown server state for withdrawal or confirmation" time="0.000064125">
+        </testcase>
+        <testcase classname="src/lib/registration-status.test.ts" name="registration status presentation &gt; tells a Registered attendee that a cancelled event will not take place" time="0.000129583">
+        </testcase>
+        <testcase classname="src/lib/registration-status.test.ts" name="registration status presentation &gt; tells a Waitlisted attendee that a cancelled event will not take place" time="0.00007825">
+        </testcase>
+        <testcase classname="src/lib/registration-status.test.ts" name="registration status presentation &gt; keeps a withdrawal visible as a withdrawal when the event is later cancelled" time="0.000041875">
+        </testcase>
+        <testcase classname="src/lib/registration-status.test.ts" name="registration status presentation &gt; leaves a registration as booked when the event is Confirmed" time="0.00003575">
+        </testcase>
+        <testcase classname="src/lib/registration-status.test.ts" name="registration status presentation &gt; leaves a registration as booked when the event is Preparation" time="0.000024875">
+        </testcase>
+        <testcase classname="src/lib/registration-status.test.ts" name="registration status presentation &gt; leaves a registration as booked when the event is Completed" time="0.000024208">
+        </testcase>
+        <testcase classname="src/lib/registration-status.test.ts" name="registration status presentation &gt; leaves a registration as booked when the event is null" time="0.000026666">
+        </testcase>
+        <testcase classname="src/lib/registration-status.test.ts" name="registration status presentation &gt; leaves a registration as booked when the event is undefined" time="0.000072334">
+        </testcase>
+    </testsuite>
+</testsuites>

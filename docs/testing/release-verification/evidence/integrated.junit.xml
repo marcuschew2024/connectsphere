@@ -1,0 +1,8 @@
+<testsuites id="" name="" tests="2" failures="0" skipped="0" errors="0" time="10.118289">
+<testsuite name="event-lifecycle.spec.ts" timestamp="2026-10-30T19:23:34.047Z" hostname="integrated-chromium" tests="2" failures="0" skipped="0" time="8.513" errors="0">
+<testcase name="INTEGRATED-01 same event crosses seven password-authenticated roles and persists after reload" classname="event-lifecycle.spec.ts" time="5.784">
+</testcase>
+<testcase name="INTEGRATED-02 real conflict and cross-owner refusals preserve the event and bookings" classname="event-lifecycle.spec.ts" time="2.729">
+</testcase>
+</testsuite>
+</testsuites>

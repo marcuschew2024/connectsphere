@@ -269,6 +269,11 @@ The API runs at http://localhost:5001. Check `GET /health` returns `{"status":"o
 
 ## Run the tests
 
+For the 20 core features, six Week 7 changes, coverage reporting and real
+browser/API/database journeys, use the [release verification guide](docs/testing/README.md).
+The [executed requirement checklist](docs/testing/release-verification/requirements.md)
+records actual results and remaining acceptance gaps.
+
 Frontend end-to-end tests (Playwright):
 
 ```bash
@@ -288,13 +293,15 @@ pytest
 
 ## Continuous integration
 
-GitHub Actions runs two jobs on every push and pull request (see `.github/workflows/ci.yml`):
+GitHub Actions runs these verification jobs on every push and pull request (see `.github/workflows/ci.yml`):
 
-- **frontend**: `npm ci`, lint, build, Vitest unit checks, then Playwright E2E on Chromium.
-- **api**: install requirements, `ruff check`, then unit and disposable-database acceptance tests with coverage.
+- **frontend**: `npm ci`, lint, build, Vitest full-source coverage, then controlled Playwright browser tests.
+- **api**: install requirements, Ruff, traceability/tooling checks, then unit and disposable-database acceptance tests with statement/branch coverage.
+- **integrated**: production frontend and Flask, password sessions, and an isolated database for real role handoffs and refusal scenarios.
+- **traceability**: assemble the reviewed requirement mappings with actual JUnit and coverage evidence from the other jobs.
 
-Both jobs also run advisory dependency audits. GitHub stores API and browser test
-evidence, and the disposable test database is removed after the API checks.
+The frontend dependency audit is advisory; the API audit remains a gate. GitHub stores
+coverage, JUnit and browser evidence, and removes disposable databases after the checks.
 
 ## Team
 

@@ -1,0 +1,28 @@
+{
+  "date": "2026-10-31",
+  "task": "SCRUM-146 notification feed test isolation follow-up",
+  "test": "api/tests/test_request_acceptance.py::test_notifications_are_newest_first_and_limited_to_50",
+  "change": "Use a yielding fixture with finally cleanup of only its own event; notification rows cascade on deletion. Original assertions and test name unchanged.",
+  "before": {
+    "first_run": "passed",
+    "second_run_same_database": "failed: duplicate Update 54 from retained 2099 notifications"
+  },
+  "isolation_checks": {
+    "after-first": "expected outcome; all fixture data removed; unrelated data preserved",
+    "after-repeat": "expected outcome; all fixture data removed; unrelated data preserved",
+    "assertion-failure": "expected outcome; all fixture data removed; unrelated data preserved",
+    "setup-failure": "expected outcome; all fixture data removed; unrelated data preserved"
+  },
+  "verification_source_sha256": "e3c38c450e88885678544ced03c5404e70ac793df824aeb552ded9b7e7d53f6c",
+  "existing_test_change_requires_review": true,
+  "owner": "Marcus for SCRUM-146; Jerome as original test author for review",
+  "application_or_schema_changes_in_this_followup": false,
+  "full_backend_regression": {
+    "passed": 1843,
+    "failed": 0,
+    "skipped": 0
+  },
+  "ruff": "passed",
+  "diff_check": "passed",
+  "rebased_on": "8445c7b"
+}
