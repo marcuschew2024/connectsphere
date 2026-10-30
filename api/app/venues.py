@@ -1,7 +1,14 @@
 """Venue Staff create venues; Venue Staff and Coordinators read the catalogue."""
 
 from flask import Blueprint, current_app, jsonify, request
-from werkzeug.exceptions import BadRequest, Conflict, Forbidden, HTTPException, NotFound, Unauthorized
+from werkzeug.exceptions import (
+    BadRequest,
+    Conflict,
+    Forbidden,
+    HTTPException,
+    NotFound,
+    Unauthorized,
+)
 
 from .acting_user import get_acting_user
 from .auth import get_authenticated_user
@@ -56,9 +63,6 @@ def add_venue():
     fields, errors = validate_venue(data)
     if errors:
         return jsonify({"error": "Please check the highlighted fields.", "fields": errors}), 400
-    existing_blocks = list_unavailability(venue_id, fields["start_at"], fields["end_at"])
-    if check_block_overlap(fields["start_at"], fields["end_at"], existing_blocks):
-        raise Conflict("The venue is already blocked during this time period.")
     return jsonify({"venue": create_venue(fields, user["id"])}), 201
 
 

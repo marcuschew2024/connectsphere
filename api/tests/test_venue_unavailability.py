@@ -55,7 +55,9 @@ def test_validate_block_rejects_payload_shape_reason_and_order():
     assert validate_block([])[1]["payload"]
     _, errors = validate_block({**slot(hours=-1), "reason": "Safety"})
     assert "end_at" in errors
-    _, errors_both = validate_block({"start_at": "invalid", "end_at": "invalid", "reason": "Safety"})
+    _, errors_both = validate_block(
+        {"start_at": "invalid", "end_at": "invalid", "reason": "Safety"}
+)
     assert "start_at" in errors_both and "end_at" in errors_both
 
 
@@ -78,7 +80,10 @@ def test_check_block_overlap():
         {"start_at": "2099-01-01T10:00:00Z", "end_at": "2099-01-01T12:00:00Z"},
     ]
     # Overlaps
-    assert check_block_overlap("2099-01-01T11:00:00Z", "2099-01-01T13:00:00Z", existing) == existing[0]
+    assert (
+        check_block_overlap("2099-01-01T11:00:00Z", "2099-01-01T13:00:00Z", existing)
+        == existing[0]
+)
     # Adjacent (half-open) does not overlap
     assert check_block_overlap("2099-01-01T12:00:00Z", "2099-01-01T14:00:00Z", existing) is None
     # Empty list
@@ -138,7 +143,13 @@ def test_block_rejects_overlapping_active_block(block_api, monkeypatch):
     monkeypatch.setattr(
         "app.venues.list_unavailability",
         lambda venue_id, start=None, end=None: [
-            {"id": "existing-1", "start_at": "2099-01-01T10:00:00Z", "end_at": "2099-01-01T12:00:00Z"}
+
+            {
+                "id": "existing-1",
+                "start_at": "2099-01-01T10:00:00Z",
+                "end_at": "2099-01-01T12:00:00Z",
+            },
+
         ],
     )
     response = client.post(
