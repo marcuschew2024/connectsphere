@@ -19,6 +19,10 @@ def _soon(hours):
     return (datetime.now(UTC) + timedelta(hours=hours)).isoformat()
 
 
+# One timestamp for "end equals start": two separate calls would differ by microseconds.
+SAME_TIME = _soon(72)
+
+
 def _conflict(status, venue_id="venue-1"):
     start = datetime.now(UTC) + timedelta(days=3)
     return {"id": f"existing-{status}", "venue_id": venue_id, "status": status,
@@ -38,7 +42,7 @@ def _conflict(status, venue_id="venue-1"):
     (payload(venue_id=5), 400, "Choose a venue."),
     (payload(start_at="tomorrow"), 400, "valid start and end times"),
     (payload(end_at=None), 400, "valid start and end times"),
-    (payload(start_at=_soon(72), end_at=_soon(72)), 400, "end time must be after"),
+    (payload(start_at=SAME_TIME, end_at=SAME_TIME), 400, "end time must be after"),
     (payload(start_at=_soon(73), end_at=_soon(72)), 400, "end time must be after"),
     (payload(start_at=_soon(-2), end_at=_soon(1)), 400, "cannot start in the past"),
     (payload(expected_attendance=0), 400, "positive whole-number"),
