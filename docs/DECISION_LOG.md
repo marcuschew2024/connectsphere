@@ -983,6 +983,58 @@ Shared Supabase migration deployment is separate and is not implied by the Git m
   catalogue with many retired venues make a few more page reads. No un-retire action.
 - **Owner.** Ernest.
 
+### D36 — Approving a change request applies it atomically (SCRUM-138, R06)
+
+- **Context.** Codex review R06 (High), against SCRUM-46 (stays Done). Change-request
+  decisions only recorded a status: the requested change was free text, nothing was
+  applied to the event, and downstream arrangements were never flagged. The PO
+  confirmed the contract in a SCRUM-138 comment (29 Oct 2026; the comment calls it
+  "D26" in the review's planned numbering, like the note in D25).
+- **Decision (PO, Marcus; implemented by Ernest).**
+  - An Organiser may attach **proposed values** to a change request, alongside the
+    required description: title, description, purpose, category, expected attendance
+    and the four requirement fields. Date and time are not requestable: rescheduling
+    is SCRUM-48. Events have no duration field, so a duration change stays a
+    described request.
+  - **Approving** a request with proposed values applies them to the event in one
+    transaction, recording the Coordinator and time on the request and in history.
+  - A **significant** change, number of pax (`expected_attendance`) or venue
+    (`venue_requirements`) per S1 Q7/Q11, marks the request significant and notifies
+    the Coordinator to re-review. The event shows "Re-review needed" until the
+    Coordinator marks that request Implemented.
+  - **Nothing is auto-cancelled or un-booked.** The event's active venue bookings and
+    equipment reservations are counted and shown for a manual re-check.
+  - **Ordinary** changes apply without a flag. **Any failure rolls back** the whole
+    approval: the event, the request, history and notifications stay unchanged.
+  - A request that only describes a change keeps the SCRUM-46 behaviour (status only),
+    since there is nothing to apply.
+- **How.** `ChangeRequestProposal` validates proposals at request time with the
+  existing event validation (required details cannot be blanked; unchanged values are
+  refused). `approve_change_request()` locks the event and the request, re-checks the
+  assigned Coordinator and both states, applies the values, stores what actually
+  changed as `applied_changes` (from → to; a value already in place is not reported),
+  sets `significant`, writes history and notifications, and returns the affected
+  counts. Under Review, Rejected and Implemented use the existing path.
+- **Constraints.** Like `cancel_event` (D34), the function is `security definer`, has
+  an empty search path and is executable only by the backend role. Check constraints
+  limit `requested_changes` to the changeable fields and allow `applied_changes` only
+  on Approved or Implemented requests. No existing table grants change. The
+  Coordinator's direct Planning edit route is out of scope (the PO limited this bug to
+  the SCRUM-46 decision path); the structured re-review queue is SCRUM-47.
+- **Verification.** Value-object unit tests; endpoint tests (what may be proposed,
+  which decisions apply, refusals, the repository's error mapping); real-database
+  acceptance tests (values applied with actor and time, significant pax and venue
+  changes flagged with every booking and reservation unchanged, rollback when the
+  event table refuses a value, values already in place, database re-checks, stored
+  proposal constraints, Implemented keeping the record, two simultaneous approvals
+  applying once). Browser tests cover proposing, field errors, approving, the
+  re-review notice, marking implemented and a failed approval. The migration is
+  replayed twice. No existing test was changed. See `docs/SCRUM-138.md`.
+- **Trade-off.** Proposals are validated when raised; if the event changes before
+  approval, only values that still differ are applied and reported. The re-review
+  flag is a notice, not a queue. SCRUM-47 can build on `significant`.
+- **Owner.** Ernest (implementation); Marcus (PO decision).
+
 ## AI usage summary
 
 Per-feature view of where AI assistance was applied, always under human specification and
@@ -1007,6 +1059,7 @@ system, test scaffolding, and boilerplate following existing patterns.
 | Change management (D14) | Partially | Implementation of change/cancel flows; **rules human-decided** | `docs/SCRUM-46.md` |
 | Event cancellation (D34) | Partially | Endpoint, DB function and test scaffolding; **authorised-user rule human-decided** | `docs/SCRUM-69.md` |
 | Venue retirement (D35) | Partially | Endpoint, DB function, trigger and test scaffolding; **retirement rules human-decided** | `docs/SCRUM-26.md` |
+| Change-request apply (D36) | Partially | Endpoint, DB function and test scaffolding; **apply/re-review contract PO-decided** | `docs/SCRUM-138.md` |
 
 **Summary statement.** AI accelerated routine implementation and scaffolding throughout,
 under human-authored specifications. Every safety-critical decision — the overlap engine,

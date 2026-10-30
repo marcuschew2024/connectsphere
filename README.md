@@ -195,6 +195,16 @@ history, records who retired it and when, is no longer offered to Coordinators f
 bookings, and becomes read-only. See the
 [rules and test evidence](docs/SCRUM-26.md).
 
+## Apply approved change requests (SCRUM-138)
+
+Apply
+[`20261031120000_scrum_138_apply_change_request.sql`](supabase/migrations/20261031120000_scrum_138_apply_change_request.sql).
+An Organiser can propose new values with a change request. When the assigned
+Coordinator approves it, the values are applied to the event in one transaction. A
+change to the number of attendees or the venue flags a re-review and notifies the
+Coordinator; bookings and equipment are kept for a manual re-check. See the
+[rules and test evidence](docs/SCRUM-138.md).
+
 ## Prerequisites
 
 For draft submission, on-screen confirmation and coordinator assignment, see the
