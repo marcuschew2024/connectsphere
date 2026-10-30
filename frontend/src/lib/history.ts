@@ -1,6 +1,7 @@
 // Readable labels for event_status_history.action values.
 const ACTION_LABELS: Record<string, string> = {
   event_completed: "Event completed",
+  event_cancelled: "Event cancelled",
   change_requested: "Change Request Pending",
   change_request_under_review: "Change Request Under Review",
   change_request_approved: "Change Request Approved",

@@ -10,6 +10,7 @@ from .booking_repository import list_bookings_for_event, list_bookings_for_event
 from .coordinator_assignment import AssignmentRefused, CoordinatorAssignment
 from .equipment_repository import list_event_equipment_reservations
 from .equipment_request_repository import list_confirmation_requests
+from .event_cancellation import EventCancellation
 from .event_completion import EventCompletion
 from .event_confirmation import EventConfirmation
 from .event_decision import EventDecision
@@ -17,6 +18,7 @@ from .event_repository import (
     add_event_participant,
     add_status_history,
     assign_event_coordinator,
+    cancel_event_record,
     complete_event_record,
     create_change_request,
     create_clarification,
@@ -92,6 +94,9 @@ def event_response(event, user):
 _SAFETY_REVIEW_STATES = {"Confirmed", "Preparation"}
 # A Completed event is terminal (SCRUM-132): nothing may change it after closing.
 _COMPLETED_READ_ONLY = "This event is completed and closed. Its record is read-only."
+# A Cancelled event is terminal too (SCRUM-69): it cannot be reopened by a status edit,
+# because its venue bookings and equipment have already been released.
+_CANCELLED_READ_ONLY = "This event is cancelled. Its record is read-only."
 
 
 def require_event_access(event_id, user):
@@ -523,6 +528,8 @@ def change_event_status(event_id):
         raise Conflict("Complete and submit this request through the draft form first.")
     if event["status"] == "Completed":
         raise Conflict(_COMPLETED_READ_ONLY)
+    if event["status"] == "Cancelled":
+        raise Conflict(_CANCELLED_READ_ONLY)
     require_related_user(user, event, action="change_status")
 
     data = request.get_json(silent=True)
@@ -542,9 +549,12 @@ def change_event_status(event_id):
         # Completion is gated (SCRUM-132): only the assigned Coordinator's completion
         # step closes an event, so its checks and resource release cannot be skipped.
         raise Conflict("Complete an event through its completion step, not a status update.")
+    if status == "Cancelled":
+        # Cancellation is gated (SCRUM-69): only the assigned Coordinator or the Lead may
+        # cancel, and the cancellation step releases resources and notifies attendees.
+        raise Conflict("Cancel an event through its cancellation step, not a status update.")
     allowed_statuses = {
-        "Submitted", "Assigned", "Under review", "Approved", "Planning",
-        "Rejected", "Cancelled",
+        "Submitted", "Assigned", "Under review", "Approved", "Planning", "Rejected",
     }
     if status not in allowed_statuses:
         raise BadRequest("Choose a valid event status.")
@@ -552,13 +562,6 @@ def change_event_status(event_id):
     old_status = event.get("status")
     updated = update_event_status(event_id, status, user["id"])
     add_status_history(event_id, old_status, status, user["id"])
-
-    if status == "Cancelled":
-        try:
-            from .equipment_repository import release_equipment_reservations_for_event
-            release_equipment_reservations_for_event(event_id)
-        except Exception:
-            pass
 
     updated["status"] = canonical_event_status(updated.get("status"))
     return jsonify({"event": updated}), 200
@@ -699,6 +702,49 @@ def complete_delivered_event(event_id):
     }), 200
 
 
+@events.post("/<event_id>/cancel")
+def cancel_event(event_id):
+    """Cancel an event and release its venue and equipment reservations (SCRUM-69).
+
+    The assigned Coordinator or the Event Coordinator Lead gives a reason. The database
+    function re-checks who may cancel and the state under a row lock, then in one
+    transaction cancels the venue bookings, releases equipment, records the reason in
+    the history and notifies registered Attendees, the Organiser and, when the Lead
+    cancels, the assigned Coordinator. Registrations themselves are left unchanged.
+    """
+    if request.headers.get("Origin") != current_app.config["FRONTEND_ORIGIN"]:
+        raise Forbidden("Request must come from the configured frontend origin.")
+
+    user = require_acting_user()
+    require_role(user, "Coordinator", EventCancellation.LEAD_ROLE, action="cancel_event")
+    event = require_event_access(event_id, user)
+    if not EventCancellation.actor_may_cancel(user, event):
+        log_access_denied(user, action="cancel_event", event_id=event_id,
+                          reason="not the assigned Coordinator or the Lead")
+        raise Forbidden(
+            "Only the assigned Coordinator or the Event Coordinator Lead can cancel this event."
+        )
+
+    blocked = EventCancellation.blocking_reason(event.get("status"))
+    if blocked:
+        raise Conflict(blocked)
+    try:
+        cancellation = EventCancellation.from_payload(request.get_json(silent=True))
+    except ValueError as error:
+        raise BadRequest(str(error)) from error
+
+    result = cancel_event_record(event_id, user["id"], cancellation.reason)
+    updated = result["event"]
+    return jsonify({
+        "event": event_response(updated, user),
+        "released": {
+            "equipment_reservations": result.get("released_equipment_reservations", 0),
+            "venue_bookings": result.get("released_venue_bookings", 0),
+        },
+        "notified_attendees": result.get("notified_attendees", 0),
+    }), 200
+
+
 @events.post("/<event_id>/decision")
 def decide_event(event_id):
     """Approve or reject a submitted request as its assigned coordinator."""
@@ -820,6 +866,8 @@ def change_requests(event_id):
         raise Forbidden("Only the Organiser who owns this request can raise a change request.")
     if event.get("status") == "Completed":
         raise Conflict(_COMPLETED_READ_ONLY)
+    if event.get("status") == "Cancelled":
+        raise Conflict(_CANCELLED_READ_ONLY)
     if event.get("status") in {"Draft", "Rejected", "Cancelled"}:
         raise Conflict("Change requests are only available after an event is submitted.")
     if event.get("coordinator_id") is None:
@@ -858,6 +906,8 @@ def review_change_request(event_id, request_id):
         raise Forbidden("Only the assigned Coordinator can review this request.")
     if event.get("status") == "Completed":
         raise Conflict(_COMPLETED_READ_ONLY)
+    if event.get("status") == "Cancelled":
+        raise Conflict(_CANCELLED_READ_ONLY)
 
     data = request.get_json(silent=True)
     if not isinstance(data, dict) or set(data) - {"status", "review_note"} or "status" not in data:

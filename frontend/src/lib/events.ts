@@ -57,6 +57,11 @@ export type EventCompletionResult = {
   released: { equipment_reservations: number; venue_bookings: number };
 };
 
+// POST /events/<id>/cancel (SCRUM-69): the cancelled event, released holds and notices sent.
+export type EventCancellationResult = EventCompletionResult & {
+  notified_attendees: number;
+};
+
 export type EventClarification = {
   id: number;
   event_id: string;
