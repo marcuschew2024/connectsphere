@@ -109,6 +109,37 @@ def test_lead_reads_an_unrelated_event_but_a_coordinator_is_denied(live_lead):
     assert coordinator.get(f"/events/{theirs['id']}", headers=ORIGIN).status_code == 403
 
 
+def test_lead_opens_the_full_detail_screen_of_an_unrelated_event(live_lead):
+    """R11 (SCRUM-140): the Lead's detail screen fetches event + history + clarification;
+    all must succeed on another coordinator's event. A non-owning Coordinator stays scoped
+    (SCRUM-54 is list-only), so it still cannot read the clarification."""
+    app, _, client, _, event = live_lead
+    theirs = event(coordinator_id=COORDINATOR_B)
+
+    assert client.get(f"/events/{theirs['id']}", headers=ORIGIN).status_code == 200
+    assert client.get(f"/events/{theirs['id']}/history", headers=ORIGIN).status_code == 200
+    # The fetch R11 unblocked: before the fix this 403'd and broke the whole detail page.
+    empty = client.get(f"/events/{theirs['id']}/clarification", headers=ORIGIN)
+    assert empty.status_code == 200 and empty.json["clarification"] is None
+
+    # With a real pending clarification (raised by the assigned Coordinator B), the Lead
+    # reads its content, not just an empty 200.
+    coordinator_b = app.test_client()
+    assert select_user(coordinator_b, COORDINATOR_B).status_code == 200
+    assert coordinator_b.post(f"/events/{theirs['id']}/clarification",
+                              json={"note": "Please confirm the venue layout."},
+                              headers=ORIGIN).status_code == 201
+    lead_view = client.get(f"/events/{theirs['id']}/clarification", headers=ORIGIN)
+    assert lead_view.status_code == 200
+    assert lead_view.json["clarification"]["note"] == "Please confirm the venue layout."
+
+    # A different Coordinator (A), unrelated to the event, is still denied the clarification.
+    coordinator_a = app.test_client()
+    assert select_user(coordinator_a, COORDINATOR_A).status_code == 200
+    assert coordinator_a.get(f"/events/{theirs['id']}/clarification",
+                             headers=ORIGIN).status_code == 403
+
+
 def test_lead_sees_internal_status_not_the_customer_planning_label(live_lead):
     """The Lead oversees intake, so a Submitted event reads as Submitted, not Planning."""
     app, _, client, _, event = live_lead

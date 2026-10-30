@@ -692,7 +692,14 @@ def get_clarification(event_id):
     event = get_event_by_id(event_id)
     if event is None:
         raise NotFound("Event not found.")
-    require_related_user(user, event, action="view_clarification")
+    # R11 (SCRUM-140): the Lead oversees every event, so it may read a clarification on any
+    # non-draft event — this is what unblocks its detail screen. Everyone else must be
+    # related to the event (Coordinators stay record-scoped; SCRUM-54 is list-only). This
+    # mirrors the event-read rule's Lead exemption without opening the Safety Officer
+    # window, which has no clarification use.
+    lead_oversight = user.get("role") == "Event Coordinator Lead" and event["status"] != "Draft"
+    if not lead_oversight:
+        require_related_user(user, event, action="view_clarification")
     return jsonify({"clarification": get_pending_clarification(event_id)}), 200
 
 

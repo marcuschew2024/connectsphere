@@ -805,6 +805,15 @@ def test_organiser_can_view_and_resubmit_clarified_request(organiser, coordinato
     assert event_database[1].history[-1]["changed_by"] == 1
 
 
+def test_unrelated_coordinator_cannot_read_a_clarification(coordinator, event_database):
+    """SCRUM-54 / R11: record scoping is preserved — a Coordinator who does not own the
+    event cannot read its clarification. (The R11 Lead exemption is role-gated and covered
+    by the acceptance suite, which has a seeded Event Coordinator Lead.)"""
+    other = _seed_planning_event(event_database, status="Submitted", coordinator_id=7)
+    response = coordinator.get(f"/events/{other['id']}/clarification", headers=ORIGIN)
+    assert response.status_code == 403
+
+
 def test_coordinator_cannot_resubmit_clarified_request(coordinator, event_database):
     event = _seed_planning_event(event_database, status="Submitted")
     event_database[1].clarifications.append({
