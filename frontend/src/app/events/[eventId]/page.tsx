@@ -26,6 +26,7 @@ import EventBookingsPanel from "./event-bookings-panel";
 import EventChangeRequests from "./event-change-requests";
 import EventCompleteForm from "./event-complete-form";
 import EventCapacityPanel from "./event-capacity-panel";
+import EventWithdrawalPolicy from "./event-withdrawal-policy";
 import { historyActionLabel } from "@/lib/history";
 
 export default function EventStatusPage() {
@@ -202,6 +203,7 @@ export default function EventStatusPage() {
           {event.registration_capacity !== undefined && (actingRole === "Organiser" || actingRole === "Coordinator") && (
             <EventCapacityPanel key={event.id} event={event} actingRole={actingRole} onSaved={setEvent} />
           )}
+          {actingRole === "Organiser" && event.withdrawal_closes_at !== undefined && <EventWithdrawalPolicy key={event.id} eventId={event.id} />}
           {(actingRole === "Organiser" || actingRole === "Coordinator") && (
             <EventChangeRequests
               event={event}

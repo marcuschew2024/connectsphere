@@ -164,6 +164,17 @@ It allows the owning Organiser to initialise an unset limit once, with zero exis
 registrations. An established Confirmed limit stays locked. See Decision D20 before
 applying this change to the shared development database.
 
+## Withdraw registration (SCRUM-43)
+
+After SCRUM-40/41 and SCRUM-49, apply the reviewed
+[`20261030062503_scrum_43_withdraw_registration.sql`](supabase/migrations/20261030062503_scrum_43_withdraw_registration.sql).
+An Organiser may set one optional withdrawal deadline before the first signup;
+otherwise withdrawal stays open until the event starts. Attendees use
+**My registrations → View event → Withdraw registration**, confirm, and see the saved
+timestamp. The place is released and Home shows a private withdrawal confirmation.
+Waiting-list promotion remains deferred SCRUM-80. See the
+[setup, policy, API and review evidence](docs/SCRUM-43.md).
+
 ## Prerequisites
 
 For draft submission, on-screen confirmation and coordinator assignment, see the

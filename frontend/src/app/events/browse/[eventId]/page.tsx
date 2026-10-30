@@ -8,6 +8,7 @@ import { eventTime, registrationStatus, type Registration, type RegistrationOffe
 import { useActingRole } from "@/lib/use-acting-role";
 import { AppShell } from "@/components/app-shell";
 import { Button } from "@/components/ui/button";
+import WithdrawRegistration from "@/components/withdraw-registration";
 
 export default function RegisterEventPage() {
   const { eventId } = useParams<{ eventId: string }>();
@@ -91,13 +92,19 @@ export default function RegisterEventPage() {
               <dl className="space-y-3 text-sm">
                 <div><dt className="text-muted-foreground">Registration reference</dt><dd className="break-all font-mono">{registration.id}</dd></div>
                 <div><dt className="text-muted-foreground">Registered at</dt><dd>{eventTime(registration.registered_at)}</dd></div>
+                {registration.status === "Withdrawn" && registration.withdrawn_at && <div><dt className="text-muted-foreground">Withdrawn at</dt><dd>{eventTime(registration.withdrawn_at)}</dd></div>}
               </dl>
+              {registration.status === "Registered" && offer.withdrawal_policy && <div className="space-y-3 border-t border-border pt-3">
+                <p className="text-sm text-muted-foreground">{offer.withdrawal_policy.unavailable_reason || (offer.withdrawal_policy.closes_at ? `Withdrawal closes ${eventTime(offer.withdrawal_policy.closes_at)}, or when the event starts if earlier.` : "Withdrawal is allowed until the event starts.")}</p>
+                {!offer.withdrawal_policy.unavailable_reason && <WithdrawRegistration eventId={eventId} onWithdrawn={(saved) => setOffer({ ...offer, registration: saved })} />}
+              </div>}
               <div className="flex flex-wrap items-center gap-4">
                 <Button variant="outline" onClick={refresh}>Refresh registration</Button>
                 <Link href="/registrations" className="text-sm text-primary hover:underline">My registrations</Link>
               </div>
             </section> : <section aria-labelledby="signup-heading" className="space-y-4 rounded-2xl border border-border bg-card p-5 shadow-sm sm:p-6">
               <h2 id="signup-heading" className="text-xl font-semibold">Book your place</h2>
+              {offer.withdrawal_policy && <p className="text-sm text-muted-foreground">Withdrawal conditions: {offer.withdrawal_policy.closes_at ? `until ${eventTime(offer.withdrawal_policy.closes_at)}, or the event start if earlier.` : "allowed until the event starts."}</p>}
               {offer.unavailable_reason ? <p role="status" className="text-muted-foreground">{offer.unavailable_reason}</p> : <>
                 <p className="text-sm text-muted-foreground">{offer.capacity.remaining} {offer.capacity.remaining === 1 ? "place" : "places"} remaining</p>
                 <form onSubmit={register} noValidate className="space-y-4">

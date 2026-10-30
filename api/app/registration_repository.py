@@ -4,9 +4,13 @@ from postgrest.exceptions import APIError
 from werkzeug.exceptions import BadRequest, Conflict, Forbidden, NotFound, ServiceUnavailable
 
 from .registration_capacity import RegistrationCapacity
+from .registration_withdrawal import POLICY_LOCKED
 from .supabase_client import get_supabase_client
 
 CONFLICT_MESSAGES = {
+    "withdrawal_policy_locked": POLICY_LOCKED,
+    "withdrawal_deadline_passed": "The organiser’s withdrawal deadline has passed.",
+    "withdrawal_closed": "Withdrawal is only available before an active event starts.",
     "registration_not_open": "Registration has not opened yet.",
     "registration_ended": "Registration has closed.",
     "event_full": "This event is full. No places are currently available.",
@@ -40,6 +44,8 @@ def _rpc(name: str, parameters: dict) -> dict:
                 error.message, "Registration changed. Refresh the event before retrying."
             )) from error
         if error.code == "22023":
+            if error.message == "invalid_withdrawal_policy":
+                raise BadRequest("Check the withdrawal conditions and deadline.") from error
             if error.message == "registration_information_required":
                 raise BadRequest("Provide the required registration information.") from error
             if error.message == "registration_information_too_long":
@@ -90,7 +96,8 @@ def list_registration_events(page: int) -> tuple[list[dict], bool]:
         start = (page - 1) * 25
         rows = (client.table("events").select(
             "id,title,description,category,event_datetime,status,registration_requirements,"
-            "registration_capacity,registered_count,registration_opens_at,registration_closes_at"
+            "registration_capacity,registered_count,registration_opens_at,registration_closes_at,"
+            "withdrawal_closes_at"
         ).eq("status", "Confirmed").order("event_datetime").order("id")
             .range(start, start + 25).execute().data or [])
         return rows[:25], len(rows) > 25
@@ -106,7 +113,7 @@ def get_own_registration(event_id: str, attendee_id: int) -> dict | None:
         if client is None:
             raise ServiceUnavailable("The database is not configured. Contact the team.")
         rows = (client.table("event_registrations")
-                .select("id,event_id,status,registered_at")
+                .select("id,event_id,status,registered_at,withdrawn_at")
                 .eq("event_id", event_id).eq("attendee_id", attendee_id)
                 .limit(1).execute().data or [])
         return rows[0] if rows else None
@@ -142,8 +149,9 @@ def get_registration_confirmations(attendee_id: int) -> list[dict]:
         if client is None:
             raise ServiceUnavailable("The database is not configured. Contact the team.")
         return (client.table("notifications")
-                .select("id,event_id,message,created_at,event:events(title)")
-                .eq("recipient_id", attendee_id).eq("notification_type", "registration_confirmed")
+                .select("id,event_id,notification_type,message,created_at,event:events(title)")
+                .eq("recipient_id", attendee_id).in_(
+                    "notification_type", ["registration_confirmed", "registration_withdrawn"])
                 .order("created_at", desc=True).limit(50).execute().data or [])
     except ServiceUnavailable:
         raise
@@ -151,3 +159,22 @@ def get_registration_confirmations(attendee_id: int) -> list[dict]:
         raise ServiceUnavailable(
             "Could not load registration confirmations. Please try again."
         ) from error
+
+
+def withdraw_attendee(event_id: str, attendee_id: int) -> dict:
+    return _rpc("withdraw_event_attendee", {
+        "p_event_id": event_id, "p_attendee_id": attendee_id,
+    })
+
+
+def get_withdrawal_policy(event_id: str, actor_id: int) -> dict:
+    return _rpc("get_event_withdrawal_policy", {
+        "p_event_id": event_id, "p_actor_id": actor_id,
+    })
+
+
+def set_withdrawal_policy(event_id: str, actor_id: int, closes_at: str | None) -> dict:
+    return _rpc("set_event_withdrawal_policy", {
+        "p_event_id": event_id, "p_actor_id": actor_id,
+        "p_closes_at": closes_at,
+    })

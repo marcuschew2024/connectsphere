@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 type Confirmation = {
   id: number;
   event_id: string;
+  notification_type?: string;
   message: string;
   created_at: string;
   event: { title: string | null } | null;
@@ -37,7 +38,7 @@ export default function RegistrationConfirmations() {
   return <section aria-labelledby="registration-confirmations-heading" className="overflow-hidden rounded-2xl border border-border bg-card shadow-sm">
     <div className="flex items-center justify-between gap-3 border-b border-border p-5">
       <div><h2 id="registration-confirmations-heading" className="text-lg font-semibold">Registration confirmations</h2>
-        <p className="mt-1 text-xs text-muted-foreground">Your latest 50 event confirmations.</p></div>
+        <p className="mt-1 text-xs text-muted-foreground">Your latest 50 signup and withdrawal confirmations.</p></div>
       <Button variant="outline" size="sm" disabled={loading} onClick={() => {
         setError(""); setLoading(true); setAttempt((value) => value + 1);
       }}>Refresh confirmations</Button>
@@ -47,7 +48,7 @@ export default function RegistrationConfirmations() {
     {!loading && !error && (confirmations.length === 0
       ? <p className="p-5 text-sm text-muted-foreground">Your registration confirmations will appear here.</p>
       : <ul className="divide-y divide-border">{confirmations.map((confirmation) => <li key={confirmation.id} className="space-y-2 p-5">
-        <h3 className="font-semibold">Registration confirmed</h3>
+        <h3 className="font-semibold">{confirmation.notification_type === "registration_withdrawn" ? "Registration withdrawn" : "Registration confirmed"}</h3>
         <p className="break-words text-sm font-medium">{confirmation.event?.title}</p>
         <p className="whitespace-pre-wrap break-words text-sm text-muted-foreground">{confirmation.message}</p>
         <p className="text-xs text-muted-foreground">{eventTime(confirmation.created_at)}</p>
