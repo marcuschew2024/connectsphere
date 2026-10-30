@@ -44,9 +44,9 @@ class ChangeRequestProposal:
         # Validate as if submitting, so required details cannot be proposed as blank.
         fields, errors = validate_event({**current, **changes}, submitting=True)
         field_errors = {name: errors[name] for name in changes if name in errors}
-        cleaned = {name: fields[name] for name in changes}
+        cleaned = {name: fields.get(name) for name in changes if name not in field_errors}
         for name, value in cleaned.items():
-            if name not in field_errors and value == current.get(name):
+            if value == current.get(name):
                 field_errors[name] = "This is already the current value."
         if field_errors:
             raise ValueError(field_errors)
