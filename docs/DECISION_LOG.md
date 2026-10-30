@@ -711,6 +711,32 @@ Shared Supabase migration deployment is separate and is not implied by the Git m
 - **Owner.** Marcus (SCRUM-54). Broadens read-authorisation scope and adds a response field,
   so it is human-reviewed and merged only behind green CI. No schema or migration change.
 
+### D29 — R11: reading a clarification follows the event-read rule, so the Lead can open any event (SCRUM-140)
+
+- **Context.** Codex review R11 (High). The Event Coordinator Lead can list and read any
+  non-draft event (D26 / SCRUM-131), but its detail screen also fetches
+  `GET /events/<id>/clarification`, which was still gated on event relationship
+  (`require_related_user`). The Lead is not "related" to another coordinator's event, so
+  that one fetch 403'd and broke the whole detail page.
+- **Decision (PO, Marcus).** Grant the clarification read to the **Lead** on any non-draft
+  event — the same oversight exemption the event-read rule (`require_event_access`) already
+  applies — so the Lead's detail screen loads. The fix is deliberately **Lead-only**: it does
+  **not** open clarification (or event detail) to Coordinators, who stay record-scoped
+  (SCRUM-54 is list-only; D28). It also does **not** open the endpoint to the Safety Officer:
+  rather than route through `require_event_access` (which would additionally grant the Safety
+  Officer's Confirmed/Preparation review window — an unnecessary surface with no clarification
+  use), `get_clarification` keeps `require_related_user` for everyone except the Lead.
+- **Verification.** Acceptance — the Lead opens the full detail screen (event + history +
+  clarification, including a real note) on another coordinator's event; a non-owning
+  Coordinator still 403s; the existing Safety-Officer-denied-clarification test still passes.
+  Unit — a non-related Coordinator still 403s. Frontend e2e — the Lead opens an unrelated
+  event's detail and it renders.
+- **Trade-off.** A one-line role check duplicates the Lead exemption that
+  `require_event_access` already expresses; this is intentional, to keep the Safety Officer
+  out of the clarification endpoint.
+- **Owner.** Marcus (SCRUM-140). Broadens read authorisation (the Lead), so it is
+  human-reviewed and merged only behind green CI. No schema or migration change.
+
 ## AI usage summary
 
 Per-feature view of where AI assistance was applied, always under human specification and
