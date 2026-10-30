@@ -7,6 +7,7 @@ from werkzeug.exceptions import BadRequest, Conflict, Forbidden, HTTPException, 
 
 from .acting_user import require_acting_user
 from .booking_repository import list_bookings_for_event, list_bookings_for_event_detail
+from .change_request_proposal import ChangeRequestProposal
 from .coordinator_assignment import AssignmentRefused, CoordinatorAssignment
 from .equipment_repository import list_event_equipment_reservations
 from .equipment_request_repository import list_confirmation_requests
@@ -17,6 +18,7 @@ from .event_decision import EventDecision
 from .event_repository import (
     add_event_participant,
     add_status_history,
+    approve_change_request_record,
     assign_event_coordinator,
     cancel_event_record,
     complete_event_record,
@@ -874,12 +876,29 @@ def change_requests(event_id):
         raise Conflict("This event has no assigned Coordinator yet.")
 
     data = request.get_json(silent=True)
-    if not isinstance(data, dict) or set(data) != {"description"}:
-        raise BadRequest("Send a JSON object containing only description.")
+    if not isinstance(data, dict) or "description" not in data or set(data) - {
+        "description", "changes",
+    }:
+        raise BadRequest("Send a description and, optionally, the proposed changes.")
     description = data["description"]
     if not isinstance(description, str) or not 1 <= len(description.strip()) <= 2000:
         raise BadRequest("A change description of 1 to 2000 characters is required.")
-    saved = create_change_request(event_id, user["id"], description.strip())
+    if "changes" in data:
+        # SCRUM-138: structured proposed values, applied when the Coordinator approves.
+        try:
+            proposal = ChangeRequestProposal.from_payload(data["changes"], event)
+        except ValueError as error:
+            problem = error.args[0]
+            if isinstance(problem, dict):
+                return jsonify({
+                    "error": "Please check the proposed changes.", "fields": problem,
+                }), 400
+            raise BadRequest(problem) from error
+        saved = create_change_request(
+            event_id, user["id"], description.strip(), requested_changes=proposal.changes,
+        )
+    else:
+        saved = create_change_request(event_id, user["id"], description.strip())
     add_status_history(
         event_id, event["status"], event["status"], user["id"],
         action="change_requested", note=description.strip(),
@@ -934,6 +953,16 @@ def review_change_request(event_id, request_id):
     }
     if status not in allowed_transitions.get(current_status, set()):
         raise Conflict("This change request cannot move to that status.")
+    note = review_note.strip() if isinstance(review_note, str) and review_note.strip() else None
+    if status == "Approved" and existing.get("requested_changes"):
+        # SCRUM-138: apply the values, record the decision, flag a significant change
+        # and notify, all in one database transaction (or none of it).
+        result = approve_change_request_record(event_id, request_id, user["id"], note)
+        return jsonify({
+            "change_request": result["change_request"],
+            "event": event_response(result["event"], user),
+            "affected": result.get("affected", {}),
+        }), 200
     updated = update_change_request(
         event_id, request_id, current_status, status, user["id"],
         review_note.strip() if isinstance(review_note, str) and review_note.strip() else None,

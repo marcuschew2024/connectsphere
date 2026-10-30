@@ -16,6 +16,12 @@ _COMPLETION_CONFLICTS = {
 }
 
 # cancel_event() database refusals (SCRUM-69), re-checked under the event row lock.
+_CHANGE_APPROVAL_CONFLICTS = {
+    "closed_event": "This event is closed. Its change requests can no longer be approved.",
+    "already_reviewed": "This change request has already been reviewed.",
+    "nothing_to_apply": "This change request has no proposed values to apply.",
+}
+
 _CANCELLATION_CONFLICTS = {
     "already_cancelled": "This event is already cancelled.",
     "closed_event": "This event is closed and cannot be cancelled.",
@@ -390,8 +396,10 @@ def mark_clarification_resubmitted(event_id: str, user_id: int) -> dict:
         ) from error
 
 
-def create_change_request(event_id: str, user_id: int, description: str) -> dict:
-    """Record a change request without changing the event itself."""
+def create_change_request(
+    event_id: str, user_id: int, description: str, requested_changes: dict | None = None
+) -> dict:
+    """Record a change request, and any proposed values, without changing the event."""
     try:
         client = get_supabase_client()
         if client is None:
@@ -401,6 +409,7 @@ def create_change_request(event_id: str, user_id: int, description: str) -> dict
             "requested_by": user_id,
             "description": description,
             "status": "Pending",
+            **({"requested_changes": requested_changes} if requested_changes else {}),
         }).execute()
         if not result.data:
             raise ServiceUnavailable("The database did not confirm the change request.")
@@ -754,4 +763,48 @@ def assign_event_coordinator(event_id: str, coordinator_id: int, lead_id: int) -
     except Exception as error:
         raise ServiceUnavailable(
             "Could not assign the Coordinator. Reload the event before retrying."
+        ) from error
+
+
+def approve_change_request_record(
+    event_id: str, request_id: int, user_id: int, review_note: str | None
+) -> dict:
+    """SCRUM-138: apply a structured change request, flag significance and notify, atomically."""
+    try:
+        client = get_supabase_client()
+        if client is None:
+            raise ServiceUnavailable("The database is not configured. Contact the team.")
+        result = client.rpc("approve_change_request", {
+            "p_event_id": event_id, "p_request_id": request_id,
+            "p_actor_id": user_id, "p_review_note": review_note,
+        }).execute()
+        if not isinstance(result.data, dict) or "change_request" not in result.data:
+            raise ServiceUnavailable(
+                "Could not confirm the approval. Reload the event before retrying."
+            )
+        return result.data
+    except APIError as error:
+        if error.code == "PT403":
+            raise Forbidden("Only the assigned Coordinator can review this request.") from error
+        if error.code == "PT404":
+            raise NotFound(
+                "Change request not found." if error.message == "Change request not found"
+                else "Event not found."
+            ) from error
+        if error.code == "PT409":
+            raise Conflict(_CHANGE_APPROVAL_CONFLICTS.get(
+                error.message, "This change request cannot be approved. Reload it and try again."
+            )) from error
+        if error.code == "22023":
+            raise BadRequest("The review note must be at most 2000 characters.") from error
+        # Anything else (for example a value the event table refuses) rolled back.
+        raise ServiceUnavailable(
+            "Could not apply the change. The event was not changed; contact the team."
+        ) from error
+    except ServiceUnavailable:
+        raise
+    except Exception as error:
+        # The connection failed, so whether the approval committed is unknown.
+        raise ServiceUnavailable(
+            "Could not confirm the approval. Reload the event before retrying."
         ) from error
