@@ -185,6 +185,16 @@ bookings and equipment reservations are released, registered Attendees are notif
 and the event becomes read-only. See the
 [rules, who may cancel and test evidence](docs/SCRUM-69.md).
 
+## Retire a venue (SCRUM-26)
+
+Apply
+[`20261031090000_scrum_26_retire_venue.sql`](supabase/migrations/20261031090000_scrum_26_retire_venue.sql).
+Venue Staff open a venue, choose **Retire venue** and confirm. Outstanding booking
+requests must be decided first. A retired venue keeps its confirmed bookings and
+history, records who retired it and when, is no longer offered to Coordinators for new
+bookings, and becomes read-only. See the
+[rules and test evidence](docs/SCRUM-26.md).
+
 ## Prerequisites
 
 For draft submission, on-screen confirmation and coordinator assignment, see the

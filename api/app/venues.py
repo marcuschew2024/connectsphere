@@ -1,14 +1,29 @@
 """Venue Staff create venues; Venue Staff and Coordinators read the catalogue."""
 
 from flask import Blueprint, current_app, jsonify, request
-from werkzeug.exceptions import BadRequest, Forbidden, HTTPException, NotFound, Unauthorized
+from werkzeug.exceptions import (
+    BadRequest,
+    Conflict,
+    Forbidden,
+    HTTPException,
+    NotFound,
+    Unauthorized,
+)
 
 from .acting_user import get_acting_user
 from .auth import get_authenticated_user
 from .booking_repository import list_venue_bookings_in_range
 from .event_repository import get_event_by_id
 from .rbac import require_role
-from .venue_repository import create_venue, get_venue, list_venues, update_venue
+from .venue_repository import (
+    create_venue,
+    get_display_name,
+    get_venue,
+    list_venues,
+    retire_venue_record,
+    update_venue,
+)
+from .venue_retirement import VenueRetirement
 from .venue_search import filter_options, parse_filters, search_venues
 from .venue_suitability import SuitabilityEngine
 from .venue_validation import BUFFER_FIELDS, FIELDS, validate_venue
@@ -27,15 +42,17 @@ def json_error(error):
     return jsonify({"error": error.description}), error.code
 
 
-def _require_user(*roles):
+def _require_user(*roles, action=None):
     if request.headers.get("Origin") != current_app.config["FRONTEND_ORIGIN"]:
         raise Forbidden("Request must come from the configured frontend origin.")
     # Match /session's identity precedence, supporting login and the local demo.
     user = get_authenticated_user() or get_acting_user()
     if user is None:
         raise Unauthorized("Sign in or select a demo user first.")
-    return require_role(user, *roles, action="create_venue" if request.method == "POST"
-                        else "update_venue" if request.method == "PUT" else "view_venue_catalogue")
+    if action is None:
+        action = ("create_venue" if request.method == "POST"
+                  else "update_venue" if request.method == "PUT" else "view_venue_catalogue")
+    return require_role(user, *roles, action=action)
 
 
 @venues.post("")
@@ -70,6 +87,8 @@ def edit_venue(venue_id):
     venue = get_venue(str(venue_id))
     if venue is None:
         raise NotFound("Venue not found.")
+    if refusal := VenueRetirement.edit_refusal(venue):
+        raise Conflict(refusal)
     fields, errors = validate_venue({**venue, **{key: data[key] for key in keys}})
     if errors:
         return jsonify({"error": "Please check the highlighted fields.", "fields": errors}), 400
@@ -80,14 +99,24 @@ def edit_venue(venue_id):
 
 @venues.get("")
 def catalogue():
-    _require_user("Venue Staff", "Coordinator")
+    user = _require_user("Venue Staff", "Coordinator")
     filters = parse_filters(request.args)
     page = request.args.get("page", "1")
     if not page.isascii() or not page.isdecimal():
         raise BadRequest("Choose a catalogue page from 1 to 10000.")
     if len(page) > 5 or not 1 <= int(page) <= 10000:
         raise BadRequest("Choose a catalogue page from 1 to 10000.")
-    rows, has_more = search_venues(int(page), filters) if filters else list_venues(int(page))
+    # SCRUM-26: retired venues are not offered to Coordinators for new bookings. Venue
+    # Staff still see them, flagged, because they manage the catalogue's history.
+    staff = user.get("role") == "Venue Staff"
+    if filters:
+        rows, has_more = search_venues(int(page), filters, include_retired=staff)
+    elif staff:
+        rows, has_more = list_venues(int(page))
+    else:
+        rows, has_more = search_venues(
+            int(page), {}, include_retired=False, listing=list_venues
+        )
     return jsonify({"venues": rows, "page": int(page), "has_more": has_more}), 200
 
 
@@ -104,6 +133,9 @@ def venue_detail(venue_id):
     venue = get_venue(venue_id)
     if venue is None:
         raise NotFound("Venue not found.")
+    if venue.get("retired_by") is not None:
+        # SCRUM-26: a retired venue stays readable for its history.
+        venue = {**venue, "retired_by_name": get_display_name(venue["retired_by"])}
     return jsonify({"venue": venue}), 200
 
 
@@ -142,6 +174,8 @@ def evaluate_all_venue_suitability(event_id: str):
         raise NotFound("The requested event was not found.")
 
     venues, has_more = list_venues(int(page))
+    # SCRUM-26: a retired venue is never ranked as a booking option.
+    venues = [venue for venue in venues if not VenueRetirement.is_retired(venue)]
     if not venues:
         return jsonify({"event_id": event_id, "venues": [], "page": int(page),
                         "has_more": has_more}), 200
@@ -183,3 +217,23 @@ def evaluate_venue_suitability(venue_id: str, event_id: str):
     engine = SuitabilityEngine()
     result = engine.evaluate_suitability(event, venue)
     return jsonify({"suitability": result, "event_id": event_id, "venue_id": venue_id}), 200
+
+
+@venues.post("/<uuid:venue_id>/retire")
+def retire_venue(venue_id):
+    """Retire a venue: no new bookings, existing bookings and history kept (SCRUM-26)."""
+    user = _require_user("Venue Staff", action="retire_venue")
+    try:
+        VenueRetirement.from_payload(request.get_json(silent=True))
+    except ValueError as error:
+        raise BadRequest(str(error)) from error
+    venue = get_venue(str(venue_id))
+    if venue is None:
+        raise NotFound("Venue not found.")
+    if refusal := VenueRetirement.blocking_reason(venue):
+        raise Conflict(refusal)
+    result = retire_venue_record(str(venue_id), user["id"])
+    return jsonify({
+        "venue": {**result["venue"], "retired_by_name": user.get("display_name")},
+        "kept_confirmed_bookings": result.get("kept_confirmed_bookings", 0),
+    }), 200

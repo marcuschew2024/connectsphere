@@ -96,6 +96,8 @@ availability. Retired venues are flagged even without a time search.
 - **Future retirement work:** `venues.is_retired` is the shared marker. This story
   provides no retirement editing screen or new write permissions. Retirement checks
   in future booking/lifecycle work must use this marker too.
+  SCRUM-26 now sets it: Coordinators no longer see retired venues, and Venue Staff
+  still see them flagged (see `docs/SCRUM-26.md`).
 
 The search reads existing catalogue pages until it has enough matching results.
 This is simple for the current catalogue, but large catalogues would benefit from

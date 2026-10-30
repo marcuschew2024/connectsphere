@@ -130,8 +130,8 @@ def test_search_filters_across_database_pages_and_flags_retirement(live_venues):
     stored = db.table("venues").insert(rows).execute().data
     query = {"location": location.lower(), "attendance": "100", "layout": "classroom",
              "facilities": "projector, wi-fi", "accessibility": "step-free access"}
-    first = users[2].get("/venues", query_string=query, headers=ORIGIN).json
-    second = users[2].get("/venues", query_string={**query, "page": "2"}, headers=ORIGIN).json
+    first = users[3].get("/venues", query_string=query, headers=ORIGIN).json
+    second = users[3].get("/venues", query_string={**query, "page": "2"}, headers=ORIGIN).json
     matches = first["venues"] + second["venues"]
     assert [row["id"] for row in matches] == [row["id"] for row in reversed(stored[:8])]
     assert first["has_more"] is True and second["has_more"] is False
