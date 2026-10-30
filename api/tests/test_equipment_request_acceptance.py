@@ -32,6 +32,9 @@ def live_requests(monkeypatch):
             "equipment_request_repository",
             "rbac",
             "auth",
+            # SCRUM-49 / R07: submitting a request now notifies the Tech Support pool
+            # via event_repository.create_notification, so it needs the disposable DB too.
+            "event_repository",
         ):
             monkeypatch.setattr(
                 importlib.import_module(f"app.{name}"), "get_supabase_client", lambda: db

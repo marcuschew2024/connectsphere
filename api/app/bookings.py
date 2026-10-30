@@ -19,7 +19,11 @@ from .booking_repository import (
 )
 from .event_repository import create_notification, get_event_by_id
 from .rbac import require_related_user, require_role
-from .supabase_client import get_supabase_client
+
+# Re-exported as a patch seam: the acceptance fixtures uniformly patch
+# get_supabase_client on every app module. bookings.py no longer calls it directly
+# (SCRUM-49 removed the per-staff lookup), so keep it importable for those fixtures.
+from .supabase_client import get_supabase_client  # noqa: F401
 from .venue_overlap import OverlapEngine
 from .venue_repository import get_venue
 
@@ -98,14 +102,6 @@ def _validated_booking_fields(data, event: dict, existing: dict | None = None) -
 def _origin_check():
     if request.headers.get("Origin") != current_app.config["FRONTEND_ORIGIN"]:
         raise Forbidden("Request must come from the configured frontend origin.")
-
-
-def _venue_staff_ids() -> list[int]:
-    client = get_supabase_client()
-    if client is None:
-        return []
-    result = client.table("app_users").select("id").eq("role", "Venue Staff").execute()
-    return [row["id"] for row in (result.data or [])]
 
 
 @bookings.after_request
@@ -199,11 +195,14 @@ def submit_booking():
         "layout": layout.strip(),
         "special_requirements": special.strip() or None,
     }, user["id"])
-    for staff_id in _venue_staff_ids():
-        create_notification(
-            staff_id, event_id, "venue_booking_requested",
-            f"Venue booking requested for {event.get('title') or 'an event'}.",
-        )
+    # SCRUM-49 / R07: notify the Venue Staff pool, not individual staff. Bookings
+    # are reviewed from a shared queue -- no per-event venue-staff assignment exists
+    # (Customer Clarification S1 Q10/Q16, S2 Q9/Q13).
+    create_notification(
+        None, event_id, "venue_booking_requested",
+        f"Venue booking requested for {event.get('title') or 'an event'}.",
+        recipient_role="Venue Staff",
+    )
     return jsonify({"booking": saved}), 201
 
 
