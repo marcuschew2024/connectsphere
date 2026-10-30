@@ -1,0 +1,272 @@
+CREATE ROLE
+CREATE ROLE
+CREATE ROLE
+GRANT
+ALTER DEFAULT PRIVILEGES
+psql:/sql/create_events.sql:49: NOTICE:  column "last_status_changed_by" of relation "events" already exists, skipping
+psql:/sql/create_events.sql:49: NOTICE:  column "last_status_changed_at" of relation "events" already exists, skipping
+psql:/sql/auto_assign_coordinator.sql:48: NOTICE:  trigger "events_assign_coordinator" for relation "public.events" does not exist, skipping
+psql:/sql/auto_assign_coordinator.sql:53: NOTICE:  constraint "events_submitted_assignment_check" of relation "events" does not exist, skipping
+psql:/sql/create_venue_bookings.sql:30: NOTICE:  column "suggested_alternative" of relation "venue_bookings" already exists, skipping
+psql:/sql/create_venue_bookings.sql:34: NOTICE:  column "updated_at" of relation "venue_bookings" already exists, skipping
+psql:/sql/create_venue_bookings.sql:34: NOTICE:  column "last_changed_by" of relation "venue_bookings" already exists, skipping
+psql:/sql/create_venue_bookings.sql:34: NOTICE:  column "last_changed_at" of relation "venue_bookings" already exists, skipping
+psql:/sql/create_venue_bookings.sql:45: NOTICE:  constraint "venue_bookings_no_overlap" of relation "venue_bookings" does not exist, skipping
+psql:/sql/create_venue_bookings.sql:46: NOTICE:  constraint "venue_bookings_no_overlap_hard" of relation "venue_bookings" does not exist, skipping
+psql:/sql/create_venue_bookings.sql:47: NOTICE:  constraint "venue_bookings_one_tentative_hold" of relation "venue_bookings" does not exist, skipping
+psql:/sql/create_equipment_reservations.sql:5: NOTICE:  extension "btree_gist" already exists, skipping
+psql:/sql/create_equipment_reservations.sql:45: NOTICE:  trigger "trg_release_equipment_on_event_cancel" for relation "public.events" does not exist, skipping
+psql:/sql/migrations/20261025000000_scrum_46_change_requests.sql:16: NOTICE:  relation "event_change_requests" already exists, skipping
+psql:/sql/migrations/20261025000000_scrum_46_change_requests.sql:19: NOTICE:  relation "event_change_requests_event_idx" already exists, skipping
+psql:/sql/migrations/20261025000000_scrum_46_change_requests.sql:21: NOTICE:  relation "event_change_requests_reviewer_idx" already exists, skipping
+Migration pass 1: PASS
+psql:/sql/seed_users.sql:14: NOTICE:  relation "app_users" already exists, skipping
+psql:/sql/create_events.sql:45: NOTICE:  relation "events" already exists, skipping
+psql:/sql/create_events.sql:49: NOTICE:  column "last_status_changed_by" of relation "events" already exists, skipping
+psql:/sql/create_events.sql:49: NOTICE:  column "last_status_changed_at" of relation "events" already exists, skipping
+psql:/sql/create_events.sql:60: NOTICE:  relation "events_organiser_created_idx" already exists, skipping
+psql:/sql/create_events.sql:62: NOTICE:  relation "events_status_created_idx" already exists, skipping
+psql:/sql/create_events.sql:70: NOTICE:  relation "event_participants" already exists, skipping
+psql:/sql/create_events.sql:73: NOTICE:  relation "event_participants_user_idx" already exists, skipping
+psql:/sql/create_events.sql:82: NOTICE:  relation "event_status_history" already exists, skipping
+psql:/sql/create_events.sql:85: NOTICE:  relation "event_status_history_event_idx" already exists, skipping
+psql:/sql/create_events.sql:213: NOTICE:  relation "event_change_requests" already exists, skipping
+psql:/sql/create_events.sql:216: NOTICE:  relation "event_change_requests_event_idx" already exists, skipping
+psql:/sql/create_events.sql:218: NOTICE:  relation "event_change_requests_reviewer_idx" already exists, skipping
+psql:/sql/login_auth.sql:11: NOTICE:  column "email" of relation "app_users" already exists, skipping
+psql:/sql/login_auth.sql:11: NOTICE:  column "password_hash" of relation "app_users" already exists, skipping
+psql:/sql/login_auth.sql:11: NOTICE:  column "failed_attempts" of relation "app_users" already exists, skipping
+psql:/sql/login_auth.sql:11: NOTICE:  column "locked_until" of relation "app_users" already exists, skipping
+psql:/sql/login_auth.sql:23: NOTICE:  relation "auth_audit_log" already exists, skipping
+psql:/sql/login_auth.sql:26: NOTICE:  relation "auth_audit_log_user_idx" already exists, skipping
+psql:/sql/login_auth.sql:28: NOTICE:  relation "auth_audit_log_occurred_idx" already exists, skipping
+psql:/sql/rbac.sql:23: NOTICE:  relation "access_denied_log" already exists, skipping
+psql:/sql/rbac.sql:26: NOTICE:  relation "access_denied_log_actor_idx" already exists, skipping
+psql:/sql/rbac.sql:28: NOTICE:  relation "access_denied_log_occurred_idx" already exists, skipping
+psql:/sql/edit_planning.sql:18: NOTICE:  relation "event_edit_log" already exists, skipping
+psql:/sql/edit_planning.sql:21: NOTICE:  relation "event_edit_log_event_idx" already exists, skipping
+psql:/sql/event_decision_notifications.sql:8: NOTICE:  column "decision_reason" of relation "events" already exists, skipping
+psql:/sql/event_decision_notifications.sql:8: NOTICE:  column "decision_by" of relation "events" already exists, skipping
+psql:/sql/event_decision_notifications.sql:8: NOTICE:  column "decision_at" of relation "events" already exists, skipping
+psql:/sql/event_decision_notifications.sql:18: NOTICE:  relation "notifications" already exists, skipping
+psql:/sql/event_decision_notifications.sql:21: NOTICE:  relation "notifications_recipient_idx" already exists, skipping
+psql:/sql/auto_assign_coordinator.sql:6: NOTICE:  column "coordinator_assigned_at" of relation "events" already exists, skipping
+psql:/sql/auto_assign_coordinator.sql:62: NOTICE:  relation "events_coordinator_queue_idx" already exists, skipping
+psql:/sql/request_clarification.sql:7: NOTICE:  column "action" of relation "event_status_history" already exists, skipping
+psql:/sql/request_clarification.sql:7: NOTICE:  column "note" of relation "event_status_history" already exists, skipping
+psql:/sql/request_clarification.sql:18: NOTICE:  relation "event_clarifications" already exists, skipping
+psql:/sql/request_clarification.sql:22: NOTICE:  relation "event_clarifications_pending_idx" already exists, skipping
+psql:/sql/request_clarification.sql:25: NOTICE:  relation "event_clarifications_event_idx" already exists, skipping
+psql:/sql/create_venues.sql:61: NOTICE:  relation "venues" already exists, skipping
+psql:/sql/create_venues.sql:67: NOTICE:  relation "venues_name_location_unique" already exists, skipping
+psql:/sql/create_venues.sql:68: NOTICE:  relation "venues_created_idx" already exists, skipping
+psql:/sql/create_venue_bookings.sql:4: NOTICE:  extension "btree_gist" already exists, skipping
+psql:/sql/create_venue_bookings.sql:26: NOTICE:  relation "venue_bookings" already exists, skipping
+psql:/sql/create_venue_bookings.sql:30: NOTICE:  column "suggested_alternative" of relation "venue_bookings" already exists, skipping
+psql:/sql/create_venue_bookings.sql:34: NOTICE:  column "updated_at" of relation "venue_bookings" already exists, skipping
+psql:/sql/create_venue_bookings.sql:34: NOTICE:  column "last_changed_by" of relation "venue_bookings" already exists, skipping
+psql:/sql/create_venue_bookings.sql:34: NOTICE:  column "last_changed_at" of relation "venue_bookings" already exists, skipping
+psql:/sql/create_venue_bookings.sql:37: NOTICE:  relation "venue_bookings_requested_idx" already exists, skipping
+psql:/sql/create_venue_bookings.sql:39: NOTICE:  relation "venue_bookings_event_idx" already exists, skipping
+psql:/sql/create_venue_bookings.sql:41: NOTICE:  relation "venue_bookings_venue_idx" already exists, skipping
+psql:/sql/create_venue_bookings.sql:45: NOTICE:  constraint "venue_bookings_no_overlap" of relation "venue_bookings" does not exist, skipping
+psql:/sql/venue_search.sql:4: NOTICE:  column "is_retired" of relation "venues" already exists, skipping
+psql:/sql/update_venues.sql:3: NOTICE:  column "revision" of relation "venues" already exists, skipping
+psql:/sql/update_venues.sql:4: NOTICE:  column "updated_at" of relation "venues" already exists, skipping
+psql:/sql/update_venues.sql:13: NOTICE:  relation "venue_update_history" already exists, skipping
+psql:/sql/update_venues.sql:15: NOTICE:  relation "venue_update_history_venue_idx" already exists, skipping
+psql:/sql/create_equipment.sql:23: NOTICE:  relation "equipment_items" already exists, skipping
+psql:/sql/create_equipment.sql:25: NOTICE:  relation "equipment_catalogue_order" already exists, skipping
+psql:/sql/create_equipment.sql:35: NOTICE:  relation "equipment_item_history" already exists, skipping
+psql:/sql/create_equipment.sql:37: NOTICE:  relation "equipment_history_order" already exists, skipping
+psql:/sql/create_equipment_requests.sql:11: NOTICE:  relation "equipment_requests" already exists, skipping
+psql:/sql/create_equipment_requests.sql:13: NOTICE:  relation "equipment_requests_order" already exists, skipping
+psql:/sql/create_equipment_requests.sql:14: NOTICE:  relation "equipment_requests_event" already exists, skipping
+psql:/sql/create_equipment_requests.sql:27: NOTICE:  relation "equipment_request_items" already exists, skipping
+psql:/sql/create_equipment_reservations.sql:5: NOTICE:  extension "btree_gist" already exists, skipping
+psql:/sql/create_equipment_reservations.sql:21: NOTICE:  relation "equipment_reservations" already exists, skipping
+psql:/sql/create_equipment_reservations.sql:24: NOTICE:  relation "equipment_reservations_equipment_idx" already exists, skipping
+psql:/sql/create_equipment_reservations.sql:27: NOTICE:  relation "equipment_reservations_event_idx" already exists, skipping
+psql:/sql/create_equipment_reservations.sql:30: NOTICE:  relation "equipment_reservations_status_idx" already exists, skipping
+psql:/sql/migrations/20261025000000_scrum_46_change_requests.sql:16: NOTICE:  relation "event_change_requests" already exists, skipping
+psql:/sql/migrations/20261025000000_scrum_46_change_requests.sql:19: NOTICE:  relation "event_change_requests_event_idx" already exists, skipping
+psql:/sql/migrations/20261025000000_scrum_46_change_requests.sql:21: NOTICE:  relation "event_change_requests_reviewer_idx" already exists, skipping
+psql:/sql/migrations/20261018111728_scrum_38_equipment_request_status.sql:13: NOTICE:  column "revision" of relation "equipment_requests" already exists, skipping
+psql:/sql/migrations/20261018111728_scrum_38_equipment_request_status.sql:13: NOTICE:  column "update_notes" of relation "equipment_requests" already exists, skipping
+psql:/sql/migrations/20261018111728_scrum_38_equipment_request_status.sql:13: NOTICE:  column "updated_by" of relation "equipment_requests" already exists, skipping
+psql:/sql/migrations/20261018111728_scrum_38_equipment_request_status.sql:13: NOTICE:  column "updated_at" of relation "equipment_requests" already exists, skipping
+psql:/sql/migrations/20261018111728_scrum_38_equipment_request_status.sql:25: NOTICE:  relation "equipment_request_history" already exists, skipping
+psql:/sql/migrations/20261018111728_scrum_38_equipment_request_status.sql:27: NOTICE:  relation "equipment_request_history_actor" already exists, skipping
+psql:/sql/migrations/20261018111728_scrum_38_equipment_request_status.sql:29: NOTICE:  relation "equipment_requests_updater" already exists, skipping
+Migration pass 2: PASS
+BEGIN
+CREATE FUNCTION
+CREATE TRIGGER
+DO
+ROLLBACK
+drafts database checks: PASS
+BEGIN
+DO
+ROLLBACK
+assignment database checks: PASS
+BEGIN
+DO
+ROLLBACK
+venues database checks: PASS
+BEGIN
+CREATE FUNCTION
+CREATE TRIGGER
+DO
+ROLLBACK
+venue_updates database checks: PASS
+BEGIN
+DO
+ROLLBACK
+venue_overlap database checks: PASS
+BEGIN
+DO
+SELECT 1
+CREATE FUNCTION
+CREATE TRIGGER
+DO
+ROLLBACK
+equipment database checks: PASS
+BEGIN
+DO
+ROLLBACK
+equipment_requests database checks: PASS
+BEGIN
+DO
+INSERT 0 1
+INSERT 0 1
+CREATE FUNCTION
+CREATE TRIGGER
+DO
+ROLLBACK
+equipment_request_status database checks: PASS
+INSERT 0 2
+GRANT
+GRANT
+GRANT
+GRANT
+GRANT
+GRANT
+NOTIFY
+Safety Officer migration pass 1: PASS
+Safety Officer migration pass 2: PASS
+DO
+Event Coordinator Lead migration pass 1: PASS
+Event Coordinator Lead migration pass 2: PASS
+Role accounts seed pass 1: PASS
+psql:/sql/seed_role_accounts.sql:15: NOTICE:  schema "extensions" already exists, skipping
+psql:/sql/seed_role_accounts.sql:16: NOTICE:  extension "pgcrypto" already exists, skipping
+Role accounts seed pass 2: PASS
+psql:/sql/migrations/20261018134736_link_equipment_request_reservations.sql:47: NOTICE:  trigger "equipment_reservation_capacity" for relation "public.equipment_reservations" does not exist, skipping
+Request reservations migration pass 1: PASS
+psql:/sql/migrations/20261018134736_link_equipment_request_reservations.sql:5: NOTICE:  column "request_id" of relation "equipment_reservations" already exists, skipping
+psql:/sql/migrations/20261018134736_link_equipment_request_reservations.sql:7: NOTICE:  relation "equipment_reservations_request_item" already exists, skipping
+psql:/sql/migrations/20261018134736_link_equipment_request_reservations.sql:10: NOTICE:  column "reservation_start_at" of relation "equipment_requests" already exists, skipping
+psql:/sql/migrations/20261018134736_link_equipment_request_reservations.sql:10: NOTICE:  column "reservation_end_at" of relation "equipment_requests" already exists, skipping
+psql:/sql/migrations/20261018134736_link_equipment_request_reservations.sql:12: NOTICE:  column "reservation_snapshot" of relation "equipment_request_history" already exists, skipping
+Request reservations migration pass 2: PASS
+BEGIN
+DO
+INSERT 0 1
+INSERT 0 1
+INSERT 0 1
+INSERT 0 1
+CREATE FUNCTION
+CREATE TRIGGER
+DO
+ROLLBACK
+Venue buffers migration pass 1: PASS
+psql:/sql/migrations/20261023193600_scrum_129_venue_buffers.sql:9: NOTICE:  column "setup_time_minutes" of relation "venues" already exists, skipping
+psql:/sql/migrations/20261023193600_scrum_129_venue_buffers.sql:9: NOTICE:  column "turnaround_time_minutes" of relation "venues" already exists, skipping
+Venue buffers migration pass 2: PASS
+BEGIN
+DO
+ROLLBACK
+Tentative venue holds migration pass 1: PASS
+psql:/sql/migrations/20261029170000_scrum_79_tentative_venue_holds.sql:9: NOTICE:  column "expires_at" of relation "venue_bookings" already exists, skipping
+Tentative venue holds migration pass 2: PASS
+BEGIN
+DO
+ROLLBACK
+BEGIN
+DO
+ROLLBACK
+venue_fcfs database checks: PASS
+Event completion migration pass 1: PASS
+Event completion migration pass 2: PASS
+psql:/sql/migrations/20261026150854_scrum_41_registration_capacity.sql:10: NOTICE:  constraint "events_registration_capacity_check" of relation "events" does not exist, skipping
+Registration capacity migration pass 1: PASS
+psql:/sql/migrations/20261026150854_scrum_41_registration_capacity.sql:8: NOTICE:  column "registration_capacity" of relation "events" already exists, skipping
+psql:/sql/migrations/20261026150854_scrum_41_registration_capacity.sql:8: NOTICE:  column "registered_count" of relation "events" already exists, skipping
+psql:/sql/migrations/20261026150854_scrum_41_registration_capacity.sql:26: NOTICE:  relation "event_registrations" already exists, skipping
+psql:/sql/migrations/20261026150854_scrum_41_registration_capacity.sql:28: NOTICE:  relation "event_registrations_attendee_idx" already exists, skipping
+Registration capacity migration pass 2: PASS
+BEGIN
+INSERT 0 101
+DO
+DO
+ROLLBACK
+INSERT 0 2
+GRANT
+GRANT
+psql:/sql/migrations/20261029044510_scrum_40_attendee_registration.sql:10: NOTICE:  constraint "events_registration_period_check" of relation "events" does not exist, skipping
+Attendee registration migration pass 1: PASS
+psql:/sql/migrations/20261029044510_scrum_40_attendee_registration.sql:9: NOTICE:  column "registration_opens_at" of relation "events" already exists, skipping
+psql:/sql/migrations/20261029044510_scrum_40_attendee_registration.sql:9: NOTICE:  column "registration_closes_at" of relation "events" already exists, skipping
+psql:/sql/migrations/20261029044510_scrum_40_attendee_registration.sql:17: NOTICE:  column "information" of relation "event_registrations" already exists, skipping
+Attendee registration migration pass 2: PASS
+BEGIN
+DO
+ROLLBACK
+Initial confirmed capacity migration pass 1: PASS
+Initial confirmed capacity migration pass 2: PASS
+DO
+psql:/sql/migrations/20261030120000_scrum_130_unassigned_queue.sql:30: NOTICE:  trigger "events_stamp_coordinator_assignment" for relation "public.events" does not exist, skipping
+psql:/sql/migrations/20261030120000_scrum_130_unassigned_queue.sql:39: NOTICE:  constraint "events_coordinator_assignment_check" of relation "events" does not exist, skipping
+Unassigned queue migration pass 1: PASS
+psql:/sql/migrations/20261030120000_scrum_130_unassigned_queue.sql:11: NOTICE:  trigger "events_assign_coordinator" for relation "public.events" does not exist, skipping
+psql:/sql/migrations/20261030120000_scrum_130_unassigned_queue.sql:12: NOTICE:  function public.assign_event_coordinator() does not exist, skipping
+psql:/sql/migrations/20261030120000_scrum_130_unassigned_queue.sql:38: NOTICE:  constraint "events_submitted_assignment_check" of relation "events" does not exist, skipping
+psql:/sql/migrations/20261030120000_scrum_130_unassigned_queue.sql:47: NOTICE:  relation "events_unassigned_queue_idx" already exists, skipping
+Unassigned queue migration pass 2: PASS
+BEGIN
+DO
+ROLLBACK
+coordinator_assignment database checks: PASS
+psql:/sql/migrations/20261030015221_scrum_49_notification_recipient_role.sql:15: NOTICE:  constraint "notifications_recipient_role_allowed" of relation "notifications" does not exist, skipping
+psql:/sql/migrations/20261030015221_scrum_49_notification_recipient_role.sql:24: NOTICE:  constraint "notifications_recipient_target" of relation "notifications" does not exist, skipping
+Notification recipient-role migration pass 1: PASS
+psql:/sql/migrations/20261030015221_scrum_49_notification_recipient_role.sql:9: NOTICE:  column "recipient_role" of relation "notifications" already exists, skipping
+psql:/sql/migrations/20261030015221_scrum_49_notification_recipient_role.sql:30: NOTICE:  relation "notifications_recipient_role_idx" already exists, skipping
+Notification recipient-role migration pass 2: PASS
+Registration withdrawal migration pass 1: PASS
+psql:/sql/migrations/20261030062503_scrum_43_withdraw_registration.sql:5: NOTICE:  column "withdrawal_closes_at" of relation "events" already exists, skipping
+Registration withdrawal migration pass 2: PASS
+BEGIN
+DO
+DO
+ROLLBACK
+Atomic failed-login migration pass 1: PASS
+Atomic failed-login migration pass 2: PASS
+Event cancellation migration pass 1: PASS
+Event cancellation migration pass 2: PASS
+psql:/sql/migrations/20261030220000_scrum_60_venue_unavailability.sql:49: NOTICE:  trigger "reject_overlapping_venue_block" for relation "public.venue_unavailability" does not exist, skipping
+psql:/sql/migrations/20261030220000_scrum_60_venue_unavailability.sql:73: NOTICE:  trigger "reject_booking_in_active_venue_block" for relation "public.venue_bookings" does not exist, skipping
+Venue unavailability migration pass 1: PASS
+psql:/sql/migrations/20261030220000_scrum_60_venue_unavailability.sql:23: NOTICE:  relation "venue_unavailability" already exists, skipping
+psql:/sql/migrations/20261030220000_scrum_60_venue_unavailability.sql:27: NOTICE:  relation "venue_unavailability_active_idx" already exists, skipping
+Venue unavailability migration pass 2: PASS
+psql:/sql/migrations/20261031090000_scrum_26_retire_venue.sql:100: NOTICE:  trigger "reject_booking_on_retired_venue" for relation "public.venue_bookings" does not exist, skipping
+Venue retirement migration pass 1: PASS
+psql:/sql/migrations/20261031090000_scrum_26_retire_venue.sql:11: NOTICE:  column "retired_at" of relation "venues" already exists, skipping
+psql:/sql/migrations/20261031090000_scrum_26_retire_venue.sql:12: NOTICE:  column "retired_by" of relation "venues" already exists, skipping
+Venue retirement migration pass 2: PASS
+Change request apply migration pass 1: PASS
+psql:/sql/migrations/20261031120000_scrum_138_apply_change_request.sql:7: NOTICE:  column "requested_changes" of relation "event_change_requests" already exists, skipping
+psql:/sql/migrations/20261031120000_scrum_138_apply_change_request.sql:8: NOTICE:  column "applied_changes" of relation "event_change_requests" already exists, skipping
+psql:/sql/migrations/20261031120000_scrum_138_apply_change_request.sql:9: NOTICE:  column "significant" of relation "event_change_requests" already exists, skipping
+Change request apply migration pass 2: PASS

@@ -1,0 +1,45 @@
+{
+  "source_sha256": "afe37a8de4e34cf122f39e06c6f63ff999acb769cc292a3a553de7d86f36968d",
+  "sql_harness_exit_code": 0,
+  "sql_migration_replay_passes": 2,
+  "validation": {
+    "ruff": "passed",
+    "eslint": "passed",
+    "typescript": "passed in production build",
+    "tooling_tests": 7,
+    "production_webpack_build": "passed",
+    "default_production_build": "hosted CI required",
+    "hosted_ci": "pending push",
+    "human_acceptance": "owner authorised combined push and merge after green CI"
+  },
+  "artifacts": {
+    "browser.junit.xml": {
+      "sha256": "3d03c44b1093ea4025a6815d16bd08093ea5cbfec55c24b68c629529509bf380",
+      "bytes": 39981
+    },
+    "sql.txt": {
+      "sha256": "feeabd4d9a2793622645362e1e4a79121e6d44be0c883cbf105f28ac647698f6",
+      "bytes": 20438
+    },
+    "frontend.coverage-summary.json": {
+      "sha256": "453b422ac7e5d2ab6e27d968fc02efbd888f9b7132f41ff69ae64cbe046325e9",
+      "bytes": 27542
+    },
+    "frontend.junit.xml": {
+      "sha256": "4c876cef805deaa76c1fd18310da9f0974f2db1edbe042e80f9f63be28324dda",
+      "bytes": 14130
+    },
+    "integrated.junit.xml": {
+      "sha256": "2dda69ca8f51f9421071d0021e11a87091b9d1123b1dc5fb505d8ba57a1b2d01",
+      "bytes": 623
+    },
+    "backend.coverage.json": {
+      "sha256": "d697764b2af91b6cd1f87b87e8675a7ce08d5a7facc7ec95b61c2e1d57c359a6",
+      "bytes": 367931
+    },
+    "backend.junit.xml": {
+      "sha256": "c3aa6243ad962f82caf9e1e18264e051cbf3b4b8e3a28bf6e0b6e5c1fec2a5cd",
+      "bytes": 260165
+    }
+  }
+}

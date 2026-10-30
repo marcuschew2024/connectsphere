@@ -292,9 +292,23 @@ def test_decision_and_notification_reach_only_the_organiser(live, decision):
     assert len(notifications) == 1
 
 
-def test_notifications_are_newest_first_and_limited_to_50(live):
+@pytest.fixture
+def notification_feed_event(live):
+    """Remove this test's event and cascading notifications, including on failure."""
+    assert os.environ["POSTGREST_TEST_URL"] in (
+        "http://127.0.0.1:55433", "http://localhost:55433",
+    ), "Notification fixtures must use the disposable acceptance database."
     _, database, users = live
-    event = submit(users, new_draft(users, details())).json["event"]
+    draft = new_draft(users, details())
+    try:
+        yield submit(users, draft).json["event"]
+    finally:
+        database.table("events").delete().eq("id", draft["id"]).execute()
+
+
+def test_notifications_are_newest_first_and_limited_to_50(live, notification_feed_event):
+    _, database, users = live
+    event = notification_feed_event
     database.table("notifications").insert([{
         "recipient_id": 1, "event_id": event["id"], "notification_type": "event_rejected",
         "message": f"Update {i}", "created_at": f"2099-01-01T00:00:{i:02d}Z",

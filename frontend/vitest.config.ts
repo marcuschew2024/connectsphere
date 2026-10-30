@@ -6,5 +6,13 @@ export default defineConfig({
   test: {
     environment: "node",
     include: ["src/**/*.test.ts"],
+    coverage: {
+      provider: "v8",
+      // Include unimported UI files too: utility-only coverage is not app coverage.
+      all: true,
+      include: ["src/**/*.{ts,tsx}"],
+      exclude: ["src/**/*.test.{ts,tsx}", "src/**/*.d.ts"],
+      reporter: ["text", "json", "json-summary", "lcov", "html"],
+    },
   },
 });
