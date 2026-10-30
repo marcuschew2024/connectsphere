@@ -235,7 +235,9 @@ export default function EventStatusPage() {
               requests={changeRequests}
               loadFailed={changeRequestsUnavailable}
               isCoordinator={actingRole === "Coordinator"}
-              onChanged={async (changed) => {
+              onChanged={async (changed, updatedEvent) => {
+                // SCRUM-138: an approved structured change returns the updated event.
+                if (updatedEvent) setEvent(updatedEvent);
                 setChangeRequests((current) => {
                   const existing = current.findIndex((request) => request.id === changed.id);
                   if (existing < 0) return [changed, ...current];

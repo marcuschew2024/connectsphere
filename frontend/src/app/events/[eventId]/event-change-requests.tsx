@@ -2,6 +2,16 @@
 
 import { FormEvent, useState } from "react";
 import { ApiError, apiRequest } from "@/lib/api";
+import {
+  CHANGE_FIELDS,
+  type ChangeApprovalResult,
+  type ChangeField,
+  changeFieldLabel,
+  changeValue,
+  needsReReview,
+  proposedChanges,
+  SIGNIFICANT_FIELDS,
+} from "@/lib/change-requests";
 import { ChangeRequestStatusBadge, type EventChangeRequest, type EventRecord } from "@/lib/events";
 import { Button } from "@/components/ui/button";
 
@@ -16,25 +26,34 @@ export default function EventChangeRequests({
   requests: EventChangeRequest[];
   loadFailed?: boolean;
   isCoordinator: boolean;
-  onChanged: (request: EventChangeRequest) => void;
+  onChanged: (request: EventChangeRequest, updatedEvent?: EventRecord) => void;
 }) {
   const [description, setDescription] = useState("");
+  const [drafts, setDrafts] = useState<Partial<Record<ChangeField, string>>>({});
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
+  const [affected, setAffected] = useState<Record<number, ChangeApprovalResult["affected"]>>({});
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
+  const [proposing, setProposing] = useState(false);
 
   async function submit(event_: FormEvent<HTMLFormElement>) {
     event_.preventDefault();
     setError("");
+    setFieldErrors({});
     setBusy(true);
     try {
+      // SCRUM-138: proposed values travel with the description and apply on approval.
+      const changes = proposedChanges(drafts);
       const result = await apiRequest<{ change_request: EventChangeRequest }>(
         `/events/${event.id}/change-requests`,
-        { method: "POST", body: JSON.stringify({ description }) },
+        { method: "POST", body: JSON.stringify(changes ? { description, changes } : { description }) },
       );
       setDescription("");
+      setDrafts({});
       onChanged(result.change_request);
     } catch (requestError) {
       setError(requestError instanceof ApiError ? requestError.message : "Could not submit the change request.");
+      if (requestError instanceof ApiError) setFieldErrors(requestError.fields);
     } finally {
       setBusy(false);
     }
@@ -43,15 +62,21 @@ export default function EventChangeRequests({
   async function review(request: EventChangeRequest, status: EventChangeRequest["status"]) {
     setError("");
     try {
-      const result = await apiRequest<{ change_request: EventChangeRequest }>(
+      const result = await apiRequest<ChangeApprovalResult>(
         `/events/${event.id}/change-requests/${request.id}`,
         { method: "PATCH", body: JSON.stringify({ status }) },
       );
-      onChanged(result.change_request);
+      if (result.affected) {
+        const counts = result.affected;
+        setAffected((current) => ({ ...current, [request.id]: counts }));
+      }
+      onChanged(result.change_request, result.event);
     } catch (requestError) {
       setError(requestError instanceof ApiError ? requestError.message : "Could not update the change request.");
     }
   }
+
+  const current = event as unknown as Record<string, string | number | null | undefined>;
 
   return (
     <section aria-labelledby="change-requests-heading" className="space-y-4 rounded-2xl border border-border bg-card p-5 shadow-sm sm:p-6">
@@ -59,14 +84,45 @@ export default function EventChangeRequests({
         <h2 id="change-requests-heading" className="font-semibold">Change requests</h2>
         <p className="mt-1 text-sm text-muted-foreground">Changes are routed to the assigned Coordinator and can be raised at any time.</p>
       </div>
+      {requests.some(needsReReview) && (
+        <div role="status" className="rounded-xl border border-amber-300 bg-amber-50 p-4 text-sm text-amber-900 dark:border-amber-400/30 dark:bg-amber-500/10 dark:text-amber-200">
+          <p className="font-semibold">Re-review needed</p>
+          <p className="mt-1">An approved change to the number of attendees or the venue may affect this event&apos;s venue bookings and equipment. Nothing was cancelled; re-check them, then mark the change as implemented.</p>
+        </div>
+      )}
       {!isCoordinator && !["Draft", "Rejected", "Cancelled", "Completed"].includes(event.status) && (
         <form onSubmit={submit} className="space-y-3">
           <label htmlFor="change-request-description" className="block text-sm font-medium">Describe the desired change</label>
           <textarea id="change-request-description" value={description} onChange={(e) => setDescription(e.target.value)} maxLength={2000} required rows={4} className="w-full rounded-md border border-input bg-background p-3 text-sm" />
+          <details className="rounded-xl border border-border p-4" onToggle={(e) => setProposing(e.currentTarget.open)}>
+            <summary className="cursor-pointer text-sm font-medium">Propose new values (optional)</summary>
+            {/* Rendered only while open, so a closed panel adds no extra form fields. */}
+            {proposing && <>
+            <p className="mt-2 text-xs text-muted-foreground">Fill in only what should change. Approved values are applied to the event. For a new date or time, describe it above.</p>
+            <div className="mt-3 grid gap-3 sm:grid-cols-2">
+              {CHANGE_FIELDS.map(({ name, label }) => <div key={name} className="space-y-1">
+                <label htmlFor={`change-${name}`} className="block text-xs font-medium">New {label.toLowerCase()}</label>
+                <input
+                  id={`change-${name}`}
+                  type={name === "expected_attendance" ? "number" : "text"}
+                  min={name === "expected_attendance" ? 1 : undefined}
+                  value={drafts[name] ?? ""}
+                  placeholder={`Currently: ${changeValue(current[name])}`}
+                  onChange={(e) => setDrafts((values) => ({ ...values, [name]: e.target.value }))}
+                  aria-invalid={Boolean(fieldErrors[name])}
+                  aria-describedby={fieldErrors[name] ? `change-${name}-error` : undefined}
+                  className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                />
+                {fieldErrors[name] && <p id={`change-${name}-error`} className="text-xs text-destructive">{fieldErrors[name]}</p>}
+              </div>)}
+            </div>
+            </>}
+          </details>
           {error && <p role="alert" className="text-sm text-destructive">{error}</p>}
           <Button type="submit" disabled={busy}>{busy ? "Submitting..." : "Request a change"}</Button>
         </form>
       )}
+      {isCoordinator && error && <p role="alert" className="text-sm text-destructive">{error}</p>}
       {loadFailed && <p role="alert" className="text-sm text-destructive">Existing change requests could not be loaded. Refresh to try again.</p>}
       {requests.length === 0 ? !loadFailed && <p className="text-sm text-muted-foreground">No change requests have been raised.</p> : (
         <ul className="space-y-3">
@@ -76,11 +132,34 @@ export default function EventChangeRequests({
               <ChangeRequestStatusBadge status={request.status} />
             </div>
             <p className="mt-3 whitespace-pre-wrap text-sm">{request.description}</p>
+            {request.applied_changes ? (
+              <div className="mt-3 text-sm">
+                <p className="font-medium">Applied to the event</p>
+                {Object.keys(request.applied_changes).length === 0
+                  ? <p className="text-muted-foreground">These values were already in place; nothing needed to change.</p>
+                  : <ul className="mt-1 space-y-1">{Object.entries(request.applied_changes).map(([name, change]) => <li key={name} className="break-words">
+                    {changeFieldLabel(name)}: {changeValue(change.from)} → {changeValue(change.to)}
+                  </li>)}</ul>}
+              </div>
+            ) : request.requested_changes && (
+              <div className="mt-3 text-sm">
+                <p className="font-medium">Proposed values</p>
+                <ul className="mt-1 space-y-1">{Object.entries(request.requested_changes).map(([name, value]) => <li key={name} className="break-words">
+                  {changeFieldLabel(name)} → {changeValue(value)}{SIGNIFICANT_FIELDS.has(name) ? " (significant)" : ""}
+                </li>)}</ul>
+              </div>
+            )}
+            {affected[request.id] && needsReReview(request) && <p className="mt-2 text-sm text-muted-foreground">
+              Re-check {affected[request.id]!.venue_bookings} venue booking(s) and {affected[request.id]!.equipment_reservations} equipment reservation(s). Nothing was cancelled.
+            </p>}
             {request.review_note && <p className="mt-2 whitespace-pre-wrap text-sm text-muted-foreground">Coordinator note: {request.review_note}</p>}
             {isCoordinator && (request.status === "Pending" || request.status === "Under Review") && <div className="mt-3 flex flex-wrap gap-2">
               {request.status === "Pending" && <Button type="button" variant="outline" size="sm" onClick={() => void review(request, "Under Review")}>Start review</Button>}
-              <Button type="button" size="sm" onClick={() => void review(request, "Approved")} className="bg-emerald-600 text-white hover:bg-emerald-500">Approve change</Button>
+              <Button type="button" size="sm" onClick={() => void review(request, "Approved")} className="bg-emerald-600 text-white hover:bg-emerald-500">{request.requested_changes ? "Approve and apply" : "Approve change"}</Button>
               <Button type="button" size="sm" onClick={() => void review(request, "Rejected")} className="bg-destructive text-white hover:bg-destructive/80">Reject change</Button>
+            </div>}
+            {isCoordinator && request.status === "Approved" && request.applied_changes && <div className="mt-3">
+              <Button type="button" variant="outline" size="sm" onClick={() => void review(request, "Implemented")}>Mark as implemented</Button>
             </div>}
           </li>)}
         </ul>

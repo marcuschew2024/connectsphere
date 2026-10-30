@@ -83,6 +83,10 @@ export type EventChangeRequest = {
   review_note: string | null;
   requested_at: string;
   reviewed_at: string | null;
+  // SCRUM-138: proposed values, and what approval actually changed.
+  requested_changes?: Record<string, string | number | null> | null;
+  applied_changes?: Record<string, { from: string | number | null; to: string | number | null }> | null;
+  significant?: boolean | null;
 };
 
 
