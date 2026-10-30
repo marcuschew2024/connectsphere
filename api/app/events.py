@@ -176,7 +176,7 @@ def list_events():
     if user["role"] == "Coordinator":
         # Tag which events the Coordinator owns so the list can surface them first and
         # the UI can show a "your event" marker without the browser learning the user id.
-        for response, event in zip(responses, event_list):
+        for response, event in zip(responses, event_list, strict=True):
             response["is_mine"] = (event.get("organiser_id") == user["id"]
                                    or event.get("coordinator_id") == user["id"])
     return jsonify({"events": responses}), 200
