@@ -5,6 +5,8 @@ import { apiRequest } from "./api";
 
 export function useActingRole() {
   const [role, setRole] = useState<string | null>(null);
+  // The signed-in user's id, for record-level UI such as "is this my event?" (SCRUM-69).
+  const [userId, setUserId] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
   // True only when the API answered that nobody is signed in — not when it was unreachable.
   const [signedOut, setSignedOut] = useState(false);
@@ -13,10 +15,11 @@ export function useActingRole() {
   useEffect(() => {
     const controller = new AbortController();
     lookup.current = controller;
-    apiRequest<{ user: { role: string } | null }>("/session", { signal: controller.signal })
+    apiRequest<{ user: { id: number; role: string } | null }>("/session", { signal: controller.signal })
       .then(({ user }) => {
         if (!controller.signal.aborted) {
           setRole(user?.role ?? null);
+          setUserId(user?.id ?? null);
           setSignedOut(user === null);
           setLoading(false);
         }
@@ -24,6 +27,7 @@ export function useActingRole() {
       .catch(() => {
         if (!controller.signal.aborted) {
           setRole(null);
+          setUserId(null);
           setLoading(false);
         }
       });
@@ -34,9 +38,11 @@ export function useActingRole() {
     // A slow page-load response must not overwrite a newer dropdown selection.
     lookup.current?.abort();
     setRole(nextRole);
+    // The dropdown changes the session user; the page reloads before the id is used.
+    setUserId(null);
     setSignedOut(false);
     setLoading(pending);
   }, []);
 
-  return [role, updateRole, loading, signedOut] as const;
+  return [role, updateRole, loading, signedOut, userId] as const;
 }

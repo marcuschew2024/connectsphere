@@ -7,6 +7,7 @@ describe("historyActionLabel", () => {
     ["coordinator_reassigned", "Coordinator Reassigned"],
     ["change_request_approved", "Change Request Approved"],
     ["event_completed", "Event completed"],
+    ["event_cancelled", "Event cancelled"],
   ])("labels %s", (action, label) => {
     expect(historyActionLabel(action)).toBe(label);
   });
