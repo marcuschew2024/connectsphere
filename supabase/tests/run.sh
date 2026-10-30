@@ -101,3 +101,11 @@ for pass in 1 2; do
 done
 psql -v ON_ERROR_STOP=1 -f /sql/tests/coordinator_assignment.sql
 echo "coordinator_assignment database checks: PASS"
+
+# SCRUM-49 / R07: hybrid notification recipient model (recipient_id OR recipient_role).
+# Applied twice to prove the drop/recreate constraints and add-column-if-not-exists are
+# replay-safe.
+for pass in 1 2; do
+  psql -v ON_ERROR_STOP=1 -f /sql/migrations/20261030015221_scrum_49_notification_recipient_role.sql > /tmp/migration-output.txt
+  echo "Notification recipient-role migration pass $pass: PASS"
+done

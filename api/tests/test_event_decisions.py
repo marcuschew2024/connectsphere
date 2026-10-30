@@ -163,15 +163,16 @@ def test_notifications_require_selected_user(app):
     assert "notifications" not in response.json
 
 
-# Only Organisers (and, since SCRUM-130, Coordinators) may read notifications.
+# SCRUM-49 / R07: every authenticated role has a Home feed -- the Organiser-only
+# (then Organiser/Coordinator) gate is removed. Each role still sees only its own
+# notifications, so with none seeded the feed is a 200 empty state, never a 403.
 @pytest.mark.parametrize("user_id", [3, 4, 5])
-def test_notifications_are_only_available_to_organisers(app, user_id, monkeypatch):
-    monkeypatch.setattr("app.rbac.get_supabase_client", lambda: None)
+def test_notifications_are_available_to_every_role(app, user_id, event_database):
     client = app.test_client()
     select_user(client, user_id)
     response = client.get("/notifications", headers=ORIGIN)
-    assert response.status_code == 403
-    assert "notifications" not in response.json
+    assert response.status_code == 200
+    assert response.json == {"notifications": []}
 
 
 # Notification reads reject missing and untrusted origins.
