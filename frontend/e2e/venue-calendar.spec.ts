@@ -65,7 +65,7 @@ test("the calendar is hidden for non-internal roles (Organiser)", async ({ page 
 test("Venue Staff can create and unblock a venue period", async ({ page }) => {
   await mockCommon(page, "Venue Staff");
   let blocked = false;
-  await page.route(`**/venues/${VID}/unavailability`, async (route) => {
+  await page.route(`**/venues/${VID}/unavailability**`, async (route) => {
     if (route.request().method() === "POST") {
       blocked = true;
       await route.fulfill({
@@ -90,5 +90,5 @@ test("Venue Staff can create and unblock a venue period", async ({ page }) => {
   await page.getByRole("button", { name: "Block venue" }).click();
 
   await expect(page.getByText("Active blocks")).toBeVisible();
-  await expect(page.getByText(/Maintenance/)).toBeVisible();
+  await expect(page.locator("strong").filter({ hasText: /^Maintenance$/ })).toBeVisible();
 });

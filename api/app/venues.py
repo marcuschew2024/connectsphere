@@ -87,9 +87,6 @@ def edit_venue(venue_id):
     fields, errors = validate_venue({**venue, **{key: data[key] for key in keys}})
     if errors:
         return jsonify({"error": "Please check the highlighted fields.", "fields": errors}), 400
-    existing_blocks = list_unavailability(venue_id, fields["start_at"], fields["end_at"])
-    if check_block_overlap(fields["start_at"], fields["end_at"], existing_blocks):
-        raise Conflict("The venue is already blocked during this time period.")
     return jsonify({"venue": update_venue(
         str(venue_id), {key: fields[key] for key in keys}, user["id"], data["revision"]
     )}), 200
