@@ -936,6 +936,61 @@ Shared Supabase migration deployment is separate and is not implied by the Git m
   route, as before (SCRUM-135 covers the full transition matrix).
 - **Owner.** Ernest.
 
+### D35 — Retiring a venue keeps its history and stops new bookings (SCRUM-26)
+
+- **Context.** SCRUM-26: "As Venue Staff, I want to retire a venue, so that it's no
+  longer offered for new bookings but its history is preserved." AC: a retired venue
+  is excluded from new booking searches but preserved for historical records; existing
+  confirmed bookings are unaffected; retirement is recorded with actor and timestamp.
+  SCRUM-28 had already added the `venues.is_retired` marker and flagged retired venues
+  in search, but nothing could set it and bookings did not check it.
+- **Decision (Ernest, 31 Oct 2026; for team confirmation).**
+  - **Who:** Venue Staff only, the story's actor and the role that manages the
+    catalogue (SCRUM-24/25).
+  - **Outstanding requests first:** a venue with Requested, Pending or Held bookings
+    cannot be retired. Staff decide them first, so no request is rejected on their
+    behalf and no Coordinator is surprised.
+  - **Kept:** the venue row, its details and every booking. Confirmed bookings are not
+    changed and can still follow their normal lifecycle (for example be cancelled).
+  - **No new or moved bookings:** the booking routes refuse a retired venue, and a
+    database trigger refuses any active booking inserted on, or moved to, a retired
+    venue.
+  - **Not offered to Coordinators:** their catalogue, search and suitability ranking
+    leave retired venues out (filtered before pagination, so pages stay full). Venue
+    Staff still see them in the catalogue, flagged as retired, for history.
+  - **Read-only:** a retired venue's details cannot be edited. Retirement is final;
+    there is no un-retire action in this story.
+- **How.** `POST /venues/{id}/retire` → the `VenueRetirement` value object →
+  `retire_venue()`. Under the venue row lock it re-checks the actor, refuses an already
+  retired venue (409) or one with outstanding requests (409, with the count), sets
+  `is_retired`, `retired_at`, `retired_by` and moves `revision` on, all in one
+  transaction. The trigger reads the venue `FOR SHARE`, so a retirement and a new
+  request racing each other cannot both succeed.
+- **Constraints.** Like `cancel_event` (D34), the function is `security definer`, has
+  an empty search path and is executable only by the backend role. A check constraint
+  keeps `retired_at`/`retired_by` consistent with `is_retired`. `retired_by` has no
+  foreign key on purpose: a second `venues → app_users` link would make the
+  catalogue's existing `creator` embed ambiguous in PostgREST and break the catalogue
+  as soon as the migration ran. `retire_venue()` is the only writer and checks the
+  actor first.
+- **Verification.** Value-object unit tests; endpoint tests (roles, input, refusals,
+  Coordinator exclusion with full pages, suitability ranking, booking refusals,
+  read-only edit, the repository's error mapping); real-database acceptance tests
+  (audit recorded, every booking unchanged, outstanding requests refused, database
+  re-checks, the trigger, Coordinator search, and a retirement racing a new request).
+  Removing the trigger makes the guard tests fail. Browser tests cover the panel, the
+  confirm step, refusals, visibility by role, the banner, the catalogue and the edit
+  page. The migration is replayed twice. See `docs/SCRUM-26.md`.
+- **Test change (flagged).** SCRUM-28's
+  `test_search_filters_across_database_pages_and_flags_retirement` now searches as
+  Venue Staff instead of a Coordinator. Its old assertion, that a Coordinator's search
+  returns a retired venue flagged, contradicts SCRUM-26 AC1. The cross-page search and
+  the retired flag are still checked, in the Venue Staff catalogue.
+- **Trade-off.** Retiring needs outstanding requests decided first, which is one more
+  step for staff but avoids silent rejections. Coordinators reading pages of a
+  catalogue with many retired venues make a few more page reads. No un-retire action.
+- **Owner.** Ernest.
+
 ## AI usage summary
 
 Per-feature view of where AI assistance was applied, always under human specification and
@@ -959,6 +1014,7 @@ system, test scaffolding, and boilerplate following existing patterns.
 | Event completion (D13) | Partially | Endpoint/test scaffolding; **gate rule + DB-lock re-check human-designed** | `docs/SCRUM-132.md` |
 | Change management (D14) | Partially | Implementation of change/cancel flows; **rules human-decided** | `docs/SCRUM-46.md` |
 | Event cancellation (D34) | Partially | Endpoint, DB function and test scaffolding; **authorised-user rule human-decided** | `docs/SCRUM-69.md` |
+| Venue retirement (D35) | Partially | Endpoint, DB function, trigger and test scaffolding; **retirement rules human-decided** | `docs/SCRUM-26.md` |
 
 **Summary statement.** AI accelerated routine implementation and scaffolding throughout,
 under human-authored specifications. Every safety-critical decision — the overlap engine,

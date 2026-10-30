@@ -116,20 +116,26 @@ def availability(venue, filters):
     return "available"
 
 
-def search_venues(page, filters):
+def search_venues(page, filters, include_retired=True, listing=None):
     """Filter before pagination, including matches beyond the first catalogue page.
 
     Read existing pages until we have this result page plus one look-ahead match.
     This keeps the shared repository and suitability endpoint contracts intact.
+    SCRUM-26: Coordinators pass include_retired=False, so retired venues are left out
+    before pagination and no result page comes back short. listing lets the caller
+    supply the catalogue reader it already uses.
     """
     start = (page - 1) * PAGE_SIZE
     matches = []
     source_page = 1
     matched_count = 0
     checked = {}
+    listing = listing or list_venues
     while len(matches) <= PAGE_SIZE:
-        rows, has_more = list_venues(source_page)
+        rows, has_more = listing(source_page)
         for venue in rows:
+            if not include_retired and venue.get("is_retired"):
+                continue
             if not matches_filters(venue, filters):
                 continue
             if filters.get("available_only"):

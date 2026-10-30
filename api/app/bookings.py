@@ -26,6 +26,7 @@ from .rbac import require_related_user, require_role
 from .supabase_client import get_supabase_client  # noqa: F401
 from .venue_overlap import OverlapEngine
 from .venue_repository import get_venue
+from .venue_retirement import VenueRetirement
 
 bookings = Blueprint("bookings", __name__, url_prefix="/venues/bookings")
 
@@ -44,6 +45,8 @@ def _validated_booking_fields(data, event: dict, existing: dict | None = None) -
     venue = get_venue(venue_id) if isinstance(venue_id, str) else None
     if venue is None:
         raise BadRequest("Choose a valid venue.")
+    if refusal := VenueRetirement.booking_refusal(venue):
+        raise Conflict(refusal)
     start_value = data.get("start_at", source.get("start_at"))
     end_value = data.get("end_at", source.get("end_at"))
     try:
@@ -142,6 +145,8 @@ def submit_booking():
     venue = get_venue(venue_id)
     if venue is None:
         raise BadRequest("Choose a valid venue.")
+    if refusal := VenueRetirement.booking_refusal(venue):
+        raise Conflict(refusal)
     start_at, end_at = data.get("start_at"), data.get("end_at")
     try:
         start = datetime.fromisoformat(start_at).astimezone(UTC)

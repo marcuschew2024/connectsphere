@@ -8,6 +8,7 @@ import { AppShell } from "@/components/app-shell";
 import { weekStartMs, type CalendarBooking } from "@/lib/availability";
 import type { Venue } from "@/lib/venues";
 import VenueAvailabilityCalendar from "./venue-availability-calendar";
+import VenueRetirePanel from "./venue-retire-panel";
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 const INTERNAL_ROLES = ["Coordinator", "Venue Staff"];
@@ -63,6 +64,7 @@ export default function VenueDetailPage() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(true);
+  const [keptBookings, setKeptBookings] = useState<number | null>(null);
 
   const weekStart = weekStartMs(new Date());
 
@@ -159,6 +161,20 @@ export default function VenueDetailPage() {
             <h1 className="mt-2 text-2xl font-semibold tracking-tight sm:text-3xl">{venue.name}</h1>
             <p className="mt-1 text-sm text-muted-foreground">{venue.location} · capacity {venue.capacity}</p>
           </header>
+
+          {/* SCRUM-26: retirement banner and the Venue Staff retire action. */}
+          {venue.is_retired ? (
+            <div role="status" className="rounded-xl border border-border bg-muted/40 p-4 text-sm">
+              <p className="font-semibold">Venue retired</p>
+              <p className="mt-1 text-muted-foreground">
+                {venue.retired_at ? `Retired ${new Date(venue.retired_at).toLocaleString("en-SG", { timeZone: "Asia/Singapore", dateStyle: "medium", timeStyle: "short" })} (Singapore)` : "Retired"}
+                {venue.retired_by_name ? ` by ${venue.retired_by_name}` : ""}. It is no longer offered for new bookings; its existing bookings and history are kept.
+              </p>
+              {keptBookings !== null && <p className="mt-1 text-muted-foreground">{keptBookings} upcoming confirmed {keptBookings === 1 ? "booking was" : "bookings were"} kept.</p>}
+            </div>
+          ) : actingRole === "Venue Staff" && (
+            <VenueRetirePanel venue={venue} onRetired={(result) => { setVenue(result.venue); setKeptBookings(result.kept_confirmed_bookings); }} />
+          )}
 
           <VenueAvailabilityCalendar hours={venue.operating_hours} bookings={bookings} weekStart={weekStart} />
 
