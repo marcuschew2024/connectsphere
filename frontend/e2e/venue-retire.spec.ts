@@ -31,6 +31,7 @@ async function mockVenuePage(page: Page, role: string, venue = VENUE) {
     venue: venue.is_retired ? { ...venue, retired_by_name: "Demo Venue Staff" } : venue,
   } }));
   await page.route(`**/venues/${VID}/bookings**`, (r) => r.fulfill({ json: { bookings: [] } }));
+  await page.route(`**/venues/${VID}/unavailability**`, (r) => r.fulfill({ json: { blocks: [] } }));
   await page.route(`${API}/venues/${VID}/retire`, (r) => {
     state.retireBodies.push(r.request().postDataJSON());
     return state.refusal
