@@ -21,6 +21,10 @@ export type Venue = {
   updated_at?: string | null;
   creator?: { display_name: string } | null;
   is_retired?: boolean;
+  // SCRUM-26: who retired the venue and when (null while it is active).
+  retired_at?: string | null;
+  retired_by?: number | null;
+  retired_by_name?: string | null;
   search_availability?: "not_checked" | "available" | "retired" | "closed" | "blocked" | "booked";
 };
 

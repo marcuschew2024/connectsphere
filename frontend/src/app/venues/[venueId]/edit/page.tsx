@@ -19,6 +19,8 @@ function EditVenue({ venueId }: { venueId: string }) {
       .then(({ venue }) => {
         if (!active) return;
         if (!venue.revision) throw new Error("Venue editing is not set up yet. Ask the team to apply the update_venues database migration.");
+        // SCRUM-26: a retired venue's details are kept as they were.
+        if (venue.is_retired) throw new Error("This venue is retired. Its details are kept for history and cannot be edited.");
         setVenue(venue);
       })
       .catch((error) => { if (active) setError(error.name === "AbortError" ? "Loading took too long. Reload to try again." : error.message); })
