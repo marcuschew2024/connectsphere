@@ -771,7 +771,85 @@ Shared Supabase migration deployment is separate and is not implied by the Git m
 - **Owner.** Marcus, with Jerome (SCRUM-145). Broadens read authorisation (the Safety Officer),
   so it is human-reviewed and merged only behind green CI. No schema or migration change.
 
-### D31 — R12: failed-login counting is atomic; auth evidence is strengthened (SCRUM-141)
+### D31 — Own-registration withdrawal with one optional cutoff (SCRUM-43)
+
+- **Context.** SCRUM-41 already persists Registered/Withdrawn and maintains capacity,
+  and SCRUM-44 displays current status. SCRUM-43 needs the attendee command, organiser
+  conditions and a private receipt. The user requested implementation and asked to
+  keep conditions simple; the proposal uses one optional timestamp.
+- **Decision proposed for Jerome's review.** A nullable `events.withdrawal_closes_at`
+  lets the owning Organiser set an earlier cutoff. NULL means until event start.
+  A deadline must be future, timezone-aware and no later than the event start when
+  saved. Conditions may be set in pre-confirmation states or Confirmed before the
+  first signup and before start. They lock after any registration exists, including
+  Withdrawn rows, so attendees' accepted conditions cannot be restricted retroactively
+  through this control. Confirmed/Preparation registrations may be withdrawn strictly
+  before both cutoff and start; other lifecycle states deny a new withdrawal.
+- **API/access constraints.** Attendee-only `POST /events/{id}/registrations/withdraw`
+  accepts `{}` and obtains identity solely from the existing session. Owning Organiser
+  GET/PUT `/events/{id}/withdrawal-policy` uses `{closes_at}` and returns the saved
+  cutoff/editability. Central role/record guards and configured Origin checks remain;
+  query/body identity selectors are rejected and responses are no-store. The public
+  offer exposes only the cutoff/refusal; own receipts expose the withdrawal timestamp.
+  Home's private confirmation feed adds the withdrawal notification type while still
+  excluding internal notices. No browser-role DB grants or SECURITY DEFINER functions.
+- **Atomicity.** The withdrawal RPC locks the own registration, consistent with direct
+  UPDATE ordering, then existing capacity triggers lock/update the event. A separate
+  withdrawal guard rechecks stored conditions and wall time after that lock. The
+  timestamp, one-place release and one private notification commit together. Concurrent
+  or later retries return the original Withdrawn receipt, without a second mutation,
+  timestamp change or notification. Failed notification creation rolls everything back.
+  Policy writes lock the same event before checking for any registration.
+- **Verification.** Migration replay twice; SQL rollback and privilege/invoker checks;
+  41 focused HTTP/domain/database tests including two real competing withdrawals and
+  a replacement signup; eight production-browser scenarios for confirmation, denial,
+  refresh, navigation, Singapore cutoff and mobile/keyboard. Full local regression:
+  1,541 API tests (96.47% coverage), 221 browser tests, 53 frontend unit tests, lint,
+  build/TypeScript and diff checks. CLI advisors failed to connect to the non-TLS local
+  container; no hosted advisor or CI result is claimed. See `docs/SCRUM-43.md`.
+- **Trade-off.** Waiting-list promotion remains deferred SCRUM-80 under S4 scope;
+  literal AC2/TC-43-02 is not implemented or marked passing. Jerome must accept that
+  reconciliation. The existing unique event/attendee registration prevents undo or
+  re-registration, and existing participant links/historical receipts are retained.
+  Cancellation is not treated as attendee withdrawal; terminal records stay unchanged.
+- **Owner.** Jerome owns the API/schema/domain/access and acceptance decision, with an
+  independent human reviewer; Marcus owns release scope/merge. Codex authored the
+  proposal. Human design review and green hosted CI gate merge. The migration was
+  applied only to a disposable local database; shared deployment is a separate step.
+  On 30 October 2026 the user explicitly authorized pushing and merging this proposal
+  behind green CI, with the deferred waiting-list criterion already disclosed. This
+  records merge authorization, without claiming an independent teammate review.
+
+### D32 — FCFS precedence rule: confirmed booking beats tentative hold; no auto-cancellation of superseded holds (SCRUM-120)
+
+- **Context.** SCRUM-120 (split from SCRUM-33). The overlap engine must implement a FCFS rule: when
+  a confirmed booking and a tentative hold compete for the same venue/slot, the confirmed booking
+  wins. S1 Q3, Q17, and Q31 all confirm this is the intended business rule. Additionally, S1 Q44
+  states that superseded holds are cancelled manually by Venue Staff rather than auto-cancelled by
+  the system.
+- **Decision.** The domain engine (`_highest_priority` in `venue_overlap.py`) sorts conflicting
+  bookings by a three-level key: (1) status tier -- Confirmed/Blocked rank 0, Held ranks 1,
+  Requested/Pending rank 2; (2) `requested_at` ascending (earliest first) within the same tier;
+  (3) `start_at` ascending as a final tie-breaker. A confirmed booking therefore always outranks a
+  hold in the priority sort, and `can_confirm` returns `True` when the only conflict is tentative.
+  No auto-cancellation: the application does not automatically cancel or expire the superseded hold
+  when a confirmation wins. Venue Staff must manually cancel it.
+- **Constraints.** S1 Q44 (no auto-cancellation); SCRUM-33 DB constraint structure (must not break
+  existing `venue_bookings_no_overlap_hard` / `venue_bookings_one_tentative_hold`); `api/AGENTS.md`
+  value-object rule (domain engine has zero DB/Flask dependency).
+- **Verification.** TC-120-01 through TC-120-06 (unit, `test_venue_overlap.py`);
+  TC-120-route-01 / TC-120-route-02 (integration, `test_booking_decision_route.py`);
+  DB-120-01 through DB-120-03 (`supabase/tests/venue_fcfs.sql`). 100% statement and branch coverage
+  on `app/venue_overlap.py` (106 stmts, 38 branches). All pass alongside the existing suite.
+- **Trade-off.** Holding both a Confirmed and a (now-superseded) Held row in the DB simultaneously
+  is intentional: the DB constraint allows one hard row + one soft row on the same slot so the
+  application layer can perform FCFS resolution and then separately cancel the hold. The window
+  between confirmation and manual hold-cancellation means the hold is visible as "Tentative" in the
+  calendar even after confirmation -- acceptable per S1 Q44.
+- **Owner.** Jerome (SCRUM-120). The FCFS resolution policy is a domain rule reviewed and merged
+  only behind green CI.
+
+### D33 — R12: failed-login counting is atomic; auth evidence is strengthened (SCRUM-141)
 
 - **Context.** Codex review R12 (Medium), against SCRUM-20 (Secure login, stays Done). Four
   weaknesses: the failed-attempt increment was a read-then-write (`SELECT` count → `UPDATE`

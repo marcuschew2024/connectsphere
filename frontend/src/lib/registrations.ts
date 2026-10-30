@@ -3,6 +3,7 @@ export type Registration = {
   event_id: string;
   status: "Registered" | "Waitlisted" | "Withdrawn";
   registered_at: string;
+  withdrawn_at?: string | null;
 };
 
 export type OwnRegistration = Registration & {
@@ -45,6 +46,7 @@ export type RegistrationOffer = {
     remaining: number;
     is_full: boolean;
   };
+  withdrawal_policy?: { closes_at: string | null; unavailable_reason: string | null };
   unavailable_reason: string | null;
   registration?: Registration | null;
 };

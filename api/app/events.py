@@ -49,12 +49,16 @@ from .registration_repository import (
     capacity_for_event,
     get_own_registration,
     get_registration_confirmations,
+    get_withdrawal_policy,
     list_own_registrations,
     list_registration_events,
     register_attendee,
     set_registration_capacity,
+    set_withdrawal_policy,
+    withdraw_attendee,
 )
 from .registration_request import RegistrationRequest
+from .registration_withdrawal import withdrawal_rules
 from .safety_decision import SafetyDecision
 from .venue_repository import get_venue
 
@@ -362,6 +366,49 @@ def registration_capacity(event_id):
     return jsonify({"registration_capacity": capacity_for_event(saved).as_dict()})
 
 
+@events.route("/<uuid:event_id>/withdrawal-policy", methods=["GET", "PUT"])
+def withdrawal_policy(event_id):
+    if request.headers.get("Origin") != current_app.config["FRONTEND_ORIGIN"]:
+        raise Forbidden("Request must come from the configured frontend origin.")
+    user = require_acting_user()
+    require_role(user, "Organiser", action="manage_withdrawal_policy")
+    event = require_event_access(str(event_id), user)
+    if event["organiser_id"] != user["id"]:
+        raise Forbidden("Only the event's Organiser can set withdrawal conditions.")
+    if request.args:
+        raise BadRequest("Do not send query parameters.")
+    if request.method == "GET":
+        saved = get_withdrawal_policy(str(event_id), user["id"])
+    else:
+        data = request.get_json(silent=True)
+        if not isinstance(data, dict) or set(data) != {"closes_at"}:
+            raise BadRequest("Send only closes_at.")
+        rules = withdrawal_rules(event)
+        now = datetime.now(UTC)
+        # SQL independently checks for any signup after acquiring the event lock.
+        if not rules.can_edit(now, has_registrations=False):
+            raise Conflict(CONFLICT_MESSAGES["withdrawal_policy_locked"])
+        error = rules.policy_error(data["closes_at"], now)
+        if error:
+            raise BadRequest(error)
+        saved = set_withdrawal_policy(str(event_id), user["id"],
+                                      data["closes_at"])
+    return jsonify({"withdrawal_policy": saved})
+
+
+@events.post("/<uuid:event_id>/registrations/withdraw")
+def withdraw_registration(event_id):
+    """Only the session's own registration; SQL rechecks conditions after locking."""
+    if request.headers.get("Origin") != current_app.config["FRONTEND_ORIGIN"]:
+        raise Forbidden("Request must come from the configured frontend origin.")
+    user = require_acting_user()
+    require_role(user, "Attendee", action="withdraw_registration")
+    if request.args or request.get_json(silent=True) != {}:
+        raise BadRequest("Send an empty JSON object. The attendee comes from your session.")
+    registration = withdraw_attendee(str(event_id), user["id"])
+    return jsonify({"registration": registration})
+
+
 @events.post("/<uuid:event_id>/registrations")
 def create_registration(event_id):
     """Session-only identity; SQL commits the place, access and receipt together."""
@@ -403,6 +450,9 @@ def registration_offer(event: dict) -> dict:
     """An explicit attendee projection, separate from internal event/planning APIs."""
     return {"event": {**public_event_view(event),
                       "registration_requirements": event.get("registration_requirements")},
+            "withdrawal_policy": {"closes_at": event.get("withdrawal_closes_at"),
+                                  "unavailable_reason": withdrawal_rules(event).refusal(
+                                      datetime.now(UTC))},
             "capacity": capacity_for_event(event).as_dict(),
             "unavailable_reason": registration_rules(event).refusal(datetime.now(UTC))}
 

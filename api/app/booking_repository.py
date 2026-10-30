@@ -32,7 +32,7 @@ def find_overlapping_bookings(
             query_end = (e_dt + timedelta(minutes=buffer_window_minutes)).isoformat()
 
         result = _client().table("venue_bookings").select(
-            "id,venue_id,start_at,end_at,status,expires_at"
+            "id,venue_id,start_at,end_at,status,expires_at,requested_at"
         ).eq("venue_id", venue_id).in_("status", [
             "Confirmed", "Blocked", "Requested", "Pending", "Held",
         ]).lt(

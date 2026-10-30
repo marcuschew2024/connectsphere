@@ -2,7 +2,7 @@
 
 **Codex-Audit R12 (Medium).** Against SCRUM-20 (Secure login, stays Done). The auth evidence
 was weaker than its labels and the failed-attempt increment was not atomic. Design: Decision
-Log **D31**. Owner: Marcus.
+Log **D33**. Owner: Marcus.
 
 ## Problems
 
