@@ -7,7 +7,7 @@ on:
 jobs:
   frontend:
     name: Frontend (Next.js)
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     defaults:
       run:
         working-directory: frontend
@@ -45,14 +45,14 @@ jobs:
 
       - name: Save browser test evidence
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: browser-test-results
           path: frontend/playwright-report/
 
   api:
     name: API (Flask)
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     defaults:
       run:
         working-directory: api
@@ -87,7 +87,7 @@ jobs:
 
       - name: Save API test evidence
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: api-test-results
           path: api/test-results/
@@ -103,7 +103,7 @@ jobs:
 
   test-protection:
     name: Test protection (advisory)
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     if: github.event_name == 'pull_request'
     steps:
       - uses: actions/checkout@v5
