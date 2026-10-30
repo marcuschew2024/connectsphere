@@ -34,6 +34,12 @@ export type EventRecord = {
   decision_at: string | null;
 };
 
+// SCRUM-54: the Coordinator events list augments each record with whether it is the
+// acting Coordinator's own event (organised or assigned) — surfaced first and actionable,
+// others view-only. Kept off EventRecord so forms that index EventRecord by key are
+// unaffected by the extra boolean field.
+export type CoordinatorEventRecord = EventRecord & { is_mine?: boolean };
+
 export type EventStatusHistory = {
   id: number;
   event_id: string;

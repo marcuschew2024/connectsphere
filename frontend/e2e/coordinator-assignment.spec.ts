@@ -190,3 +190,22 @@ test("status history names the Lead's routing in words, not snake_case", async (
   await expect(page.getByText("Assigned to Coordinator B")).toBeVisible();
   await expect(page.getByText("coordinator_assigned")).toHaveCount(0);
 });
+
+test("R11 (SCRUM-140): the Lead opens an unrelated coordinator's event detail", async ({ page }) => {
+  await asLead(page);
+  // The Lead's detail screen fetches event + history + clarification; all must resolve for
+  // the page to render. Before R11 the clarification fetch 403'd and broke the whole page.
+  await page.route(`${API}/events/${ROUTED}`, (route) => route.fulfill({ json: { event: {
+    ...base, id: ROUTED, title: "Career fair", status: "Planning", request_status: "Planning",
+    coordinator_id: 2, submitted_at: "2026-10-01T01:00:00Z",
+  } } }));
+  await page.route(`${API}/events/${ROUTED}/history`, (route) => route.fulfill({ json: { history: [] } }));
+  await page.route(`${API}/events/${ROUTED}/clarification`, (route) => route.fulfill({ json: { clarification: null } }));
+
+  await page.goto("/events/supervised");
+  await page.getByRole("region", { name: "Assigned events" })
+    .getByRole("link", { name: "Career fair" }).click();
+
+  await expect(page.getByRole("heading", { name: "Career fair" })).toBeVisible();
+  await expect(page.getByText("You do not have access to this event.")).toHaveCount(0);
+});

@@ -176,20 +176,22 @@ def test_tc_us41_01_exactly_one_coordinator_and_assignment_time(live):
     assert len(participants) == 1 and participants[0]["user_id"] == 2
 
 
-def test_tc_us41_02_only_assigned_coordinator_sees_request_in_queue(live):
+def test_tc_us41_02_both_coordinators_see_request_only_assigned_one_is_flagged(live):
     app, database, users = live
     event = submit(users, new_draft(users, details())).json["event"]
     for user_id in (2, 7):
-        # SCRUM-130: no Coordinator sees an unassigned request.
+        # SCRUM-54: both Coordinators see the request in their list. Before assignment it
+        # is nobody's own, so is_mine is False for both; routing stays with the Lead.
         queue = users[user_id].get("/events", headers=ORIGIN).json["events"]
-        assert all(row["id"] != event["id"] for row in queue)
+        row = next(row for row in queue if row["id"] == event["id"])
+        assert row["is_mine"] is False and row["status"] == "Submitted"
     assign_coordinator(app, event)
     for user_id in (2, 7):
+        # Still visible to both; now flagged is_mine only for the assigned Coordinator (2).
         queue = users[user_id].get("/events", headers=ORIGIN).json["events"]
-        matching = [row for row in queue if row["id"] == event["id"]]
-        assert len(matching) == (1 if user_id == 2 else 0)
-        if matching:
-            assert matching[0]["status"] == "Submitted"
+        row = next(row for row in queue if row["id"] == event["id"])
+        assert row["status"] == "Submitted"
+        assert row["is_mine"] is (user_id == 2)
 
 
 def test_tc_us41_03_customer_sees_planning_on_write_read_and_list(live):

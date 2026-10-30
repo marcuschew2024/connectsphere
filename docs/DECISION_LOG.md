@@ -673,6 +673,104 @@ Shared Supabase migration deployment is separate and is not implied by the Git m
   merged only behind green CI. Applying the migration to the shared Supabase project is a
   separate step for the owner.
 
+### D28 — A Coordinator views every event, their own surfaced first; read grants no edit (SCRUM-54)
+
+- **Context.** Customer Clarification S1 Q34: a Coordinator "mainly views their own assigned
+  events, **but can view all**." Under Change #5 (D26 / SCRUM-130) a new submission sits
+  unassigned in the Lead's queue, so a regular Coordinator's `GET /events` showed only their
+  own organised/assigned events — unassigned and other Coordinators' events were invisible
+  (the "queue-visibility" gap the Sprint 4 scope notes against this story).
+- **Decision (PO, Marcus).** For the Coordinator role, `GET /events` returns **every
+  non-Draft event**, with the Coordinator's own (organiser or assigned) **surfaced first**
+  and flagged `is_mine`; all other events follow. This is **visibility only** — record-level
+  access and every action gate (`require_related_user`) are unchanged, so opening, editing,
+  deciding or confirming a non-owned event is still refused (the AC's "read ≠ edit"). Drafts
+  stay private to their organiser.
+- **Scope boundary.** This is list visibility, deliberately separate from **SCRUM-140 / R11**
+  (the Lead cannot open another Coordinator's event via the clarification endpoint), which
+  stays an open bug. SCRUM-54 does **not** touch `require_event_access`.
+- **Implementation.** `list_all_events_for_coordinator()` reuses `get_events_for_user()` for
+  the "own" group (keeping its draft-privacy and pending-clarification hide) and appends every
+  other non-Draft event; the acting Coordinator's own event currently back with its organiser
+  for clarification stays hidden in both passes. The endpoint tags each returned event with an
+  additive `is_mine` boolean (Coordinator responses only), computed server-side so the browser
+  never learns the user id. Frontend: `/events/managed` becomes "All events" with **Your
+  assigned events** (actionable) and **All other events** (view-only, non-linked because their
+  detail is record-level protected); `/events/review` shows all submitted requests split the
+  same way.
+- **Verification.** Unit route tests (own-first ordering, `is_mine`, drafts excluded; edit on
+  a non-owned event → 403) and real-database acceptance tests (visibility + ordering +
+  read/edit denial). Three existing acceptance tests that encoded the pre-SCRUM-54 "Coordinator
+  sees only its own" rule (TC-130-01, TC-130-04, TC-us41-02) and one SCRUM-131 list test were
+  updated to the new behaviour; **every actionability / 403 assertion in them is retained**.
+  Frontend e2e covers the own-vs-others sections and the view-only treatment.
+- **Trade-off.** A Coordinator sees other Coordinators' and unassigned events but cannot open
+  their detail (list-only scope), so those cards are intentionally non-interactive rather than
+  links into a 403. The list is unpaginated, consistent with the Lead's oversight list
+  (SCRUM-130 known limitation).
+- **Owner.** Marcus (SCRUM-54). Broadens read-authorisation scope and adds a response field,
+  so it is human-reviewed and merged only behind green CI. No schema or migration change.
+
+### D29 — R11: reading a clarification follows the event-read rule, so the Lead can open any event (SCRUM-140)
+
+- **Context.** Codex review R11 (High). The Event Coordinator Lead can list and read any
+  non-draft event (D26 / SCRUM-131), but its detail screen also fetches
+  `GET /events/<id>/clarification`, which was still gated on event relationship
+  (`require_related_user`). The Lead is not "related" to another coordinator's event, so
+  that one fetch 403'd and broke the whole detail page.
+- **Decision (PO, Marcus).** Grant the clarification read to the **Lead** on any non-draft
+  event — the same oversight exemption the event-read rule (`require_event_access`) already
+  applies — so the Lead's detail screen loads. The fix is deliberately **Lead-only**: it does
+  **not** open clarification (or event detail) to Coordinators, who stay record-scoped
+  (SCRUM-54 is list-only; D28). It also does **not** open the endpoint to the Safety Officer:
+  rather than route through `require_event_access` (which would additionally grant the Safety
+  Officer's Confirmed/Preparation review window — an unnecessary surface with no clarification
+  use), `get_clarification` keeps `require_related_user` for everyone except the Lead.
+- **Verification.** Acceptance — the Lead opens the full detail screen (event + history +
+  clarification, including a real note) on another coordinator's event; a non-owning
+  Coordinator still 403s; the existing Safety-Officer-denied-clarification test still passes.
+  Unit — a non-related Coordinator still 403s. Frontend e2e — the Lead opens an unrelated
+  event's detail and it renders.
+- **Trade-off.** A one-line role check duplicates the Lead exemption that
+  `require_event_access` already expresses; this is intentional, to keep the Safety Officer
+  out of the clarification endpoint.
+- **Owner.** Marcus (SCRUM-140). Broadens read authorisation (the Lead), so it is
+  human-reviewed and merged only behind green CI. No schema or migration change.
+
+### D30 — R16: the Safety Officer reads event-scoped venue + technical detail to decide (SCRUM-145)
+
+- **Context.** Codex review R16 (High). The operational safety check (SCRUM-128) lets the
+  Safety Officer approve/reject/request-changes, but the review screen lacked the venue and
+  technical detail SCRUM-128's AC requires ("expected attendance, venue capacity and layout,
+  emergency access, accessibility requirements, equipment placement, crowd movement and known
+  venue restrictions"). A working approve button without that information is not an informed
+  safety check. (This is the decision the SCRUM-145 Jira comment records; that comment
+  provisionally called it "D29" — now D29 is R11/SCRUM-140, so this decision is **D30**.)
+- **Decision (PO, Marcus).** On a **Confirmed/Preparation** event, grant the Safety Officer
+  **read-only, event-scoped** access to that event's venue booking(s), each booked venue's
+  safety record (capacity, supported layouts, accessibility, facilities) and its equipment
+  reservations. No catalogue access, no management, no cross-event access, no generic status
+  changes — least privilege.
+- **Implementation.** A single new endpoint `GET /events/<id>/safety-review-details`, guarded
+  by `require_event_access` (which already gates the Safety Officer to the Confirmed/Preparation
+  window and admits the event's related users/Lead). It reuses the existing repository reads and
+  **projects each venue through a whitelist** (`safety_venue_view`) so operating hours, buffers,
+  timezone and audit columns never reach the screen. Deliberately **not** done by loosening the
+  per-resource endpoints: `GET /venues/<id>` is catalogue-wide, so widening it would break the
+  event-scoping requirement. Frontend: a read-only "Venue & technical detail" panel on the
+  Safety Officer's review screen (venues + bookings + equipment reservations).
+- **Verification.** Unit — `safety_venue_view` exposes only the safety fields. Acceptance — the
+  Safety Officer reads the detail on a Confirmed and a Preparation event, is denied outside the
+  window (Planning) and when unrelated/not the Safety Officer; the existing safety decision
+  journey (approve→Preparation; request-changes/reject→Planning) still passes. Frontend e2e — the
+  panel renders capacity/layout/accessibility/facilities + booking + equipment, with no
+  management controls.
+- **Trade-off.** The Safety Officer gains a new read endpoint (not the catalogue), and reservations
+  are shown rather than the thin equipment-request records, because reservation rows carry the
+  placement detail (type + location) relevant to safety.
+- **Owner.** Marcus, with Jerome (SCRUM-145). Broadens read authorisation (the Safety Officer),
+  so it is human-reviewed and merged only behind green CI. No schema or migration change.
+
 ### D31 — Own-registration withdrawal with one optional cutoff (SCRUM-43)
 
 - **Context.** SCRUM-41 already persists Registered/Withdrawn and maintains capacity,

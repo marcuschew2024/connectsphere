@@ -69,8 +69,11 @@ def live_lead(monkeypatch):
                 db.table("events").update({"status": "Cancelled"}).in_("id", created).execute()
 
 
-def test_lead_lists_every_assignment_while_coordinator_stays_scoped(live_lead):
-    """TC-131-02: the Lead sees all coordinators' events; a Coordinator sees only its own."""
+def test_lead_and_coordinator_both_list_every_non_draft_event(live_lead):
+    """TC-131-02 + SCRUM-54: the Lead sees all coordinators' events, and since SCRUM-54 a
+    Coordinator lists every non-draft event too (own assignment flagged is_mine). Drafts
+    stay private to both. Record-level access to a non-owned event still differs — see the
+    test below."""
     app, _, client, _, event = live_lead
     mine = event(coordinator_id=COORDINATOR_A)
     theirs = event(coordinator_id=COORDINATOR_B)
@@ -82,9 +85,13 @@ def test_lead_lists_every_assignment_while_coordinator_stays_scoped(live_lead):
 
     coordinator = app.test_client()
     assert select_user(coordinator, COORDINATOR_A).status_code == 200
-    coord_ids = {row["id"] for row in coordinator.get("/events", headers=ORIGIN).json["events"]}
-    assert mine["id"] in coord_ids  # own assignment, unchanged behaviour
-    assert theirs["id"] not in coord_ids  # another coordinator's event stays hidden
+    coord_events = coordinator.get("/events", headers=ORIGIN).json["events"]
+    coord_ids = {row["id"] for row in coord_events}
+    assert mine["id"] in coord_ids  # own assignment
+    assert theirs["id"] in coord_ids  # SCRUM-54: another coordinator's event is now visible
+    assert draft["id"] not in coord_ids  # drafts stay private
+    flags = {row["id"]: row.get("is_mine") for row in coord_events}
+    assert flags[mine["id"]] is True and flags[theirs["id"]] is False
 
 
 def test_lead_reads_an_unrelated_event_but_a_coordinator_is_denied(live_lead):
@@ -100,6 +107,37 @@ def test_lead_reads_an_unrelated_event_but_a_coordinator_is_denied(live_lead):
     coordinator = app.test_client()
     assert select_user(coordinator, COORDINATOR_A).status_code == 200
     assert coordinator.get(f"/events/{theirs['id']}", headers=ORIGIN).status_code == 403
+
+
+def test_lead_opens_the_full_detail_screen_of_an_unrelated_event(live_lead):
+    """R11 (SCRUM-140): the Lead's detail screen fetches event + history + clarification;
+    all must succeed on another coordinator's event. A non-owning Coordinator stays scoped
+    (SCRUM-54 is list-only), so it still cannot read the clarification."""
+    app, _, client, _, event = live_lead
+    theirs = event(coordinator_id=COORDINATOR_B)
+
+    assert client.get(f"/events/{theirs['id']}", headers=ORIGIN).status_code == 200
+    assert client.get(f"/events/{theirs['id']}/history", headers=ORIGIN).status_code == 200
+    # The fetch R11 unblocked: before the fix this 403'd and broke the whole detail page.
+    empty = client.get(f"/events/{theirs['id']}/clarification", headers=ORIGIN)
+    assert empty.status_code == 200 and empty.json["clarification"] is None
+
+    # With a real pending clarification (raised by the assigned Coordinator B), the Lead
+    # reads its content, not just an empty 200.
+    coordinator_b = app.test_client()
+    assert select_user(coordinator_b, COORDINATOR_B).status_code == 200
+    assert coordinator_b.post(f"/events/{theirs['id']}/clarification",
+                              json={"note": "Please confirm the venue layout."},
+                              headers=ORIGIN).status_code == 201
+    lead_view = client.get(f"/events/{theirs['id']}/clarification", headers=ORIGIN)
+    assert lead_view.status_code == 200
+    assert lead_view.json["clarification"]["note"] == "Please confirm the venue layout."
+
+    # A different Coordinator (A), unrelated to the event, is still denied the clarification.
+    coordinator_a = app.test_client()
+    assert select_user(coordinator_a, COORDINATOR_A).status_code == 200
+    assert coordinator_a.get(f"/events/{theirs['id']}/clarification",
+                             headers=ORIGIN).status_code == 403
 
 
 def test_lead_sees_internal_status_not_the_customer_planning_label(live_lead):

@@ -34,6 +34,7 @@ def event_database(monkeypatch):
         }
         query = MagicMock()
         filters = {}
+        not_filters = {}
         operation = "select"
         pending_insert = None
         pending_update = None
@@ -43,6 +44,10 @@ def event_database(monkeypatch):
 
         def equals(column, value):
             filters[column] = value
+            return query
+
+        def not_equals(column, value):
+            not_filters[column] = value
             return query
 
         def execute():
@@ -171,6 +176,7 @@ def event_database(monkeypatch):
                 row for row in rows
                 if (
                     all(row.get(key) == value for key, value in filters.items())
+                    and all(row.get(key) != value for key, value in not_filters.items())
                     and (
                         related_user_id is None
                         or row.get("organiser_id") == related_user_id
@@ -211,6 +217,7 @@ def event_database(monkeypatch):
         query.upsert.side_effect = upsert
         query.select.return_value = query
         query.eq.side_effect = equals
+        query.neq.side_effect = not_equals
         query.or_.side_effect = related_users
         query.order.return_value = query
         query.limit.return_value = query
@@ -513,6 +520,64 @@ def test_owner_lists_and_reopens_draft_without_losing_raw_status(organiser, draf
     assert opened.headers["Cache-Control"] == "no-store"
 
 
+# SCRUM-54: a Coordinator views every non-draft event, their own surfaced first (S1 Q34).
+def _seed_event(rows, **overrides):
+    """Append one stored event row directly, bypassing the SCRUM-130 unassigned default."""
+    now = datetime.now(UTC).isoformat()
+    row = {
+        "id": str(uuid4()), "title": "Seeded", "description": None, "purpose": None,
+        "category": "Workshop", "event_datetime": None, "expected_attendance": 10,
+        "venue_requirements": None, "accessibility_requirements": None,
+        "equipment_requirements": None, "registration_requirements": None,
+        "status": "Submitted", "organiser_id": 1, "coordinator_id": None,
+        "coordinator_assigned_at": None, "created_at": now, "updated_at": now,
+        "submitted_at": now, "last_status_changed_by": None, "last_status_changed_at": now,
+        "decision_reason": None, "decision_by": None, "decision_at": None,
+    }
+    row.update(overrides)
+    rows.append(row)
+    return row
+
+
+def test_coordinator_lists_all_events_with_own_surfaced_first(app, event_database):
+    """TC-54-01: a Coordinator sees every non-draft event, their own first; drafts stay hidden."""
+    rows = event_database[0]
+    mine_assigned = _seed_event(rows, coordinator_id=2)
+    mine_organised = _seed_event(rows, organiser_id=2, coordinator_id=7)
+    theirs = _seed_event(rows, organiser_id=1, coordinator_id=7)
+    unassigned = _seed_event(rows, coordinator_id=None)  # still in the Lead's queue
+    other_draft = _seed_event(rows, status="Draft", organiser_id=3, coordinator_id=None)
+
+    coordinator = app.test_client()
+    assert select_user(coordinator, 2).status_code == 200  # user 2 is the demo Coordinator
+    events = coordinator.get("/events", headers=ORIGIN).json["events"]
+    ids = [event["id"] for event in events]
+
+    assert other_draft["id"] not in ids  # another organiser's private draft never appears
+    assert {theirs["id"], unassigned["id"]} <= set(ids)  # full visibility of others' events
+    assert set(ids[:2]) == {mine_assigned["id"], mine_organised["id"]}  # own surfaced first
+    by_id = {event["id"]: event for event in events}
+    assert by_id[mine_assigned["id"]]["is_mine"] is True
+    assert by_id[mine_organised["id"]]["is_mine"] is True
+    assert by_id[theirs["id"]]["is_mine"] is False
+    assert by_id[unassigned["id"]]["is_mine"] is False
+
+
+def test_coordinator_cannot_edit_an_event_they_do_not_own(app, event_database):
+    """TC-54-02: seeing all events grants no edit rights on events the Coordinator doesn't own."""
+    rows = event_database[0]
+    theirs = _seed_event(rows, status="Planning", organiser_id=1, coordinator_id=7)
+
+    coordinator = app.test_client()
+    assert select_user(coordinator, 2).status_code == 200
+    listed = coordinator.get("/events", headers=ORIGIN).json["events"]
+    assert theirs["id"] in {event["id"] for event in listed}  # visible in the list...
+
+    edit = coordinator.patch(f"/events/{theirs['id']}", json={"title": "Hijacked"}, headers=ORIGIN)
+    assert edit.status_code == 403  # ...but record-level RBAC still refuses the edit
+    assert theirs["title"] == "Seeded"
+
+
 @pytest.mark.parametrize("actor_id", [2, 3, 4, 5, 6])
 def test_drafts_are_private_even_for_related_users(app, database, event_database, draft, actor_id):
     database[0].append({"id": 6, "display_name": "Organiser B", "role": "Organiser",
@@ -740,6 +805,15 @@ def test_organiser_can_view_and_resubmit_clarified_request(organiser, coordinato
     assert event_database[1].history[-1]["changed_by"] == 1
 
 
+def test_unrelated_coordinator_cannot_read_a_clarification(coordinator, event_database):
+    """SCRUM-54 / R11: record scoping is preserved — a Coordinator who does not own the
+    event cannot read its clarification. (The R11 Lead exemption is role-gated and covered
+    by the acceptance suite, which has a seeded Event Coordinator Lead.)"""
+    other = _seed_planning_event(event_database, status="Submitted", coordinator_id=7)
+    response = coordinator.get(f"/events/{other['id']}/clarification", headers=ORIGIN)
+    assert response.status_code == 403
+
+
 def test_coordinator_cannot_resubmit_clarified_request(coordinator, event_database):
     event = _seed_planning_event(event_database, status="Submitted")
     event_database[1].clarifications.append({
@@ -846,3 +920,21 @@ def test_expected_attendance_has_a_ten_thousand_limit(
             "Enter a whole number between 1 and 10,000."
         )
         assert event_database[0] == []
+
+
+def test_safety_venue_view_exposes_only_safety_fields():
+    """SCRUM-145 / R16: the Safety Officer's venue panel shows safety attributes only — not
+    operating hours, buffers, timezone or audit columns (least privilege)."""
+    from app.events import safety_venue_view
+
+    projected = safety_venue_view({
+        "id": "v1", "name": "Main Hall", "location": "Level 1", "capacity": 200,
+        "supported_layouts": ["Theatre"], "accessibility": ["Step-free"], "facilities": ["AED"],
+        "operating_hours": {"mon": "09:00-17:00"}, "timezone": "Asia/Singapore",
+        "created_by": 3, "setup_buffer_minutes": 30,
+    })
+    assert projected == {
+        "id": "v1", "name": "Main Hall", "location": "Level 1", "capacity": 200,
+        "supported_layouts": ["Theatre"], "accessibility": ["Step-free"], "facilities": ["AED"],
+    }
+    assert safety_venue_view(None) is None
