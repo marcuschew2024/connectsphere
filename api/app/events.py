@@ -6,8 +6,9 @@ from flask import Blueprint, current_app, jsonify, request
 from werkzeug.exceptions import BadRequest, Conflict, Forbidden, HTTPException, NotFound
 
 from .acting_user import require_acting_user
-from .booking_repository import list_bookings_for_event
+from .booking_repository import list_bookings_for_event, list_bookings_for_event_detail
 from .coordinator_assignment import AssignmentRefused, CoordinatorAssignment
+from .equipment_repository import list_event_equipment_reservations
 from .equipment_request_repository import list_confirmation_requests
 from .event_completion import EventCompletion
 from .event_confirmation import EventConfirmation
@@ -55,6 +56,7 @@ from .registration_repository import (
 )
 from .registration_request import RegistrationRequest
 from .safety_decision import SafetyDecision
+from .venue_repository import get_venue
 
 events = Blueprint("events", __name__, url_prefix="/events")
 
@@ -195,6 +197,50 @@ def safety_review_queue():
     rows, has_more = list_safety_review_events(int(page))
     return jsonify({"events": [event_response(row, user) for row in rows],
                     "page": int(page), "has_more": has_more})
+
+
+# The venue attributes a Safety Officer needs to assess operational safety (SCRUM-145 / R16):
+# capacity, layout, accessibility and facilities. A whitelist keeps the read least-privilege —
+# buffers, operating hours and audit columns never reach the review screen.
+_SAFETY_VENUE_FIELDS = frozenset(
+    {"id", "name", "location", "capacity", "supported_layouts", "accessibility", "facilities"}
+)
+
+
+def safety_venue_view(venue: dict | None) -> dict | None:
+    """Project a venue to the safety-relevant fields shown on the review screen."""
+    if venue is None:
+        return None
+    return {key: value for key, value in venue.items() if key in _SAFETY_VENUE_FIELDS}
+
+
+@events.get("/<event_id>/safety-review-details")
+def safety_review_details(event_id):
+    """Read-only venue + equipment detail for the operational safety check (SCRUM-145 / R16).
+
+    Access follows require_event_access, which gates the Safety Officer to the
+    Confirmed/Preparation review window (and also admits the event's related users and the
+    Lead). The read is event-scoped and read-only: no venue catalogue access, no management.
+    """
+    if request.headers.get("Origin") != current_app.config["FRONTEND_ORIGIN"]:
+        raise Forbidden("Request must come from the configured frontend origin.")
+    user = require_acting_user()
+    require_event_access(event_id, user)
+
+    bookings = list_bookings_for_event_detail(event_id)
+    venue_ids = []
+    for booking in bookings:
+        venue_id = booking.get("venue_id")
+        if venue_id is not None and venue_id not in venue_ids:
+            venue_ids.append(venue_id)
+    venues = [view for view in (safety_venue_view(get_venue(vid)) for vid in venue_ids)
+              if view is not None]
+    reservations = list_event_equipment_reservations(event_id) or []
+    return jsonify({
+        "bookings": bookings,
+        "venues": venues,
+        "equipment": {"reservations": reservations},
+    }), 200
 
 
 @events.get("/coordinators")

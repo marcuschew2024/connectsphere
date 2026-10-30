@@ -737,6 +737,40 @@ Shared Supabase migration deployment is separate and is not implied by the Git m
 - **Owner.** Marcus (SCRUM-140). Broadens read authorisation (the Lead), so it is
   human-reviewed and merged only behind green CI. No schema or migration change.
 
+### D30 — R16: the Safety Officer reads event-scoped venue + technical detail to decide (SCRUM-145)
+
+- **Context.** Codex review R16 (High). The operational safety check (SCRUM-128) lets the
+  Safety Officer approve/reject/request-changes, but the review screen lacked the venue and
+  technical detail SCRUM-128's AC requires ("expected attendance, venue capacity and layout,
+  emergency access, accessibility requirements, equipment placement, crowd movement and known
+  venue restrictions"). A working approve button without that information is not an informed
+  safety check. (This is the decision the SCRUM-145 Jira comment records; that comment
+  provisionally called it "D29" — now D29 is R11/SCRUM-140, so this decision is **D30**.)
+- **Decision (PO, Marcus).** On a **Confirmed/Preparation** event, grant the Safety Officer
+  **read-only, event-scoped** access to that event's venue booking(s), each booked venue's
+  safety record (capacity, supported layouts, accessibility, facilities) and its equipment
+  reservations. No catalogue access, no management, no cross-event access, no generic status
+  changes — least privilege.
+- **Implementation.** A single new endpoint `GET /events/<id>/safety-review-details`, guarded
+  by `require_event_access` (which already gates the Safety Officer to the Confirmed/Preparation
+  window and admits the event's related users/Lead). It reuses the existing repository reads and
+  **projects each venue through a whitelist** (`safety_venue_view`) so operating hours, buffers,
+  timezone and audit columns never reach the screen. Deliberately **not** done by loosening the
+  per-resource endpoints: `GET /venues/<id>` is catalogue-wide, so widening it would break the
+  event-scoping requirement. Frontend: a read-only "Venue & technical detail" panel on the
+  Safety Officer's review screen (venues + bookings + equipment reservations).
+- **Verification.** Unit — `safety_venue_view` exposes only the safety fields. Acceptance — the
+  Safety Officer reads the detail on a Confirmed and a Preparation event, is denied outside the
+  window (Planning) and when unrelated/not the Safety Officer; the existing safety decision
+  journey (approve→Preparation; request-changes/reject→Planning) still passes. Frontend e2e — the
+  panel renders capacity/layout/accessibility/facilities + booking + equipment, with no
+  management controls.
+- **Trade-off.** The Safety Officer gains a new read endpoint (not the catalogue), and reservations
+  are shown rather than the thin equipment-request records, because reservation rows carry the
+  placement detail (type + location) relevant to safety.
+- **Owner.** Marcus, with Jerome (SCRUM-145). Broadens read authorisation (the Safety Officer),
+  so it is human-reviewed and merged only behind green CI. No schema or migration change.
+
 ## AI usage summary
 
 Per-feature view of where AI assistance was applied, always under human specification and
