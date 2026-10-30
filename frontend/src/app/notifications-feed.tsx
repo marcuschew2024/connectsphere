@@ -15,8 +15,13 @@ type Notification = {
   event?: { title: string | null } | null;
 };
 
-// SCRUM-130: Coordinators also receive notifications (assigned to them / moved away).
-const COPY = {
+// SCRUM-49 / R07: every role has a Home feed. Copy is per-audience with a safe
+// default, so a role without bespoke copy still renders a sensible feed.
+const DEFAULT_COPY = {
+  subtitle: "Updates relevant to you.",
+  empty: "Notifications will appear here.",
+};
+const COPY: Record<string, { subtitle: string; empty: string }> = {
   Organiser: {
     subtitle: "Decisions and updates on your requests.",
     empty: "Your Coordinator’s decisions will appear here.",
@@ -25,13 +30,22 @@ const COPY = {
     subtitle: "Events assigned to you or moved to another Coordinator.",
     empty: "Assignments from the Event Coordinator Lead will appear here.",
   },
-} as const;
+  "Venue Staff": {
+    subtitle: "Venue booking requests awaiting your review.",
+    empty: "New venue booking requests will appear here.",
+  },
+  "Tech Support": {
+    subtitle: "Equipment requests awaiting your review.",
+    empty: "New equipment requests will appear here.",
+  },
+};
 
-export default function OrganiserNotifications({
+export default function NotificationsFeed({
   audience = "Organiser",
 }: {
-  audience?: keyof typeof COPY;
+  audience?: string;
 }) {
+  const copy = COPY[audience] ?? DEFAULT_COPY;
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -75,7 +89,7 @@ export default function OrganiserNotifications({
             Notifications
           </h2>
           <p className="mt-1 text-xs text-muted-foreground">
-            {COPY[audience].subtitle}
+            {copy.subtitle}
           </p>
         </div>
         <Button
@@ -109,7 +123,7 @@ export default function OrganiserNotifications({
           <div className="px-6 py-12 text-center">
             <p className="font-medium text-foreground">No notifications yet.</p>
             <p className="mt-2 text-sm text-muted-foreground">
-              {COPY[audience].empty}
+              {copy.empty}
             </p>
           </div>
         ) : (
@@ -150,6 +164,9 @@ export default function OrganiserNotifications({
                 const routed = notification.notification_type === "request_assigned";
                 const accepted = notification.notification_type === "event_approved" || assigned || routed;
                 const rejected = notification.notification_type === "event_rejected";
+                // SCRUM-49 / R07: pool notifications for the Venue Staff / Tech Support queues.
+                const venueRequest = notification.notification_type === "venue_booking_requested";
+                const equipmentRequest = notification.notification_type === "equipment_request_submitted";
                 return (
                   <li key={notification.id} className="px-5 py-4 sm:px-6">
                     <div className="flex items-start gap-3">
@@ -188,6 +205,10 @@ export default function OrganiserNotifications({
                               ? "Request accepted"
                               : rejected
                                 ? "Request rejected"
+                                : venueRequest
+                                  ? "Venue booking requested"
+                                  : equipmentRequest
+                                    ? "Equipment request submitted"
                                 : notification.notification_type === "event_clarification"
                                   ? "Clarification requested"
                                   : "Request update"}

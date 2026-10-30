@@ -92,12 +92,13 @@ test("failed notifications can be refreshed", async ({ page }) => {
   await expect(inbox.getByRole("alert")).toHaveCount(0);
 });
 
-// SCRUM-130: Coordinators now receive assignment notifications (coordinator-assignment.spec.ts).
-for (const role of ["Venue Staff", "Tech Support", "Attendee", null]) {
+// SCRUM-49 / R07: Attendees keep their tailored registration-confirmations view, and a
+// signed-out user has no workspace, so neither loads the generic notifications feed.
+for (const role of ["Attendee", null]) {
   test(`notifications are not loaded for ${role ?? "no user"}`, async ({ page }) => {
     let reads = 0;
     await page.route("**/session", (route) => route.fulfill({ json: {
-      user: role ? { id: 2, role } : null,
+      user: role ? { id: 5, role } : null,
     } }));
     await page.route("**/notifications", (route) => {
       reads++;
@@ -107,6 +108,31 @@ for (const role of ["Venue Staff", "Tech Support", "Attendee", null]) {
     await expect(page.getByRole("heading", { name: role ? `You’re in ${role} view` : "Your workspace" })).toBeVisible();
     await expect(page.getByRole("region", { name: "Notifications" })).toHaveCount(0);
     expect(reads).toBe(0);
+  });
+}
+
+// SCRUM-49 / R07: the Venue Staff and Tech Support pools now have a Home feed, so the
+// Organiser-only gate is gone and these roles read and render their pool notifications.
+for (const [role, type, heading] of [
+  ["Venue Staff", "venue_booking_requested", "Venue booking requested"],
+  ["Tech Support", "equipment_request_submitted", "Equipment request submitted"],
+] as const) {
+  test(`${role} sees its pool notifications feed`, async ({ page }) => {
+    let reads = 0;
+    await page.route("**/session", (route) => route.fulfill({ json: { user: { id: 3, role } } }));
+    await page.route("**/notifications", (route) => {
+      reads++;
+      return route.fulfill({ json: { notifications: [{
+        ...notification, notification_type: type,
+        message: "Please review the request for Campus workshop.",
+        event: { title: "Campus workshop" },
+      }] } });
+    });
+    await page.goto("/");
+    const inbox = page.getByRole("region", { name: "Notifications" });
+    await expect(inbox.getByRole("heading", { name: heading })).toBeVisible();
+    await expect(inbox).toContainText("Campus workshop");
+    expect(reads).toBeGreaterThan(0);
   });
 }
 
