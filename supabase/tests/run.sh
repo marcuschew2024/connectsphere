@@ -25,6 +25,7 @@ grant delete on public.venue_bookings to service_role;
 grant delete on public.equipment_items to service_role;
 grant delete on public.equipment_requests to service_role;
 grant delete on public.events to service_role;
+grant delete on public.access_denied_log to service_role;
 grant delete on public.equipment_reservations to service_role;
 notify pgrst, 'reload schema';
 SQL
@@ -152,3 +153,11 @@ for pass in 1 2; do
   psql -v ON_ERROR_STOP=1 -f /sql/migrations/20261031120000_scrum_138_apply_change_request.sql > /tmp/migration-output.txt
   echo "Change request apply migration pass $pass: PASS"
 done
+
+# SCRUM-135: replay-safe, backend-only intake transitions with locked authorisation.
+for pass in 1 2; do
+  psql -v ON_ERROR_STOP=1 -f /sql/migrations/20261030195932_scrum_135_status_transitions.sql > /tmp/migration-output.txt
+  echo "Status transition migration pass $pass: PASS"
+done
+psql -v ON_ERROR_STOP=1 -f /sql/tests/status_transitions.sql
+echo "Status transition database checks: PASS"

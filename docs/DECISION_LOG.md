@@ -1112,3 +1112,40 @@ human-designed, documented in this log, and review-gated in CI before merge. Kno
 trade-offs (notably the former deferred technical-arrangements seam in D5, addressed
 locally by D22, and the interim
 auto-assign in D9) are recorded explicitly rather than left implicit.
+
+### D38 — Assigned Coordinator intake transitions and terminal-state protection (SCRUM-135)
+
+- **Context.** The generic status PATCH let Organisers and related resource staff approve
+  intake or revive Rejected events. The attendee-only fix in D37 did not close the full
+  role/from/to matrix. A related Coordinator could also be different from the current
+  assignee. Jira's reference to D23 is stale: current D23 concerns venue requirements;
+  this entry records the concrete SCRUM-135 contract.
+- **Decision.** Only the current assigned Coordinator advances intake. Submitted may
+  progress to Assigned, Under review or Planning; Assigned to Under review or Planning;
+  Under review and legacy Approved to Planning. Reasoned rejection of those intake
+  states uses the existing decision endpoint. Approval immediately writes Planning;
+  Approved is not introduced as a new target. No-op, backwards, unknown-source and
+  terminal transitions are refused. Pending clarification requires Organiser resubmission.
+  Confirmation, safety, completion and cancellation retain their dedicated actions.
+- **Constraints.** Preserve private-draft 404s, public attendee projection and customer
+  status mapping. Every accepted intake write rechecks actor/assignment/state under
+  the event lock and atomically records decision metadata, history and notification.
+  The RPC is security invoker, empty search_path, executable only by service_role.
+  A separate trigger prevents any writer from changing a terminal status, including
+  a stale dedicated action racing with cancellation. No shared database is modified.
+- **Verification.** Role/state unit checks; real password-session/DB denial, positive
+  approval/rejection, projection, no-op and terminal tests; direct RPC guard tests;
+  concurrent duplicate approval and stale reassignment/cancellation checks; SQL
+  privilege/replay and forced-notification-failure rollback assertions; existing real
+  browser lifecycle journeys. Exact results are recorded in SCRUM-135's verification file.
+- **Test changes.** Two existing actor/history tests now perform the accepted action as
+  assigned Coordinator 2 instead of Organiser 1; all metadata/history assertions remain.
+  New regressions deny Organiser 1. Persistence doubles and fixture cleanup were updated
+  for the RPC and newly required denial logs; no existing assertion was removed.
+- **Trade-off.** Python provides early explanatory validation; SQL repeats the security
+  invariant under lock. Parity needs maintaining. The existing best-effort denial audit
+  policy remains. Backend deployment requires the migration first; old backend versions
+  do not acquire the complete new intake rules merely from installing the migration.
+- **Owner.** Jerome (current SCRUM-135 Jira assignee); Marcus (product/access-policy).
+  The user authorised implementation on 31 October 2026. This is a concrete proposal
+  implementing the ticket, not a claim of independent human review or merge approval.

@@ -487,6 +487,12 @@ def update_event_status(event_id: str, status: str, user_id: int) -> dict:
         if not result.data:
             raise ServiceUnavailable("The database did not confirm the status change.")
         return result.data[0]
+    except APIError as error:
+        if error.code == "PT409":
+            raise Conflict(
+                "This event is closed. Reload it before taking another action."
+            ) from error
+        raise ServiceUnavailable("Could not update the event status. Contact the team.") from error
     except ServiceUnavailable:
         raise
     except Exception as error:
@@ -807,4 +813,41 @@ def approve_change_request_record(
         # The connection failed, so whether the approval committed is unknown.
         raise ServiceUnavailable(
             "Could not confirm the approval. Reload the event before retrying."
+        ) from error
+
+
+def transition_event_intake(event_id, expected_status, status, user_id, reason=None):
+    """State, assignment, decision, audit and notification form one transaction."""
+    try:
+        client = get_supabase_client()
+        if client is None:
+            raise ServiceUnavailable("The database is not configured. Contact the team.")
+        result = client.rpc("transition_event_intake", {
+            "p_event_id": event_id, "p_expected_status": expected_status,
+            "p_status": status, "p_actor_id": user_id, "p_reason": reason,
+        }).execute()
+        if not isinstance(result.data, dict) or not isinstance(result.data.get("event"), dict):
+            raise ServiceUnavailable("The database did not confirm the status change.")
+        return result.data["event"]
+    except APIError as error:
+        if error.code == "PT403":
+            raise Forbidden(
+                "Only the assigned Coordinator can change this event's status."
+            ) from error
+        if error.code == "PT404":
+            raise NotFound("Event not found.") from error
+        if error.code == "PT409":
+            raise Conflict(
+                "This event has changed or cannot take that transition. Reload it."
+            ) from error
+        if error.code == "22023":
+            raise BadRequest("A valid decision and rejection reason are required.") from error
+        raise ServiceUnavailable(
+            "Could not change status. Reload the event before retrying."
+        ) from error
+    except ServiceUnavailable:
+        raise
+    except Exception as error:
+        raise ServiceUnavailable(
+            "Could not change status. Reload the event before retrying."
         ) from error
