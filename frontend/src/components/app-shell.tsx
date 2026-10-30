@@ -74,10 +74,19 @@ export function AppShell({
   const pathname = usePathname();
   const router = useRouter();
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [logoutError, setLogoutError] = useState("");
   const nav = actingRole ? (NAV_BY_ROLE[actingRole] ?? DEFAULT_NAV) : DEFAULT_NAV;
 
   async function handleLogout() {
-    await apiRequest("/auth/logout", { method: "POST" }).catch(() => {});
+    setLogoutError("");
+    try {
+      // Only treat sign-out as done once the server has ended the session; swallowing a
+      // failure here would strand the user "signed out" in the UI while still logged in.
+      await apiRequest("/auth/logout", { method: "POST" });
+    } catch {
+      setLogoutError("Could not sign you out. Please try again.");
+      return;
+    }
     router.push("/login");
     router.refresh();
   }
@@ -135,6 +144,7 @@ export function AppShell({
             >
               <LogOut className="size-4" aria-hidden="true" /> Sign out
             </button>
+            {logoutError && <p role="alert" className="px-2 pt-1 text-xs text-red-400">{logoutError}</p>}
           </div>
         ) : (
           <p className="px-2 text-xs text-slate-500">Not signed in</p>

@@ -849,6 +849,36 @@ Shared Supabase migration deployment is separate and is not implied by the Git m
 - **Owner.** Jerome (SCRUM-120). The FCFS resolution policy is a domain rule reviewed and merged
   only behind green CI.
 
+### D33 — R12: failed-login counting is atomic; auth evidence is strengthened (SCRUM-141)
+
+- **Context.** Codex review R12 (Medium), against SCRUM-20 (Secure login, stays Done). Four
+  weaknesses: the failed-attempt increment was a read-then-write (`SELECT` count → `UPDATE`
+  count+1 → re-fetch), so concurrent failures could lose an increment and undercount the
+  lockout; lockout tests used a preset counter; inactivity-expiry was asserted from config
+  rather than a timed journey; the logout UI swallowed a server failure.
+- **Decision (PO, Marcus).** Make the increment atomic and strengthen the evidence, **without
+  changing SCRUM-20's security policy** (5 consecutive failures → 15-minute lock; 30-minute
+  inactivity expiry). A single SQL function `register_failed_login(user_id, max_attempts,
+  lockout_minutes)` does `failed_attempts = failed_attempts + 1` and sets `locked_until` at
+  the threshold in one `UPDATE … RETURNING`, so no increment can be lost. The thresholds are
+  passed from the Flask constants, which stay the single source of truth. Logout now only
+  treats sign-out as done once the server confirms it; a failure is surfaced to the user.
+- **Implementation.** `supabase/migrations/20261030140000_scrum_141_atomic_failed_login.sql`
+  (replay-safe `create or replace`, granted to `service_role`, registered in
+  `supabase/tests/run.sh`). `auth.py` calls the RPC and uses its returned state, dropping the
+  re-fetch. `app-shell.tsx` `handleLogout` awaits the logout and shows an error instead of
+  redirecting on failure. Needs a one-time apply to the shared Supabase after merge.
+- **Verification.** Unit — real sequential lockout (five actual wrong logins → 429, then
+  recovery resets the counter) and a genuine inactivity-expiry test (1 s lifetime + real
+  sleep → the idle session is rejected). Real-DB acceptance — the same sequential
+  lockout/recovery through the live RPC. Frontend e2e — a failed logout surfaces an error and
+  keeps the user on the page. The stateful auth fakes gained matching RPC support.
+- **Trade-off.** The atomic counter now lives in SQL (one more RPC), consistent with the
+  codebase's other atomic operations; the Python no longer re-fetches after a failure.
+- **Owner.** Marcus (SCRUM-141). Changes the auth path + adds a DB function, so it is
+  human-reviewed and merged only behind green CI; the migration is applied to the shared
+  Supabase as a separate step.
+
 ## AI usage summary
 
 Per-feature view of where AI assistance was applied, always under human specification and
