@@ -15,6 +15,12 @@ _COMPLETION_CONFLICTS = {
     "open_equipment_requests": "An equipment request is still awaiting Tech Support.",
 }
 
+# cancel_event() database refusals (SCRUM-69), re-checked under the event row lock.
+_CANCELLATION_CONFLICTS = {
+    "already_cancelled": "This event is already cancelled.",
+    "closed_event": "This event is closed and cannot be cancelled.",
+}
+
 
 def insert_event(fields: dict) -> dict:
     """Insert one event and return its stored ID, details and database timestamps."""
@@ -529,6 +535,43 @@ def complete_event_record(event_id: str, user_id: int, note: str | None) -> dict
     except Exception as error:
         raise ServiceUnavailable(
             "Could not complete the event. Contact the team before retrying."
+        ) from error
+
+
+def cancel_event_record(event_id: str, user_id: int, reason: str) -> dict:
+    """Cancel an event, release its resources and notify attendees in one transaction."""
+    try:
+        client = get_supabase_client()
+        if client is None:
+            raise ServiceUnavailable("The database is not configured. Contact the team.")
+        result = client.rpc("cancel_event", {
+            "p_event_id": event_id, "p_actor_id": user_id, "p_reason": reason,
+        }).execute()
+        if not isinstance(result.data, dict) or "event" not in result.data:
+            raise ServiceUnavailable("The database did not confirm the cancellation.")
+        return result.data
+    except APIError as error:
+        if error.code == "PT403":
+            raise Forbidden(
+                "Only the assigned Coordinator or the Event Coordinator Lead can cancel "
+                "this event."
+            ) from error
+        if error.code == "PT404":
+            raise NotFound("Event not found.") from error
+        if error.code == "PT409":
+            raise Conflict(_CANCELLATION_CONFLICTS.get(
+                error.message, "This event cannot be cancelled. Reload it and try again."
+            )) from error
+        if error.code == "22023":
+            raise BadRequest("Give a cancellation reason of at most 2000 characters.") from error
+        raise ServiceUnavailable(
+            "Could not cancel the event. Contact the team before retrying."
+        ) from error
+    except ServiceUnavailable:
+        raise
+    except Exception as error:
+        raise ServiceUnavailable(
+            "Could not cancel the event. Contact the team before retrying."
         ) from error
 
 

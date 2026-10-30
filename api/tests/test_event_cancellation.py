@@ -1,7 +1,7 @@
 """Unit tests for EventCancellation (SCRUM-69).
 
 Pure domain-logic tests - no database, no Flask. They encode who is an authorised
-user (Decision Log D28), which states can be cancelled, and the reason rules.
+user (Decision Log D32), which states can be cancelled, and the reason rules.
 Endpoint wiring is covered in test_event_cancellation_route.py and the real
 database behaviour in test_event_cancellation_acceptance.py.
 """

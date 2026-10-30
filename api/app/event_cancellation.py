@@ -6,7 +6,7 @@ an event and from which states. It has no persistence, so it is unit-testable in
 isolation; the cancel_event database function re-checks the same rules under a
 row lock, then releases the event's resources and notifies the people affected.
 
-Authorised users (team decision, 2026-10-30, Decision Log D28):
+Authorised users (team decision, 2026-10-30, Decision Log D32):
   * the event's assigned Coordinator - Coordinators manage only their assigned
     events (SCRUM-130); and
   * the Event Coordinator Lead - who oversees every event, including unassigned

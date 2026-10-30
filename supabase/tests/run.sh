@@ -116,3 +116,9 @@ for pass in 1 2; do
   echo "Registration withdrawal migration pass $pass: PASS"
 done
 psql -v ON_ERROR_STOP=1 -f /sql/tests/registration_withdrawal.sql
+
+# SCRUM-69: cancel an event, release its resources and notify attendees atomically.
+for pass in 1 2; do
+  psql -v ON_ERROR_STOP=1 -f /sql/migrations/20261030180000_scrum_69_cancel_event.sql > /tmp/migration-output.txt
+  echo "Event cancellation migration pass $pass: PASS"
+done
