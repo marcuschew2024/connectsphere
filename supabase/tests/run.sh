@@ -109,3 +109,10 @@ for pass in 1 2; do
   psql -v ON_ERROR_STOP=1 -f /sql/migrations/20261030015221_scrum_49_notification_recipient_role.sql > /tmp/migration-output.txt
   echo "Notification recipient-role migration pass $pass: PASS"
 done
+
+# SCRUM-43: withdrawal conditions, transactional receipt and backend-only RPCs.
+for pass in 1 2; do
+  psql -v ON_ERROR_STOP=1 -f /sql/migrations/20261030062503_scrum_43_withdraw_registration.sql > /tmp/migration-output.txt
+  echo "Registration withdrawal migration pass $pass: PASS"
+done
+psql -v ON_ERROR_STOP=1 -f /sql/tests/registration_withdrawal.sql

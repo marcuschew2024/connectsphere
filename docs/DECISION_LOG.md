@@ -673,6 +673,55 @@ Shared Supabase migration deployment is separate and is not implied by the Git m
   merged only behind green CI. Applying the migration to the shared Supabase project is a
   separate step for the owner.
 
+### D31 — Own-registration withdrawal with one optional cutoff (SCRUM-43)
+
+- **Context.** SCRUM-41 already persists Registered/Withdrawn and maintains capacity,
+  and SCRUM-44 displays current status. SCRUM-43 needs the attendee command, organiser
+  conditions and a private receipt. The user requested implementation and asked to
+  keep conditions simple; the proposal uses one optional timestamp.
+- **Decision proposed for Jerome's review.** A nullable `events.withdrawal_closes_at`
+  lets the owning Organiser set an earlier cutoff. NULL means until event start.
+  A deadline must be future, timezone-aware and no later than the event start when
+  saved. Conditions may be set in pre-confirmation states or Confirmed before the
+  first signup and before start. They lock after any registration exists, including
+  Withdrawn rows, so attendees' accepted conditions cannot be restricted retroactively
+  through this control. Confirmed/Preparation registrations may be withdrawn strictly
+  before both cutoff and start; other lifecycle states deny a new withdrawal.
+- **API/access constraints.** Attendee-only `POST /events/{id}/registrations/withdraw`
+  accepts `{}` and obtains identity solely from the existing session. Owning Organiser
+  GET/PUT `/events/{id}/withdrawal-policy` uses `{closes_at}` and returns the saved
+  cutoff/editability. Central role/record guards and configured Origin checks remain;
+  query/body identity selectors are rejected and responses are no-store. The public
+  offer exposes only the cutoff/refusal; own receipts expose the withdrawal timestamp.
+  Home's private confirmation feed adds the withdrawal notification type while still
+  excluding internal notices. No browser-role DB grants or SECURITY DEFINER functions.
+- **Atomicity.** The withdrawal RPC locks the own registration, consistent with direct
+  UPDATE ordering, then existing capacity triggers lock/update the event. A separate
+  withdrawal guard rechecks stored conditions and wall time after that lock. The
+  timestamp, one-place release and one private notification commit together. Concurrent
+  or later retries return the original Withdrawn receipt, without a second mutation,
+  timestamp change or notification. Failed notification creation rolls everything back.
+  Policy writes lock the same event before checking for any registration.
+- **Verification.** Migration replay twice; SQL rollback and privilege/invoker checks;
+  41 focused HTTP/domain/database tests including two real competing withdrawals and
+  a replacement signup; eight production-browser scenarios for confirmation, denial,
+  refresh, navigation, Singapore cutoff and mobile/keyboard. Full local regression:
+  1,541 API tests (96.47% coverage), 221 browser tests, 53 frontend unit tests, lint,
+  build/TypeScript and diff checks. CLI advisors failed to connect to the non-TLS local
+  container; no hosted advisor or CI result is claimed. See `docs/SCRUM-43.md`.
+- **Trade-off.** Waiting-list promotion remains deferred SCRUM-80 under S4 scope;
+  literal AC2/TC-43-02 is not implemented or marked passing. Jerome must accept that
+  reconciliation. The existing unique event/attendee registration prevents undo or
+  re-registration, and existing participant links/historical receipts are retained.
+  Cancellation is not treated as attendee withdrawal; terminal records stay unchanged.
+- **Owner.** Jerome owns the API/schema/domain/access and acceptance decision, with an
+  independent human reviewer; Marcus owns release scope/merge. Codex authored the
+  proposal. Human design review and green hosted CI gate merge. The migration was
+  applied only to a disposable local database; shared deployment is a separate step.
+  On 30 October 2026 the user explicitly authorized pushing and merging this proposal
+  behind green CI, with the deferred waiting-list criterion already disclosed. This
+  records merge authorization, without claiming an independent teammate review.
+
 ## AI usage summary
 
 Per-feature view of where AI assistance was applied, always under human specification and
