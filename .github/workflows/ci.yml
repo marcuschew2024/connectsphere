@@ -43,7 +43,7 @@ jobs:
       - name: End-to-end tests
         env:
           PLAYWRIGHT_JUNIT_OUTPUT_FILE: test-results/browser.xml
-        run: npm run test:e2e -- --reporter=html,junit
+        run: npm run test:e2e -- --reporter=html,junit --output=test-results/browser
 
       - name: Save browser test evidence
         if: always()

@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-10-30T19:24:44.625375+00:00",
+  "generated_at": "2026-10-30T19:29:58.245159+00:00",
   "all_requirements_accepted": false,
   "meaning": "Mapped checks prove only their stated intent. Human acceptance is separate.",
   "suites": {
@@ -2627,7 +2627,7 @@
       "acceptance": "human acceptance pending"
     }
   ],
-  "revision": "8445c7bd34537dc48800a64f6e196268b0e8f073",
-  "source_sha256": "e3c38c450e88885678544ced03c5404e70ac793df824aeb552ded9b7e7d53f6c",
+  "revision": "6c029691be44199afd0b551d9c264f1872c1d791",
+  "source_sha256": "afe37a8de4e34cf122f39e06c6f63ff999acb769cc292a3a553de7d86f36968d",
   "working_tree_dirty": true
 }

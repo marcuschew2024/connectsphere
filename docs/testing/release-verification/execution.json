@@ -1,5 +1,5 @@
 {
-  "source_sha256": "e3c38c450e88885678544ced03c5404e70ac793df824aeb552ded9b7e7d53f6c",
+  "source_sha256": "afe37a8de4e34cf122f39e06c6f63ff999acb769cc292a3a553de7d86f36968d",
   "sql_harness_exit_code": 0,
   "sql_migration_replay_passes": 2,
   "validation": {

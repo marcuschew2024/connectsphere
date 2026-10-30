@@ -13,7 +13,7 @@
     "assertion-failure": "expected outcome; all fixture data removed; unrelated data preserved",
     "setup-failure": "expected outcome; all fixture data removed; unrelated data preserved"
   },
-  "verification_source_sha256": "e3c38c450e88885678544ced03c5404e70ac793df824aeb552ded9b7e7d53f6c",
+  "verification_source_sha256": "afe37a8de4e34cf122f39e06c6f63ff999acb769cc292a3a553de7d86f36968d",
   "existing_test_change_requires_review": true,
   "owner": "Marcus for SCRUM-146; Jerome as original test author for review",
   "application_or_schema_changes_in_this_followup": false,

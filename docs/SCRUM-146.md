@@ -74,7 +74,9 @@ that those workflows were absent.
 | Local production build | Webpack passed | Hosted default production build remains a merge gate |
 
 Local runtime is Python 3.14.6/Node 24.11.0; hosted CI declares Python 3.12/Node 22.
-CI execution is pending the push at this point. Raw JUnit, backend coverage JSON,
+The first hosted run passed its test jobs but exposed Playwright clearing the unit
+JUnit file. Browser output now uses `test-results/browser` so unit and browser evidence
+survive together; the final hosted run verifies both. Raw JUnit, backend coverage JSON,
 frontend coverage summary and SQL output are saved in
 [`testing/release-verification/evidence`](testing/release-verification/evidence).
 The [reproduction guide](testing/README.md) explains each layer and its limits.
