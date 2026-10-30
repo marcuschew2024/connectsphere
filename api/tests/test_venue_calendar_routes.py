@@ -21,6 +21,7 @@ def stubbed(monkeypatch):
             {"id": "b1", "venue_id": vid, "start_at": frm, "end_at": to, "status": "Confirmed"},
         ],
     )
+    monkeypatch.setattr("app.venues.list_unavailability", lambda *args: [])
 
 
 def _client(app, uid):

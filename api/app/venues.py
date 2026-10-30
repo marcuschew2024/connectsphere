@@ -1,16 +1,23 @@
 """Venue Staff create venues; Venue Staff and Coordinators read the catalogue."""
 
 from flask import Blueprint, current_app, jsonify, request
-from werkzeug.exceptions import BadRequest, Forbidden, HTTPException, NotFound, Unauthorized
+from werkzeug.exceptions import BadRequest, Conflict, Forbidden, HTTPException, NotFound, Unauthorized
 
 from .acting_user import get_acting_user
 from .auth import get_authenticated_user
 from .booking_repository import list_venue_bookings_in_range
-from .event_repository import get_event_by_id
+from .event_repository import create_notification, get_event_by_id
 from .rbac import require_role
 from .venue_repository import create_venue, get_venue, list_venues, update_venue
 from .venue_search import filter_options, parse_filters, search_venues
 from .venue_suitability import SuitabilityEngine
+from .venue_unavailability import check_block_overlap, validate_block
+from .venue_unavailability_repository import (
+    create_unavailability,
+    find_affected_bookings,
+    list_unavailability,
+    unblock_venue,
+)
 from .venue_validation import BUFFER_FIELDS, FIELDS, validate_venue
 
 venues = Blueprint("venues", __name__, url_prefix="/venues")
@@ -49,6 +56,9 @@ def add_venue():
     fields, errors = validate_venue(data)
     if errors:
         return jsonify({"error": "Please check the highlighted fields.", "fields": errors}), 400
+    existing_blocks = list_unavailability(venue_id, fields["start_at"], fields["end_at"])
+    if check_block_overlap(fields["start_at"], fields["end_at"], existing_blocks):
+        raise Conflict("The venue is already blocked during this time period.")
     return jsonify({"venue": create_venue(fields, user["id"])}), 201
 
 
@@ -73,6 +83,9 @@ def edit_venue(venue_id):
     fields, errors = validate_venue({**venue, **{key: data[key] for key in keys}})
     if errors:
         return jsonify({"error": "Please check the highlighted fields.", "fields": errors}), 400
+    existing_blocks = list_unavailability(venue_id, fields["start_at"], fields["end_at"])
+    if check_block_overlap(fields["start_at"], fields["end_at"], existing_blocks):
+        raise Conflict("The venue is already blocked during this time period.")
     return jsonify({"venue": update_venue(
         str(venue_id), {key: fields[key] for key in keys}, user["id"], data["revision"]
     )}), 200
@@ -114,7 +127,61 @@ def venue_bookings(venue_id):
     start_at, end_at = request.args.get("from"), request.args.get("to")
     if not start_at or not end_at:
         raise BadRequest("Provide 'from' and 'to' timestamps.")
-    return jsonify({"bookings": list_venue_bookings_in_range(venue_id, start_at, end_at)}), 200
+    bookings = list_venue_bookings_in_range(venue_id, start_at, end_at)
+    blocks = list_unavailability(venue_id, start_at, end_at)
+    bookings.extend({
+        **block,
+        "status": "Blocked",
+    } for block in blocks)
+    return jsonify({"bookings": bookings}), 200
+
+
+@venues.get("/<venue_id>/unavailability")
+def venue_unavailability(venue_id):
+    _require_user("Venue Staff", "Coordinator")
+    start_at, end_at = request.args.get("from"), request.args.get("to")
+    if bool(start_at) != bool(end_at):
+        raise BadRequest("Provide both 'from' and 'to' timestamps.")
+    return jsonify({"blocks": list_unavailability(
+        venue_id, start_at, end_at
+    )}), 200
+
+
+@venues.post("/<venue_id>/unavailability")
+def block_venue(venue_id):
+    user = _require_user("Venue Staff")
+    if get_venue(venue_id) is None:
+        raise NotFound("Venue not found.")
+    fields, errors = validate_block(request.get_json(silent=True))
+    if errors:
+        return jsonify({"error": "Please check the highlighted fields.", "fields": errors}), 400
+    existing_blocks = list_unavailability(venue_id, fields["start_at"], fields["end_at"])
+    if check_block_overlap(fields["start_at"], fields["end_at"], existing_blocks):
+        raise Conflict("The venue is already blocked during this time period.")
+    block = create_unavailability(venue_id, fields, user["id"])
+    bookings = find_affected_bookings(venue_id, fields["start_at"], fields["end_at"])
+    notified = set()
+    for booking in bookings:
+        event = booking.get("event") or {}
+        recipient_id = event.get("coordinator_id") or booking.get("requested_by")
+        if recipient_id in notified or not recipient_id:
+            continue
+        notified.add(recipient_id)
+        create_notification(
+            recipient_id,
+            booking["event_id"],
+            "venue_unavailable",
+            f'The venue arrangement for "{event.get("title", "this event")}" '
+            f"is affected by a {fields['reason'].lower()} block from {fields['start_at']} "
+            f"to {fields['end_at']}. Search for and request an alternative venue.",
+        )
+    return jsonify({"block": block, "affected_booking_ids": [row["id"] for row in bookings]}), 201
+
+
+@venues.delete("/<venue_id>/unavailability/<block_id>")
+def remove_venue_block(venue_id, block_id):
+    user = _require_user("Venue Staff")
+    return jsonify({"block": unblock_venue(block_id, venue_id, user["id"])}), 200
 
 
 @venues.get("/suitability/<event_id>")

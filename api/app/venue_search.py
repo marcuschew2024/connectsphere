@@ -8,6 +8,7 @@ from werkzeug.exceptions import BadRequest
 
 from .booking_repository import find_overlapping_bookings
 from .venue_repository import PAGE_SIZE, list_venues
+from .venue_unavailability_repository import list_unavailability
 from .venue_validation import DAYS
 
 FILTERS = {"location", "attendance", "capacity", "layout", "facilities", "accessibility",
@@ -103,6 +104,11 @@ def availability(venue, filters):
     conflicts = find_overlapping_bookings(
         venue["id"], filters["start_time_iso"], filters["end_time_iso"]
     )
+    blocks = list_unavailability(
+        venue["id"], filters["start_time_iso"], filters["end_time_iso"]
+    )
+    if blocks:
+        return "blocked"
     if any(row["status"] == "Blocked" for row in conflicts):
         return "blocked"
     if conflicts:
