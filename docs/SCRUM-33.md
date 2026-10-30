@@ -5,8 +5,11 @@ Venue Staff approval. The implementation lives in `api/app/venue_overlap.py`.
 
 ## Policy
 
-- Published `start_at`/`end_at` are the only interval boundaries. No setup or turnaround
-  buffer is added.
+- Published `start_at`/`end_at` are the interval boundaries (S1 Q25). **Superseded in
+  part by SCRUM-129** (Week 7 Customer Change #1): each venue now has optional setup and
+  turnaround minutes, and conflicts are checked on `[start_at - setup, end_at +
+  turnaround)`. With both buffers at 0, the default, the original rule applies
+  unchanged. See [SCRUM-129](SCRUM-129.md).
 - Intervals are half-open, `[start, end)`: a booking ending exactly when another starts
   is allowed.
 - `Confirmed` and `Blocked` bookings are hard conflicts and cannot overlap.
