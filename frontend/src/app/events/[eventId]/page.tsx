@@ -17,6 +17,7 @@ import { AppShell } from "@/components/app-shell";
 import { Button } from "@/components/ui/button";
 import EventConfirmForm from "./event-confirm-form";
 import EventSafetyCheckForm from "./event-safety-check-form";
+import EventSafetyReviewDetail from "./event-safety-review-detail";
 import EventDecisionForm from "./event-decision-form";
 import EventEditForm from "./event-edit-form";
 import EventClarificationForm from "./event-clarification-form";
@@ -229,6 +230,7 @@ export default function EventStatusPage() {
               <EventBookingsPanel eventId={event.id} canManage={actingRole === "Coordinator" && !completed} />
             )}
           {actingRole === "Coordinator" && event.status === "Preparation" && <EventCompleteForm event={event} onCompleted={(result) => void handleCompleted(result)} />}
+          {actingRole === "Safety Officer" && (event.status === "Confirmed" || event.status === "Preparation") && <EventSafetyReviewDetail eventId={event.id} />}
           {actingRole === "Safety Officer" && event.status === "Confirmed" && <EventSafetyCheckForm event={event} onSaved={setEvent} />}
           {actingRole === "Coordinator" && event.status === "Planning" && <details className="rounded-2xl border border-border bg-card shadow-sm">
             <summary className="cursor-pointer px-5 py-4 text-sm font-medium text-primary">Edit event details</summary>

@@ -920,3 +920,21 @@ def test_expected_attendance_has_a_ten_thousand_limit(
             "Enter a whole number between 1 and 10,000."
         )
         assert event_database[0] == []
+
+
+def test_safety_venue_view_exposes_only_safety_fields():
+    """SCRUM-145 / R16: the Safety Officer's venue panel shows safety attributes only — not
+    operating hours, buffers, timezone or audit columns (least privilege)."""
+    from app.events import safety_venue_view
+
+    projected = safety_venue_view({
+        "id": "v1", "name": "Main Hall", "location": "Level 1", "capacity": 200,
+        "supported_layouts": ["Theatre"], "accessibility": ["Step-free"], "facilities": ["AED"],
+        "operating_hours": {"mon": "09:00-17:00"}, "timezone": "Asia/Singapore",
+        "created_by": 3, "setup_buffer_minutes": 30,
+    })
+    assert projected == {
+        "id": "v1", "name": "Main Hall", "location": "Level 1", "capacity": 200,
+        "supported_layouts": ["Theatre"], "accessibility": ["Step-free"], "facilities": ["AED"],
+    }
+    assert safety_venue_view(None) is None

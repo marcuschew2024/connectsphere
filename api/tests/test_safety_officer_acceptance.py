@@ -21,7 +21,8 @@ def live_safety(monkeypatch):
     url = os.environ["POSTGREST_TEST_URL"]
     assert url in {"http://127.0.0.1:55433", "http://localhost:55433"}
     with SyncPostgrestClient(url) as db:
-        for name in ("users", "event_repository", "rbac", "auth"):
+        for name in ("users", "event_repository", "rbac", "auth",
+                     "booking_repository", "venue_repository", "equipment_repository"):
             monkeypatch.setattr(importlib.import_module(f"app.{name}"),
                                 "get_supabase_client", lambda: db)
         app = create_app({
@@ -108,6 +109,34 @@ def test_queue_paginates_without_dropping_or_repeating_events(live_safety):
     assert len(first["events"]) == 25 and first["has_more"] is True
     assert len(second["events"]) == 1 and second["has_more"] is False
     assert {row["id"] for row in first["events"] + second["events"]} == expected
+
+
+def test_safety_officer_reads_event_scoped_review_detail(live_safety):
+    """SCRUM-145 / R16: the Safety Officer can read an event's venue + technical detail while
+    it is in the review window (Confirmed/Preparation), event-scoped and read-only."""
+    app, _, client, _, event = live_safety
+    confirmed = event()
+    preparation = event("Preparation")
+    planning = event("Planning")
+
+    detail = client.get(f"/events/{confirmed['id']}/safety-review-details", headers=ORIGIN)
+    assert detail.status_code == 200, detail.json
+    body = detail.json
+    assert set(body) == {"bookings", "venues", "equipment"}
+    assert isinstance(body["bookings"], list) and isinstance(body["venues"], list)
+    assert isinstance(body["equipment"]["reservations"], list)
+
+    # The review window includes Preparation; earlier stages are outside it.
+    assert client.get(f"/events/{preparation['id']}/safety-review-details",
+                      headers=ORIGIN).status_code == 200
+    assert client.get(f"/events/{planning['id']}/safety-review-details",
+                      headers=ORIGIN).status_code == 403
+
+    # Event-scoped: a Coordinator who is not assigned to this event is denied.
+    other = app.test_client()
+    assert select_user(other, 7).status_code == 200  # Coordinator B, unrelated to the event
+    assert other.get(f"/events/{confirmed['id']}/safety-review-details",
+                     headers=ORIGIN).status_code == 403
 
 
 def test_real_sessions_of_existing_roles_are_denied_and_logged(live_safety):
