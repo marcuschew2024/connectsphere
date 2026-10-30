@@ -175,6 +175,8 @@ const CLARIFICATION_EVENT = {
   status: "Submitted",
   organiser_id: 1,
   coordinator_id: 2,
+  // SCRUM-54: the review list renders own (is_mine) requests as actionable links.
+  is_mine: true,
   coordinator_assigned_at: "2026-09-20T04:00:00Z",
   created_at: "2026-09-20T04:00:00Z",
   updated_at: "2026-09-20T04:00:00Z",

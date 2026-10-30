@@ -69,8 +69,11 @@ def live_lead(monkeypatch):
                 db.table("events").update({"status": "Cancelled"}).in_("id", created).execute()
 
 
-def test_lead_lists_every_assignment_while_coordinator_stays_scoped(live_lead):
-    """TC-131-02: the Lead sees all coordinators' events; a Coordinator sees only its own."""
+def test_lead_and_coordinator_both_list_every_non_draft_event(live_lead):
+    """TC-131-02 + SCRUM-54: the Lead sees all coordinators' events, and since SCRUM-54 a
+    Coordinator lists every non-draft event too (own assignment flagged is_mine). Drafts
+    stay private to both. Record-level access to a non-owned event still differs — see the
+    test below."""
     app, _, client, _, event = live_lead
     mine = event(coordinator_id=COORDINATOR_A)
     theirs = event(coordinator_id=COORDINATOR_B)
@@ -82,9 +85,13 @@ def test_lead_lists_every_assignment_while_coordinator_stays_scoped(live_lead):
 
     coordinator = app.test_client()
     assert select_user(coordinator, COORDINATOR_A).status_code == 200
-    coord_ids = {row["id"] for row in coordinator.get("/events", headers=ORIGIN).json["events"]}
-    assert mine["id"] in coord_ids  # own assignment, unchanged behaviour
-    assert theirs["id"] not in coord_ids  # another coordinator's event stays hidden
+    coord_events = coordinator.get("/events", headers=ORIGIN).json["events"]
+    coord_ids = {row["id"] for row in coord_events}
+    assert mine["id"] in coord_ids  # own assignment
+    assert theirs["id"] in coord_ids  # SCRUM-54: another coordinator's event is now visible
+    assert draft["id"] not in coord_ids  # drafts stay private
+    flags = {row["id"]: row.get("is_mine") for row in coord_events}
+    assert flags[mine["id"]] is True and flags[theirs["id"]] is False
 
 
 def test_lead_reads_an_unrelated_event_but_a_coordinator_is_denied(live_lead):

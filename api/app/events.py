@@ -26,6 +26,7 @@ from .event_repository import (
     get_pending_clarification,
     get_status_history,
     insert_event,
+    list_all_events_for_coordinator,
     list_all_supervised_events,
     list_coordinators,
     list_event_equipment_requests,
@@ -164,11 +165,21 @@ def list_events():
     if user["role"] == "Event Coordinator Lead":
         # Oversight view: every submitted/active event, not just ones tied to the Lead.
         event_list = list_all_supervised_events()
+    elif user["role"] == "Coordinator":
+        # SCRUM-54: a Coordinator views every non-draft event, their own surfaced first.
+        event_list = list_all_events_for_coordinator(user["id"])
     else:
         event_list = get_events_for_user(user["id"], drafts_only=status == "Draft")
         event_list = [event for event in event_list
                       if event["status"] != "Draft" or user["role"] == "Organiser"]
-    return jsonify({"events": [event_response(event, user) for event in event_list]}), 200
+    responses = [event_response(event, user) for event in event_list]
+    if user["role"] == "Coordinator":
+        # Tag which events the Coordinator owns so the list can surface them first and
+        # the UI can show a "your event" marker without the browser learning the user id.
+        for response, event in zip(responses, event_list):
+            response["is_mine"] = (event.get("organiser_id") == user["id"]
+                                   or event.get("coordinator_id") == user["id"])
+    return jsonify({"events": responses}), 200
 
 
 @events.get("/safety-review")

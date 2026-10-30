@@ -126,6 +126,43 @@ def list_all_supervised_events() -> list[dict]:
         ) from error
 
 
+def list_all_events_for_coordinator(user_id: int) -> list[dict]:
+    """Every non-Draft event for a Coordinator's view-all list (SCRUM-54), with the
+    Coordinator's own events surfaced first (Customer S1 Q34: "mainly views their own
+    assigned events, but can view all").
+
+    The "own" group reuses ``get_events_for_user`` unchanged, so it keeps that list's
+    exact semantics: the Coordinator's organised/assigned events, others' private drafts
+    excluded, and an own event currently back with its organiser for clarification
+    hidden. Every other non-Draft event is then appended so "view all" means full
+    operational visibility. Visibility only — editing or deciding a non-owned event is
+    still refused by the action endpoints (``require_related_user``)."""
+    own = get_events_for_user(user_id)
+    own_ids = {event["id"] for event in own}
+    try:
+        client = get_supabase_client()
+        if client is None:
+            raise ServiceUnavailable("The database is not configured. Contact the team.")
+        rows = (client.table("events").select("*")
+                .neq("status", "Draft").order("updated_at", desc=True).execute().data or [])
+        # One of the Coordinator's own events currently back with its organiser for
+        # clarification is hidden by get_events_for_user; keep it hidden here too, so the
+        # "others" pass does not resurrect it. Other Coordinators' events are always shown.
+        pending_ids = get_pending_clarification_event_ids()
+        others = [
+            event for event in rows
+            if event["id"] not in own_ids
+            and not (event.get("coordinator_id") == user_id and event["id"] in pending_ids)
+        ]
+        return own + others
+    except ServiceUnavailable:
+        raise
+    except Exception as error:
+        raise ServiceUnavailable(
+            "Could not load events. Contact the team."
+        ) from error
+
+
 def save_event_draft(event_id: str, user_id: int, fields: dict, *, submitting: bool) -> dict:
     """Save the same draft; SQL makes submission and its history entry atomic."""
     try:
