@@ -7,6 +7,7 @@ import { ApiError, apiRequest } from "@/lib/api";
 import {
   StatusBadge,
   type EventClarification,
+  type EventCancellationResult,
   type EventChangeRequest,
   type EventCompletionResult,
   type EventRecord,
@@ -25,19 +26,21 @@ import EventResubmitForm from "./event-resubmit-form";
 import EventBookingsPanel from "./event-bookings-panel";
 import EventChangeRequests from "./event-change-requests";
 import EventCompleteForm from "./event-complete-form";
+import EventCancelForm from "./event-cancel-form";
 import EventCapacityPanel from "./event-capacity-panel";
 import EventWithdrawalPolicy from "./event-withdrawal-policy";
 import { historyActionLabel } from "@/lib/history";
 
 export default function EventStatusPage() {
   const params = useParams<{ eventId: string }>();
-  const [actingRole, , roleLoading] = useActingRole();
+  const [actingRole, , roleLoading, , userId] = useActingRole();
   const [event, setEvent] = useState<EventRecord | null>(null);
   const [history, setHistory] = useState<EventStatusHistory[]>([]);
   const [clarification, setClarification] = useState<EventClarification | null>(null);
   const [changeRequests, setChangeRequests] = useState<EventChangeRequest[]>([]);
   const [changeRequestsUnavailable, setChangeRequestsUnavailable] = useState(false);
   const [released, setReleased] = useState<EventCompletionResult["released"] | null>(null);
+  const [cancellation, setCancellation] = useState<EventCancellationResult | null>(null);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(true);
 
@@ -108,18 +111,33 @@ export default function EventStatusPage() {
 
   const canReview = actingRole === "Coordinator" && event?.status === "Submitted" && !clarification;
   const completed = event?.status === "Completed";
+  const cancelled = event?.status === "Cancelled";
+  // SCRUM-69 (D34): the assigned Coordinator or the Event Coordinator Lead may cancel.
+  // Coordinators can view every event (SCRUM-54), so the panel checks it is theirs.
+  const canCancel = actingRole === "Event Coordinator Lead"
+    || (actingRole === "Coordinator" && userId !== null && event?.coordinator_id === userId);
+
+  async function refreshHistory(eventId: string, failure: string) {
+    try {
+      const updatedHistory = await apiRequest<{ history: EventStatusHistory[] }>(
+        `/events/${eventId}/history`,
+      );
+      setHistory(updatedHistory.history);
+    } catch {
+      setError(failure);
+    }
+  }
 
   async function handleCompleted(result: EventCompletionResult) {
     setEvent(result.event);
     setReleased(result.released);
-    try {
-      const updatedHistory = await apiRequest<{ history: EventStatusHistory[] }>(
-        `/events/${result.event.id}/history`,
-      );
-      setHistory(updatedHistory.history);
-    } catch {
-      setError("The event was completed, but status history could not be refreshed.");
-    }
+    await refreshHistory(result.event.id, "The event was completed, but status history could not be refreshed.");
+  }
+
+  async function handleCancelled(result: EventCancellationResult) {
+    setEvent(result.event);
+    setCancellation(result);
+    await refreshHistory(result.event.id, "The event was cancelled, but status history could not be refreshed.");
   }
   const accepted = event?.decision_at && event.decision_by != null && event.decision_reason == null
     && ["Planning", "Confirmed", "Completed"].includes(event.status);
@@ -153,6 +171,13 @@ export default function EventStatusPage() {
             <p role="status" className="mt-1 text-sm text-muted-foreground">
               This event&apos;s record is read-only.
               {released && ` Released ${released.equipment_reservations} equipment reservation(s) and ${released.venue_bookings} future venue booking(s).`}
+            </p>
+          </section>}
+          {cancelled && <section aria-labelledby="cancelled-heading" className="rounded-2xl border border-destructive/30 bg-destructive/5 p-5">
+            <h2 id="cancelled-heading" className="font-semibold text-destructive">Event cancelled</h2>
+            <p role="status" className="mt-1 text-sm text-muted-foreground">
+              This event has been cancelled and its record is read-only.
+              {cancellation && ` Released ${cancellation.released.venue_bookings} venue booking(s) and ${cancellation.released.equipment_reservations} equipment reservation(s). Notified ${cancellation.notified_attendees} registered attendee(s).`}
             </p>
           </section>}
           {event.request_status === "Draft" && <Button asChild><Link href={`/events/drafts/${event.id}`}>Continue editing</Link></Button>}
@@ -229,7 +254,7 @@ export default function EventStatusPage() {
           )}
           {actingRole === "Coordinator" && event.status === "Planning" && <EventConfirmForm event={event} onSaved={setEvent} />}
             {(actingRole === "Coordinator" || actingRole === "Organiser" || actingRole === "Venue Staff") && (
-              <EventBookingsPanel eventId={event.id} canManage={actingRole === "Coordinator" && !completed} />
+              <EventBookingsPanel eventId={event.id} canManage={actingRole === "Coordinator" && !completed && !cancelled} />
             )}
           {actingRole === "Coordinator" && event.status === "Preparation" && <EventCompleteForm event={event} onCompleted={(result) => void handleCompleted(result)} />}
           {actingRole === "Safety Officer" && (event.status === "Confirmed" || event.status === "Preparation") && <EventSafetyReviewDetail eventId={event.id} />}
@@ -238,6 +263,7 @@ export default function EventStatusPage() {
             <summary className="cursor-pointer px-5 py-4 text-sm font-medium text-primary">Edit event details</summary>
             <EventEditForm event={event} onSaved={setEvent} />
           </details>}
+          {canCancel && <EventCancelForm event={event} onCancelled={(result) => void handleCancelled(result)} />}
 
           <details className="rounded-2xl border border-border bg-card shadow-sm">
             <summary className="cursor-pointer px-5 py-4 text-sm font-medium text-foreground">Status history <span className="ml-2 text-xs text-muted-foreground">({history.length})</span></summary>

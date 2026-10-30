@@ -879,6 +879,55 @@ Shared Supabase migration deployment is separate and is not implied by the Git m
   human-reviewed and merged only behind green CI; the migration is applied to the shared
   Supabase as a separate step.
 
+### D34 — Who may cancel an event, and what cancelling does (SCRUM-69)
+
+- **Context.** SCRUM-69 says "an authorised user can cancel an event; its venue and
+  equipment reservations are automatically released" and "registered Attendees are
+  notified", but does not name the authorised user. Before this story the generic
+  `PATCH /events/{id}/status` let any related user (including Venue Staff, Tech Support
+  and Attendees) set `Cancelled`. It released equipment, silently ignored a failure to
+  do so, never released venue bookings and notified nobody. D14 flagged cancellation's
+  release of resources as a known follow-up.
+- **Decision (Ernest, 30 Oct 2026; for team confirmation).** The authorised users are:
+  - the event's **assigned Coordinator**, because Coordinators manage only their assigned
+    events (D26, SCRUM-130); and
+  - the **Event Coordinator Lead**, who oversees every event, including unassigned
+    submissions (SCRUM-131).
+  Organisers do not cancel directly. Like any change after submission, they ask the
+  Coordinator through a change request (SCRUM-46, S1 Q28). Any submitted or active
+  state can be cancelled (Submitted, including its legacy sub-states, Planning,
+  Confirmed and Preparation). Draft stays private (404), and Completed, Rejected and
+  Cancelled are closed (409). A reason of 1–2000 characters is required.
+- **How.** `POST /events/{id}/cancel` → the `EventCancellation` value object → the
+  `cancel_event()` database function. In one transaction, under the event row lock, it
+  re-checks the actor and state and:
+  - cancels every Requested, Pending, Held and Confirmed venue booking for the event
+    (the event will not take place);
+  - releases Reserved/Pending equipment reservations;
+  - sets `Cancelled` and records `event_cancelled` with the reason in the history;
+  - notifies each **Registered** Attendee by name of event only, without the internal
+    reason. It also notifies the Organiser with the reason and, when the Lead cancels,
+    the assigned Coordinator. This is the cancellation trigger D27 deferred to SCRUM-69.
+  Registrations are **not** changed. Per D31, cancellation is not an attendee withdrawal.
+  Because the row stays *Registered*, the Attendee's own pages read the event status:
+  a Registered or Waitlisted Attendee of a cancelled event sees **Event cancelled** (no
+  "place is booked" text, no withdraw action); a withdrawal still shows as Withdrawn.
+  The generic status route can no longer set `Cancelled` or move an event out of it, and
+  change requests on a cancelled event can no longer be raised or reviewed.
+- **Constraints.** Like `complete_event` (D13), the function is `security definer`, has
+  an empty search path and is executable only by the backend role. No table grants change.
+- **Verification.** Value-object unit tests, endpoint tests, the repository's error
+  mapping, and real-database acceptance tests: resources released, registrations
+  unchanged, the right recipients notified, refused actors audited, database re-checks,
+  two simultaneous cancellations and the read-only cancelled event. Browser tests cover
+  the panel, its visibility, the read-only view and the Attendee's cancelled-event view.
+  The migration is replayed twice.
+  See `docs/SCRUM-69.md`.
+- **Trade-off.** Organiser self-service cancellation was not added; the team can revisit
+  that if the customer wants it. Rejected events remain changeable through the generic
+  route, as before (SCRUM-135 covers the full transition matrix).
+- **Owner.** Ernest.
+
 ## AI usage summary
 
 Per-feature view of where AI assistance was applied, always under human specification and
@@ -901,6 +950,7 @@ system, test scaffolding, and boilerplate following existing patterns.
 | Equipment epic (D12) | Partially | CRUD/requests/reservations scaffolding; **availability & state rules human-designed** | `docs/SCRUM-34.md`, `docs/SCRUM-37.md` |
 | Event completion (D13) | Partially | Endpoint/test scaffolding; **gate rule + DB-lock re-check human-designed** | `docs/SCRUM-132.md` |
 | Change management (D14) | Partially | Implementation of change/cancel flows; **rules human-decided** | `docs/SCRUM-46.md` |
+| Event cancellation (D34) | Partially | Endpoint, DB function and test scaffolding; **authorised-user rule human-decided** | `docs/SCRUM-69.md` |
 
 **Summary statement.** AI accelerated routine implementation and scaffolding throughout,
 under human-authored specifications. Every safety-critical decision — the overlap engine,

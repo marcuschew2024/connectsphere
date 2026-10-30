@@ -81,6 +81,33 @@ test("waiting-list presentation updates to Registered on focus and receipt refre
   await expect(page.getByRole("heading", { name: "Registration confirmed" })).toBeVisible();
 });
 
+// SCRUM-69: cancelling leaves the registration Registered (D31/D34), so the page must not
+// still tell the attendee their place is booked.
+test("a registered attendee is told their event was cancelled, not that their place is booked", async ({ page }) => {
+  const state = await setup(page);
+  const cancelledEvent = { ...event, status: "Cancelled" };
+  state.rows = [{ ...registration, event: cancelledEvent }];
+  await page.route(`${API}/events/${EVENT_ID}/registration-offer`, (route) => route.fulfill({ json: {
+    event: { ...cancelledEvent, description: "A campus event", registration_requirements: null },
+    registration: state.rows[0], capacity: { capacity: 10, registered_count: 1, remaining: 9, is_full: false },
+    withdrawal_policy: { closes_at: null, unavailable_reason: null }, unavailable_reason: null,
+  } }));
+
+  await page.goto("/registrations");
+  const card = page.getByRole("list", { name: "Your registrations" }).getByRole("listitem");
+  await expect(card.getByText("Event cancelled", { exact: true })).toBeVisible();
+  await expect(card.getByText("Cancelled", { exact: true })).toBeVisible();
+  await expect(card.getByText(/will not take place/)).toBeVisible();
+  await expect(card.getByText("Registered", { exact: true })).toHaveCount(0);
+  await expect(page.getByText(/Your place is booked/)).toHaveCount(0);
+
+  await card.getByRole("link", { name: "View event →", exact: true }).click();
+  await expect(page.getByRole("heading", { name: "Event cancelled" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Registration confirmed" })).toHaveCount(0);
+  await expect(page.getByRole("button", { name: "Withdraw registration" })).toHaveCount(0);
+  await expect(page.getByText(/Withdrawal is allowed/)).toHaveCount(0);
+});
+
 test("visible list automatically rechecks status after 30 seconds", async ({ page }) => {
   await page.clock.install();
   const state = await setup(page);

@@ -175,6 +175,16 @@ timestamp. The place is released and Home shows a private withdrawal confirmatio
 Waiting-list promotion remains deferred SCRUM-80. See the
 [setup, policy, API and review evidence](docs/SCRUM-43.md).
 
+## Cancel an event (SCRUM-69)
+
+After the registration, Event Coordinator Lead and notification migrations, apply
+[`20261030180000_scrum_69_cancel_event.sql`](supabase/migrations/20261030180000_scrum_69_cancel_event.sql).
+The event's assigned Coordinator, or the Event Coordinator Lead, opens **Cancel event**
+on a submitted or active event, gives a reason and confirms. All of the event's venue
+bookings and equipment reservations are released, registered Attendees are notified,
+and the event becomes read-only. See the
+[rules, who may cancel and test evidence](docs/SCRUM-69.md).
+
 ## Prerequisites
 
 For draft submission, on-screen confirmation and coordinator assignment, see the

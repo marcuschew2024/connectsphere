@@ -71,6 +71,8 @@ export default function RegisterEventPage() {
   }
 
   const registration = offer?.registration;
+  const cancelled = offer?.event.status === "Cancelled";
+  const shown = registration ? registrationStatus(registration.status, offer?.event.status) : null;
   return <AppShell actingRole={role}>
     <div className="mx-auto max-w-3xl space-y-6 px-5 py-8 sm:px-8 sm:py-10">
       <Link href="/events/browse" className="text-sm text-primary hover:underline">← Browse events</Link>
@@ -87,14 +89,14 @@ export default function RegisterEventPage() {
               <p className="whitespace-pre-wrap break-words leading-relaxed">{offer.event.description}</p>
             </header>
             {registration ? <section aria-labelledby="receipt-heading" className="space-y-3 rounded-2xl border border-primary/30 bg-primary/5 p-5 sm:p-6">
-              <h2 id="receipt-heading" className="text-xl font-semibold">{registrationStatus(registration.status).heading}</h2>
-              <p role="status">{registrationStatus(registration.status).description}</p>
+              <h2 id="receipt-heading" className="text-xl font-semibold">{shown?.heading}</h2>
+              <p role="status">{shown?.description}</p>
               <dl className="space-y-3 text-sm">
                 <div><dt className="text-muted-foreground">Registration reference</dt><dd className="break-all font-mono">{registration.id}</dd></div>
                 <div><dt className="text-muted-foreground">Registered at</dt><dd>{eventTime(registration.registered_at)}</dd></div>
                 {registration.status === "Withdrawn" && registration.withdrawn_at && <div><dt className="text-muted-foreground">Withdrawn at</dt><dd>{eventTime(registration.withdrawn_at)}</dd></div>}
               </dl>
-              {registration.status === "Registered" && offer.withdrawal_policy && <div className="space-y-3 border-t border-border pt-3">
+              {registration.status === "Registered" && !cancelled && offer.withdrawal_policy && <div className="space-y-3 border-t border-border pt-3">
                 <p className="text-sm text-muted-foreground">{offer.withdrawal_policy.unavailable_reason || (offer.withdrawal_policy.closes_at ? `Withdrawal closes ${eventTime(offer.withdrawal_policy.closes_at)}, or when the event starts if earlier.` : "Withdrawal is allowed until the event starts.")}</p>
                 {!offer.withdrawal_policy.unavailable_reason && <WithdrawRegistration eventId={eventId} onWithdrawn={(saved) => setOffer({ ...offer, registration: saved })} />}
               </div>}

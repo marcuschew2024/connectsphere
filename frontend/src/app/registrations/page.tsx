@@ -85,7 +85,7 @@ export default function MyRegistrationsPage() {
                 ? "Your event registrations will appear here after you register."
                 : "Your registrations may have changed. Use Previous to return to an earlier page."}</p>
             </div> : <ul aria-label="Your registrations" className="grid gap-4 sm:grid-cols-2">
-              {result.registrations.map((registration) => <li key={registration.id} className="min-w-0 space-y-4 rounded-2xl border border-border bg-card p-5 shadow-sm">
+              {result.registrations.map((registration) => { const shown = registrationStatus(registration.status, registration.event?.status); return <li key={registration.id} className="min-w-0 space-y-4 rounded-2xl border border-border bg-card p-5 shadow-sm">
                 <div className="space-y-2">
                   {registration.event?.category && <p className="text-xs text-muted-foreground">{registration.event.category}</p>}
                   <h2 className="break-words text-lg font-semibold">{registration.event?.title || "Event unavailable"}</h2>
@@ -93,15 +93,15 @@ export default function MyRegistrationsPage() {
                 </div>
                 <dl className="space-y-3 text-sm">
                   <div><dt className="text-muted-foreground">Your registration status</dt>
-                    <dd className="mt-1 inline-flex rounded-full bg-primary/10 px-3 py-1 font-medium text-primary">{registrationStatus(registration.status).label}</dd></div>
+                    <dd className="mt-1 inline-flex rounded-full bg-primary/10 px-3 py-1 font-medium text-primary">{shown.label}</dd></div>
                   {registration.event && <div><dt className="text-muted-foreground">Event status</dt><dd>{registration.event.status}</dd></div>}
                   <div><dt className="text-muted-foreground">Registered at</dt><dd>{eventTime(registration.registered_at)}</dd></div>
                   {registration.status === "Withdrawn" && registration.withdrawn_at && <div><dt className="text-muted-foreground">Withdrawn at</dt><dd>{eventTime(registration.withdrawn_at)}</dd></div>}
                   <div><dt className="text-muted-foreground">Registration reference</dt><dd className="break-all font-mono">{registration.id}</dd></div>
                 </dl>
-                <p className="text-sm text-muted-foreground">{registrationStatus(registration.status).description}</p>
+                <p className="text-sm text-muted-foreground">{shown.description}</p>
                 {registration.event && <Link href={`/events/browse/${registration.event_id}`} className="inline-flex text-sm text-primary hover:underline">View event →</Link>}
-              </li>)}
+              </li>; })}
             </ul>}
             <nav aria-label="Registration pages" className="flex items-center gap-3">
               <Button variant="outline" disabled={query.page === 1} onClick={() => refresh(query.page - 1)}>Previous</Button>
