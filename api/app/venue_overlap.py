@@ -1,4 +1,4 @@
-"""SCRUM-33 + SCRUM-129: reusable venue booking overlap and buffer domain model.
+"""SCRUM-33 + SCRUM-129 + SCRUM-120: reusable venue booking overlap and FCFS domain model.
 
 Adheres to:
 1. Pure domain engine with zero database dependencies.
@@ -37,6 +37,7 @@ class BookingInterval:
     setup_minutes: int = 0
     turnaround_minutes: int = 0
     expires_at: datetime | None = None
+    requested_at: datetime | None = None
 
     @classmethod
     def from_record(
@@ -49,6 +50,7 @@ class BookingInterval:
         setup = int(record.get("setup_minutes", setup_minutes) or 0)
         turnaround = int(record.get("turnaround_minutes", turnaround_minutes) or 0)
         expires = record.get("expires_at")
+        requested = record.get("requested_at")
         return cls(
             booking_id=record.get("id"),
             venue_id=str(record["venue_id"]),
@@ -58,6 +60,7 @@ class BookingInterval:
             setup_minutes=max(0, setup),
             turnaround_minutes=max(0, turnaround),
             expires_at=_as_utc(expires) if expires else None,
+            requested_at=_as_utc(requested) if requested else None,
         )
 
     def is_expired(self, as_of: datetime | None = None) -> bool:
@@ -247,6 +250,18 @@ class OverlapEngine:
 def _highest_priority(bookings: list[BookingInterval]) -> BookingInterval | None:
     if not bookings:
         return None
-    return sorted(
-        bookings, key=lambda booking: (booking.status != "Confirmed", booking.start_at)
-    )[0]
+    # Priority order:
+    # 1. Hard status (Blocked/Confirmed) over tentative status (Held/Requested/Pending)
+    # 2. Status priority: Blocked == Confirmed (0) > Held (1) > Requested/Pending (2)
+    # 3. FCFS tie-breaker: earlier requested_at wins (or start_at if requested_at unavailable)
+    def _sort_key(booking: BookingInterval):
+        if booking.status in OverlapEngine.HARD_STATUSES:
+            status_rank = 0
+        elif booking.status == "Held":
+            status_rank = 1
+        else:
+            status_rank = 2
+        req_dt = booking.requested_at or booking.start_at
+        return (status_rank, req_dt, booking.start_at)
+
+    return sorted(bookings, key=_sort_key)[0]

@@ -8,7 +8,9 @@ Test Register Traceability:
 
 from datetime import UTC, datetime, timedelta
 
-from app.venue_overlap import BookingInterval, OverlapEngine
+import pytest
+
+from app.venue_overlap import BookingInterval, OverlapEngine, _as_utc, _highest_priority
 
 START = datetime(2099, 10, 20, 10, 0, tzinfo=UTC)
 
@@ -381,3 +383,309 @@ def test_tc_79_04_hold_interval_is_expired_method():
     assert not active_interval.is_expired()
     assert not active_interval.is_expired(as_of=now + timedelta(hours=23))
     assert active_interval.is_expired(as_of=now + timedelta(hours=25))
+
+
+# ==============================================================================
+# SCRUM-120: Double-booking: tentative hold + FCFS (confirmed beats hold)
+# ==============================================================================
+
+def test_tc_120_01_only_one_tentative_hold_per_venue_slot():
+    """AC1: Only one tentative hold allowed per slot; concurrent/subsequent hold is blocked."""
+    engine = OverlapEngine()
+    existing_hold = [
+        {
+            "id": "hold-first",
+            "venue_id": "venue-1",
+            "start_at": START.isoformat(),
+            "end_at": (START + timedelta(hours=2)).isoformat(),
+            "status": "Held",
+            "requested_at": (datetime.now(UTC) - timedelta(hours=2)).isoformat(),
+        }
+    ]
+    # Another coordinator attempts to request/hold the exact same slot
+    result = engine.evaluate(
+        "venue-1",
+        START,
+        START + timedelta(hours=2),
+        existing_hold,
+    )
+    assert result.can_request is False
+    assert result.tentative_conflict is not None
+    assert result.tentative_conflict.booking_id == "hold-first"
+
+
+def test_tc_120_02_confirmed_booking_fcfs_beats_tentative_hold():
+    """AC2: A confirmed booking (FCFS) beats a tentative hold (S1 Q3, Q17, Q31)."""
+    engine = OverlapEngine()
+    existing_hold = [
+        {
+            "id": "hold-existing",
+            "venue_id": "venue-1",
+            "start_at": START.isoformat(),
+            "end_at": (START + timedelta(hours=2)).isoformat(),
+            "status": "Held",
+            "requested_at": (datetime.now(UTC) - timedelta(hours=5)).isoformat(),
+        }
+    ]
+    # When Venue Staff confirms a booking on this slot, it can proceed (can_confirm is True)
+    result = engine.evaluate(
+        "venue-1",
+        START,
+        START + timedelta(hours=2),
+        existing_hold,
+    )
+    assert result.can_confirm is True
+    assert result.hard_conflict is None
+    assert result.tentative_conflict is not None
+
+
+def test_tc_120_03_blocked_maintenance_period_counts_as_unavailable_for_request_and_confirmation():
+    """AC3: Blocked/maintenance periods count as unavailable (hard conflict, no override)."""
+    engine = OverlapEngine()
+    maintenance_block = [
+        {
+            "id": "maint-1",
+            "venue_id": "venue-1",
+            "start_at": START.isoformat(),
+            "end_at": (START + timedelta(hours=4)).isoformat(),
+            "status": "Blocked",
+        }
+    ]
+    result = engine.evaluate(
+        "venue-1",
+        START + timedelta(hours=1),
+        START + timedelta(hours=3),
+        maintenance_block,
+    )
+    # Neither request nor confirmation is permitted during blocked maintenance
+    assert result.can_request is False
+    assert result.can_confirm is False
+    assert result.hard_conflict is not None
+    assert result.hard_conflict.status == "Blocked"
+    assert result.hard_conflict.booking_id == "maint-1"
+
+
+def test_tc_120_04_fcfs_tie_breaker_earliest_requested_at_wins():
+    """FCFS ordering: when multiple unconfirmed requests compete, earliest requested_at wins."""
+    engine = OverlapEngine()
+    t0 = datetime.now(UTC) - timedelta(hours=10)
+    t1 = datetime.now(UTC) - timedelta(hours=5)
+    t2 = datetime.now(UTC) - timedelta(hours=1)
+
+    # Three competing requests for the same slot
+    competing_records = [
+        {
+            "id": "req-late",
+            "venue_id": "venue-1",
+            "start_at": START.isoformat(),
+            "end_at": (START + timedelta(hours=2)).isoformat(),
+            "status": "Requested",
+            "requested_at": t2.isoformat(),
+        },
+        {
+            "id": "req-early",
+            "venue_id": "venue-1",
+            "start_at": START.isoformat(),
+            "end_at": (START + timedelta(hours=2)).isoformat(),
+            "status": "Requested",
+            "requested_at": t0.isoformat(),
+        },
+        {
+            "id": "req-mid",
+            "venue_id": "venue-1",
+            "start_at": START.isoformat(),
+            "end_at": (START + timedelta(hours=2)).isoformat(),
+            "status": "Requested",
+            "requested_at": t1.isoformat(),
+        },
+    ]
+
+    result = engine.evaluate(
+        "venue-1",
+        START,
+        START + timedelta(hours=2),
+        competing_records,
+    )
+    # The reported tentative conflict must be the earliest (FCFS winner: req-early)
+    assert result.tentative_conflict is not None
+    assert result.tentative_conflict.booking_id == "req-early"
+
+
+def test_tc_120_05_held_status_takes_priority_over_unheld_requested_status():
+    """Priority matrix: Confirmed/Blocked (0) > Held (1) > Requested (2)."""
+    engine = OverlapEngine()
+    t_early = datetime.now(UTC) - timedelta(hours=5)
+    t_late = datetime.now(UTC) - timedelta(hours=1)
+
+    # A Requested submitted earlier vs a Held decided later
+    records = [
+        {
+            "id": "req-just-requested",
+            "venue_id": "venue-1",
+            "start_at": START.isoformat(),
+            "end_at": (START + timedelta(hours=2)).isoformat(),
+            "status": "Requested",
+            "requested_at": t_early.isoformat(),
+        },
+        {
+            "id": "hold-promoted",
+            "venue_id": "venue-1",
+            "start_at": START.isoformat(),
+            "end_at": (START + timedelta(hours=2)).isoformat(),
+            "status": "Held",
+            "requested_at": t_late.isoformat(),
+        },
+    ]
+
+    result = engine.evaluate("venue-1", START, START + timedelta(hours=2), records)
+    assert result.tentative_conflict is not None
+    assert result.tentative_conflict.booking_id == "hold-promoted"
+
+
+def test_tc_120_06_confirmed_beats_both_held_and_requested():
+    """A confirmed booking takes absolute precedence over all holds and requests."""
+    engine = OverlapEngine()
+    records = [
+        {
+            "id": "hold-1",
+            "venue_id": "venue-1",
+            "start_at": START.isoformat(),
+            "end_at": (START + timedelta(hours=2)).isoformat(),
+            "status": "Held",
+        },
+        {
+            "id": "req-1",
+            "venue_id": "venue-1",
+            "start_at": START.isoformat(),
+            "end_at": (START + timedelta(hours=2)).isoformat(),
+            "status": "Requested",
+        },
+        {
+            "id": "conf-1",
+            "venue_id": "venue-1",
+            "start_at": START.isoformat(),
+            "end_at": (START + timedelta(hours=2)).isoformat(),
+            "status": "Confirmed",
+        },
+    ]
+
+    result = engine.evaluate("venue-1", START, START + timedelta(hours=2), records)
+    assert result.hard_conflict is not None
+    assert result.hard_conflict.booking_id == "conf-1"
+    assert result.can_confirm is False
+    assert result.can_request is False
+
+
+# ==============================================================================
+# Full Coverage Boundary & Edge Cases (SCRUM-120 100% Coverage Target)
+# ==============================================================================
+def test_as_utc_iso_string_with_z_and_timezone_validation():
+    """Verify ISO strings ending in Z and rejection of naive datetimes."""
+    # String with Z
+    dt_z = BookingInterval.from_record({
+        "id": "b-z",
+        "venue_id": "v-1",
+        "start_at": "2099-10-20T10:00:00Z",
+        "end_at": "2099-10-20T12:00:00Z",
+        "status": "Confirmed",
+    })
+    assert dt_z.start_at == START
+
+    # String without timezone raises ValueError
+    with pytest.raises(ValueError, match="Booking times must include a time zone"):
+        BookingInterval.from_record({
+            "id": "b-naive",
+            "venue_id": "v-1",
+            "start_at": "2099-10-20T10:00:00",
+            "end_at": "2099-10-20T12:00:00",
+            "status": "Confirmed",
+        })
+
+    # Datetime without timezone raises ValueError in _as_utc
+    with pytest.raises(ValueError, match="Booking times must include a time zone"):
+        _as_utc(datetime(2099, 10, 20, 10, 0))
+
+
+def test_evaluate_rejects_end_time_before_or_equal_start():
+    """Booking end time must be strictly after start time."""
+    engine = OverlapEngine()
+
+    with pytest.raises(ValueError, match="Booking end time must be strictly after start time"):
+        engine.evaluate("venue-1", START, START, [])
+
+    with pytest.raises(ValueError, match="Booking end time must be strictly after start time"):
+        engine.evaluate("venue-1", START, START - timedelta(hours=1), [])
+
+
+def test_evaluate_filters_unrecognized_booking_status():
+    """Bookings with unrecognized status (neither hard nor tentative) are ignored."""
+    engine = OverlapEngine()
+    records = [
+        {
+            "id": "ignored-1",
+            "venue_id": "venue-1",
+            "start_at": START.isoformat(),
+            "end_at": (START + timedelta(hours=2)).isoformat(),
+            "status": "Draft",  # Not in HARD_STATUSES or TENTATIVE_STATUSES
+        }
+    ]
+
+    result = engine.evaluate("venue-1", START, START + timedelta(hours=2), records)
+    assert result.can_request is True
+    assert result.can_confirm is True
+    assert result.hard_conflict is None
+    assert result.tentative_conflict is None
+
+
+def test_highest_priority_empty_list_returns_none():
+    """_highest_priority returns None when given an empty list."""
+    assert _highest_priority([]) is None
+
+
+def test_identify_problematic_bookings_unconflicted_and_no_conflicts():
+    """Branches where bookings already conflicted raw or where no conflicts exist."""
+    engine = OverlapEngine()
+
+    # Case 1: Already conflicted under raw times -> not flagged as new problem
+    rec_overlapping_raw_1 = {
+        "id": "raw-1",
+        "venue_id": "v-1",
+        "start_at": START.isoformat(),
+        "end_at": (START + timedelta(hours=2)).isoformat(),
+        "status": "Confirmed",
+    }
+    rec_overlapping_raw_2 = {
+        "id": "raw-2",
+        "venue_id": "v-1",
+        "start_at": (START + timedelta(hours=1)).isoformat(),
+        "end_at": (START + timedelta(hours=3)).isoformat(),
+        "status": "Confirmed",
+    }
+    res_raw = engine.identify_problematic_bookings(
+        "v-1",
+        [rec_overlapping_raw_1, rec_overlapping_raw_2],
+        setup_minutes=30,
+        turnaround_minutes=30,
+    )
+    assert res_raw == []
+
+    # Case 2: Far apart bookings -> does_conflict_buffered is False
+    rec_far_1 = {
+        "id": "far-1",
+        "venue_id": "v-1",
+        "start_at": START.isoformat(),
+        "end_at": (START + timedelta(hours=2)).isoformat(),
+        "status": "Confirmed",
+    }
+    rec_far_2 = {
+        "id": "far-2",
+        "venue_id": "v-1",
+        "start_at": (START + timedelta(days=2)).isoformat(),
+        "end_at": (START + timedelta(days=2, hours=2)).isoformat(),
+        "status": "Confirmed",
+    }
+    res_far = engine.identify_problematic_bookings(
+        "v-1", [rec_far_1, rec_far_2], setup_minutes=30, turnaround_minutes=30
+    )
+    assert res_far == []
+
