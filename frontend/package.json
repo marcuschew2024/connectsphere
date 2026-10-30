@@ -8,6 +8,8 @@
     "start": "next start",
     "lint": "eslint",
     "test:unit": "vitest run",
+    "test:coverage": "vitest run --coverage --reporter=default --reporter=junit --outputFile=test-results/unit.xml",
+    "test:integrated": "playwright test --config=playwright.integrated.config.ts",
     "test:e2e": "playwright test"
   },
   "dependencies": {
@@ -30,6 +32,7 @@
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "@vitest/coverage-v8": "3.2.7",
     "eslint": "^9",
     "eslint-config-next": "16.4.3",
     "tailwindcss": "^4",

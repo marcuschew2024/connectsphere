@@ -526,6 +526,10 @@ def change_event_status(event_id):
     require_role(user, "Organiser", "Coordinator", "Venue Staff", "Tech Support", "Attendee",
                  action="change_status")
     event = require_event_access(event_id, user)
+    # Preserve private-draft 404s before checking mutation rights. Registration
+    # membership permits public reads, never lifecycle changes (SCRUM-146/135).
+    require_role(user, "Organiser", "Coordinator", "Venue Staff", "Tech Support",
+                 action="change_status")
     if event["status"] == "Draft":
         raise Conflict("Complete and submit this request through the draft form first.")
     if event["status"] == "Completed":

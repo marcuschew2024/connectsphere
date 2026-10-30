@@ -1,0 +1,972 @@
+{
+  "schema_version": 1,
+  "scope": "20 Week 4 core features and six mandatory Week 7 changes; test intent reviewed, final acceptance remains human-owned.",
+  "sources": [
+    {
+      "title": "IS212 Week 4 Scrum Project Instructions",
+      "file": "Week 4 Project Instructions (1).docx",
+      "sections": [
+        "First Release Core Functionality",
+        "Testing and traceability rubric"
+      ]
+    },
+    {
+      "title": "Core feature backlog mapping",
+      "url": "https://spm-g6t4.atlassian.net/wiki/spaces/CS/pages/360727"
+    },
+    {
+      "title": "Week 7 mandatory change register",
+      "url": "https://spm-g6t4.atlassian.net/wiki/spaces/CS/pages/11173930"
+    },
+    {
+      "title": "Sprint 4 scope and Definition of Done",
+      "url": "https://spm-g6t4.atlassian.net/wiki/spaces/CS/pages/16646166"
+    }
+  ],
+  "requirements": [
+    {
+      "id": "CORE-01",
+      "name": "Authentication and authorisation",
+      "owner": "Ernest; Marcus for access policy",
+      "stories": [
+        "SCRUM-20",
+        "SCRUM-21",
+        "SCRUM-139"
+      ],
+      "intent": "Password login resolves the stored role; record ownership and role restrict actions. Registered attendee membership cannot grant lifecycle mutation or internal fields.",
+      "checks": [
+        {
+          "lane": "backend",
+          "path": "api/tests/test_role_accounts_acceptance.py",
+          "test": "test_each_seeded_account_signs_in_with_its_role_in_production"
+        },
+        {
+          "lane": "backend",
+          "path": "api/tests/test_release_login_acceptance.py",
+          "test": "test_five_real_failures_lock_across_clients_and_record_attributed_timestamps"
+        },
+        {
+          "lane": "backend",
+          "path": "api/tests/test_release_login_acceptance.py",
+          "test": "test_correct_fifth_attempt_resets_stored_failures_and_logout_invalidates_session"
+        },
+        {
+          "lane": "backend",
+          "path": "api/tests/test_release_security_acceptance.py",
+          "test": "test_registered_attendee_cannot_mutate_lifecycle_or_receive_private_fields"
+        },
+        {
+          "lane": "integrated",
+          "path": "frontend/integration/event-lifecycle.spec.ts",
+          "test": "INTEGRATED-01"
+        },
+        {
+          "lane": "backend",
+          "path": "api/tests/test_role_accounts_acceptance.py",
+          "test": "test_account_locks_after_real_consecutive_failures_then_recovers"
+        }
+      ],
+      "gaps": [
+        "Production HTTPS/cookie deployment and browser inactivity expiry need release-environment evidence. SCRUM-141 now uses an atomic failed-login RPC and adds persisted recovery tests; simultaneous login-failure evidence remains a separate concurrency check."
+      ],
+      "sql": []
+    },
+    {
+      "id": "CORE-02",
+      "name": "Event request creation",
+      "owner": "Jerome",
+      "stories": [
+        "SCRUM-14"
+      ],
+      "intent": "Required request details are validated; valid submission persists with actor attribution, invalid submission leaves the draft unchanged.",
+      "checks": [
+        {
+          "lane": "backend",
+          "path": "api/tests/test_request_acceptance.py",
+          "test": "test_tc_us33_01_invalid_draft_cannot_submit"
+        },
+        {
+          "lane": "backend",
+          "path": "api/tests/test_request_acceptance.py",
+          "test": "test_tc_us33_03_submission_has_actor_and_timestamp"
+        },
+        {
+          "lane": "integrated",
+          "path": "frontend/integration/event-lifecycle.spec.ts",
+          "test": "INTEGRATED-01"
+        }
+      ],
+      "gaps": [],
+      "sql": [
+        "supabase/tests/drafts.sql"
+      ]
+    },
+    {
+      "id": "CORE-03",
+      "name": "Draft event requests",
+      "owner": "Jerome",
+      "stories": [
+        "SCRUM-15",
+        "SCRUM-16"
+      ],
+      "intent": "An incomplete private draft can be saved, reopened and submitted once using the same event reference.",
+      "checks": [
+        {
+          "lane": "backend",
+          "path": "api/tests/test_request_acceptance.py",
+          "test": "test_tc_us32_01_to_05_private_draft_can_be_saved_reopened_and_submitted"
+        },
+        {
+          "lane": "backend",
+          "path": "api/tests/test_events.py",
+          "test": "test_concurrent_submission_returns_conflict"
+        },
+        {
+          "lane": "integrated",
+          "path": "frontend/integration/event-lifecycle.spec.ts",
+          "test": "INTEGRATED-01"
+        }
+      ],
+      "gaps": [],
+      "sql": [
+        "supabase/tests/drafts.sql"
+      ]
+    },
+    {
+      "id": "CORE-04",
+      "name": "Event review and approval",
+      "owner": "Jerome; Marcus for clarification scope",
+      "stories": [
+        "SCRUM-18",
+        "SCRUM-22"
+      ],
+      "intent": "Only the assigned Coordinator approves/rejects a submitted request; rejection requires a reason and the Organiser receives the outcome. Clarification supports revision/resubmission.",
+      "checks": [
+        {
+          "lane": "backend",
+          "path": "api/tests/test_event_decisions.py",
+          "test": "test_rejection_stores_reason_and_notifies_organiser"
+        },
+        {
+          "lane": "backend",
+          "path": "api/tests/test_events.py",
+          "test": "test_organiser_can_view_and_resubmit_clarified_request"
+        },
+        {
+          "lane": "integrated",
+          "path": "frontend/integration/event-lifecycle.spec.ts",
+          "test": "INTEGRATED-01"
+        }
+      ],
+      "gaps": [
+        "Clarification source conflict J2 and section-specific acceptance still require owner confirmation. Real-browser clarification/rejection branches are not in the integrated lane."
+      ],
+      "sql": []
+    },
+    {
+      "id": "CORE-05",
+      "name": "Coordinator assignment and reassignment",
+      "owner": "Ernest",
+      "stories": [
+        "SCRUM-130",
+        "SCRUM-131"
+      ],
+      "intent": "Submission enters an unassigned queue. The Lead assigns/reassigns; prior Coordinator loses action access; recipients and stored membership follow the assignment.",
+      "checks": [
+        {
+          "lane": "backend",
+          "path": "api/tests/test_coordinator_assignment_acceptance.py",
+          "test": "test_tc_130_01_submission_enters_the_unassigned_queue_the_lead_can_see"
+        },
+        {
+          "lane": "backend",
+          "path": "api/tests/test_coordinator_assignment_acceptance.py",
+          "test": "test_tc_130_03_lead_reassigns_and_both_coordinators_are_notified"
+        },
+        {
+          "lane": "backend",
+          "path": "api/tests/test_coordinator_assignment_acceptance.py",
+          "test": "test_tc_130_04_coordinators_only_manage_events_assigned_to_them"
+        },
+        {
+          "lane": "integrated",
+          "path": "frontend/integration/event-lifecycle.spec.ts",
+          "test": "INTEGRATED-01"
+        },
+        {
+          "lane": "backend",
+          "path": "api/tests/test_release_assignment_failures.py",
+          "test": "test_assignment_rpc_refusals_preserve_safe_http_meaning"
+        }
+      ],
+      "gaps": [],
+      "sql": [
+        "supabase/tests/coordinator_assignment.sql"
+      ]
+    },
+    {
+      "id": "CORE-06",
+      "name": "Event status management",
+      "owner": "Marcus; Ernest for cancellation",
+      "stories": [
+        "SCRUM-19",
+        "SCRUM-69",
+        "SCRUM-132",
+        "SCRUM-135"
+      ],
+      "intent": "Status presentation follows the actor; confirmation, safety and completion have dedicated gates; attendees cannot mutate lifecycle.",
+      "checks": [
+        {
+          "lane": "backend",
+          "path": "api/tests/test_event_status.py",
+          "test": "test_status_endpoint_cannot_set_confirmed_directly"
+        },
+        {
+          "lane": "backend",
+          "path": "api/tests/test_event_completion_acceptance.py",
+          "test": "test_completion_closes_the_event_audits_it_and_releases_holds"
+        },
+        {
+          "lane": "backend",
+          "path": "api/tests/test_release_security_acceptance.py",
+          "test": "test_registered_attendee_cannot_mutate_lifecycle_or_receive_private_fields"
+        },
+        {
+          "lane": "integrated",
+          "path": "frontend/integration/event-lifecycle.spec.ts",
+          "test": "INTEGRATED-01"
+        },
+        {
+          "lane": "backend",
+          "path": "api/tests/test_event_cancellation_acceptance.py",
+          "test": "test_cancelling_releases_resources_and_notifies_registered_attendees"
+        },
+        {
+          "lane": "backend",
+          "path": "api/tests/test_event_cancellation_acceptance.py",
+          "test": "test_concurrent_cancellations_cancel_once_and_notify_once"
+        },
+        {
+          "lane": "backend",
+          "path": "api/tests/test_event_cancellation_acceptance.py",
+          "test": "test_a_cancelled_event_is_read_only_but_still_visible"
+        }
+      ],
+      "gaps": [
+        "SCRUM-135 remains partial: the generic route still needs a complete human-designed forward-only role/state matrix for Submitted, Planning and Rejected states. SCRUM-69 now provides dedicated atomic cancellation and a read-only Cancelled state; those previous gaps are closed by the mapped database tests."
+      ],
+      "sql": []
+    },
+    {
+      "id": "CORE-07",
+      "name": "Event information management",
+      "owner": "Marcus; Ernest for significant changes",
+      "stories": [
+        "SCRUM-23",
+        "SCRUM-46",
+        "SCRUM-47",
+        "SCRUM-48",
+        "SCRUM-138"
+      ],
+      "intent": "Planning edits preserve attribution and become read-only after confirmation. Important changes need reconsideration of existing resource arrangements.",
+      "checks": [
+        {
+          "lane": "backend",
+          "path": "api/tests/test_events.py",
+          "test": "test_coordinator_edits_event_while_planning"
+        },
+        {
+          "lane": "backend",
+          "path": "api/tests/test_events.py",
+          "test": "test_edit_blocked_once_confirmed"
+        },
+        {
+          "lane": "backend",
+          "path": "api/tests/test_change_request_acceptance.py",
+          "test": "test_change_request_is_recorded_without_changing_the_event"
+        },
+        {
+          "lane": "backend",
+          "path": "api/tests/test_change_request_apply_acceptance.py",
+          "test": "test_approving_applies_the_values_and_records_the_decision"
+        },
+        {
+          "lane": "backend",
+          "path": "api/tests/test_change_request_apply_acceptance.py",
+          "test": "test_a_significant_change_flags_re_review_and_keeps_every_arrangement"
+        },
+        {
+          "lane": "backend",
+          "path": "api/tests/test_change_request_apply_acceptance.py",
+          "test": "test_a_failed_apply_leaves_the_event_and_request_unchanged"
+        }
+      ],
+      "gaps": [
+        "SCRUM-138 now applies approved proposed fields atomically and flags affected arrangements for re-review without cancelling them. A structured re-approval workflow (SCRUM-47) and date/time rescheduling (SCRUM-48) remain outside that implemented slice."
+      ],
+      "sql": []
+    },
+    {
+      "id": "CORE-08",
+      "name": "Venue catalogue",
+      "owner": "Jessica",
+      "stories": [
+        "SCRUM-24",
+        "SCRUM-25",
+        "SCRUM-60"
+      ],
+      "intent": "Venue details persist, duplicates and invalid capacities are rejected, and updates preserve booking records and audit.",
+      "checks": [
+        {
+          "lane": "backend",
+          "path": "api/tests/test_venue_acceptance.py",
+          "test": "test_created_venue_is_persisted_and_immediately_in_coordinator_catalogue"
+        },
+        {
+          "lane": "backend",
+          "path": "api/tests/test_venue_acceptance.py",
+          "test": "test_duplicate_name_and_location_are_blocked_case_and_whitespace_insensitively"
+        },
+        {
+          "lane": "backend",
+          "path": "api/tests/test_venue_acceptance.py",
+          "test": "test_update_is_audited_searches_change_and_confirmed_booking_is_unchanged"
+        }
+      ],
+      "gaps": [
+        "SCRUM-60 now implements temporary venue unavailability. The real-browser/API/database replacement journey remains an evidence gap under W7-02."
+      ],
+      "sql": [
+        "supabase/tests/venues.sql",
+        "supabase/tests/venue_updates.sql"
+      ]
+    },
+    {
+      "id": "CORE-09",
+      "name": "Venue availability calendar",
+      "owner": "Jessica",
+      "stories": [
+        "SCRUM-30",
+        "SCRUM-129"
+      ],
+      "intent": "Internal users can retrieve range bookings; calendar cells distinguish booked/blocked/free and closed hours with half-open raw-time boundaries.",
+      "checks": [
+        {
+          "lane": "backend",
+          "path": "api/tests/test_venue_calendar_routes.py",
+          "test": "test_venue_bookings_returns_range"
+        },
+        {
+          "lane": "backend",
+          "path": "api/tests/test_venue_calendar_routes.py",
+          "test": "test_venue_bookings_requires_from_and_to"
+        },
+        {
+          "lane": "browser",
+          "path": "frontend/e2e/venue-calendar.spec.ts",
+          "test": "coordinator sees the availability calendar with a confirmed slot"
+        }
+      ],
+      "gaps": [
+        "The calendar classifier uses published booking times; buffer-expanded calendar parity is not established. See W7-01."
+      ],
+      "sql": []
+    },
+    {
+      "id": "CORE-10",
+      "name": "Venue search and filtering",
+      "owner": "Jessica",
+      "stories": [
+        "SCRUM-28"
+      ],
+      "intent": "Combined filters run before pagination, reject malformed slots, and never claim availability when database reads fail.",
+      "checks": [
+        {
+          "lane": "backend",
+          "path": "api/tests/test_venue_search.py",
+          "test": "test_combined_filters_match_case_whitespace_and_inclusive_capacity"
+        },
+        {
+          "lane": "backend",
+          "path": "api/tests/test_venue_search.py",
+          "test": "test_database_failure_never_claims_available"
+        },
+        {
+          "lane": "backend",
+          "path": "api/tests/test_venue_acceptance.py",
+          "test": "test_search_availability_with_real_bookings"
+        }
+      ],
+      "gaps": [
+        "Search uses raw overlap lookup; complete buffer-aware search/calendar/booking consistency is not established."
+      ],
+      "sql": [
+        "supabase/tests/venues.sql"
+      ]
+    },
+    {
+      "id": "CORE-11",
+      "name": "Venue suitability checking",
+      "owner": "Jessica",
+      "stories": [
+        "SCRUM-29"
+      ],
+      "intent": "Capacity, layout, facilities and accessibility contribute independent suitability flags, including exact capacity and missing-data boundaries.",
+      "checks": [
+        {
+          "lane": "backend",
+          "path": "api/tests/test_venue_suitability.py",
+          "test": "test_capacity_rule_passes_on_exact_capacity_match"
+        },
+        {
+          "lane": "backend",
+          "path": "api/tests/test_venue_suitability.py",
+          "test": "test_suitability_engine_returns_multiple_flags"
+        },
+        {
+          "lane": "backend",
+          "path": "api/tests/test_venue_suitability.py",
+          "test": "test_api_suitability_endpoint_returns_unsuitable_advisory_flags"
+        }
+      ],
+      "gaps": [
+        "TC-29-04 advisory suitability versus booking hard capacity gate needs section-specific acceptance reconciliation."
+      ],
+      "sql": []
+    },
+    {
+      "id": "CORE-12",
+      "name": "Venue booking request",
+      "owner": "Ernest",
+      "stories": [
+        "SCRUM-31",
+        "SCRUM-126"
+      ],
+      "intent": "An assigned Coordinator submits independent bookings for one event. Editing/cancelling one booking must preserve its sibling and parent; persistence failures must not report success.",
+      "checks": [
+        {
+          "lane": "backend",
+          "path": "api/tests/test_booking_persistence_acceptance.py",
+          "test": "test_one_booking_changes_without_touching_its_sibling_or_parent"
+        },
+        {
+          "lane": "backend",
+          "path": "api/tests/test_booking_persistence_acceptance.py",
+          "test": "test_failed_database_write_is_not_reported_as_success"
+        },
+        {
+          "lane": "integrated",
+          "path": "frontend/integration/event-lifecycle.spec.ts",
+          "test": "INTEGRATED-01"
+        }
+      ],
+      "gaps": [
+        "Venue/equipment bookings can have timing independent of the event; cross-feature alignment policy is not fully enforced."
+      ],
+      "sql": [
+        "supabase/tests/venue_overlap.sql"
+      ]
+    },
+    {
+      "id": "CORE-13",
+      "name": "Venue booking approval",
+      "owner": "Ernest",
+      "stories": [
+        "SCRUM-32"
+      ],
+      "intent": "Venue Staff approve/reject with reasons, confirmation affects availability, and a competing confirmed booking blocks approval.",
+      "checks": [
+        {
+          "lane": "backend",
+          "path": "api/tests/test_booking_decision_route.py",
+          "test": "test_approve_confirms_and_notifies"
+        },
+        {
+          "lane": "backend",
+          "path": "api/tests/test_booking_decision_route.py",
+          "test": "test_reject_requires_reason"
+        },
+        {
+          "lane": "backend",
+          "path": "api/tests/test_booking_decision_route.py",
+          "test": "test_overlapping_approve_conflicts"
+        },
+        {
+          "lane": "integrated",
+          "path": "frontend/integration/event-lifecycle.spec.ts",
+          "test": "INTEGRATED-02"
+        }
+      ],
+      "gaps": [],
+      "sql": [
+        "supabase/tests/venue_overlap.sql"
+      ]
+    },
+    {
+      "id": "CORE-14",
+      "name": "Booking conflict detection",
+      "owner": "Jessica",
+      "stories": [
+        "SCRUM-33",
+        "SCRUM-79",
+        "SCRUM-120",
+        "SCRUM-129"
+      ],
+      "intent": "Half-open boundaries, confirmed/blocked precedence and tentative holds prevent incompatible booking requests.",
+      "checks": [
+        {
+          "lane": "backend",
+          "path": "api/tests/test_venue_overlap.py",
+          "test": "test_confirmed_overlap_is_hard_blocked"
+        },
+        {
+          "lane": "backend",
+          "path": "api/tests/test_venue_overlap.py",
+          "test": "test_tc_129_02_touching_occupied_boundaries_do_not_conflict"
+        },
+        {
+          "lane": "integrated",
+          "path": "frontend/integration/event-lifecycle.spec.ts",
+          "test": "INTEGRATED-02"
+        }
+      ],
+      "gaps": [
+        "Concurrent approval of published-adjacent bookings with overlapping buffers needs independent SQL enforcement evidence."
+      ],
+      "sql": [
+        "supabase/tests/venue_overlap.sql",
+        "supabase/tests/venue_holds.sql"
+      ]
+    },
+    {
+      "id": "CORE-15",
+      "name": "Equipment request management",
+      "owner": "Jerome",
+      "stories": [
+        "SCRUM-34",
+        "SCRUM-35",
+        "SCRUM-38"
+      ],
+      "intent": "Coordinator requests route to Tech Support with quantities and notes; invalid multi-item writes roll back; reservation-derived status agrees with actual allocations.",
+      "checks": [
+        {
+          "lane": "backend",
+          "path": "api/tests/test_equipment_request_acceptance.py",
+          "test": "test_record_two_items_routing_audit_reload_and_no_stock_change"
+        },
+        {
+          "lane": "backend",
+          "path": "api/tests/test_equipment_request_acceptance.py",
+          "test": "test_api_and_database_reject_invalid_second_item_atomically"
+        },
+        {
+          "lane": "backend",
+          "path": "api/tests/test_equipment_request_reservations_acceptance.py",
+          "test": "test_derived_status_cannot_be_set_manually"
+        },
+        {
+          "lane": "integrated",
+          "path": "frontend/integration/event-lifecycle.spec.ts",
+          "test": "INTEGRATED-01"
+        }
+      ],
+      "gaps": [],
+      "sql": [
+        "supabase/tests/equipment_requests.sql",
+        "supabase/tests/equipment_request_status.sql"
+      ]
+    },
+    {
+      "id": "CORE-16",
+      "name": "Equipment availability checking",
+      "owner": "Jessica",
+      "stories": [
+        "SCRUM-36"
+      ],
+      "intent": "Overlapping stock reservations reduce availability; touching windows do not; damaged/maintenance stock is unavailable.",
+      "checks": [
+        {
+          "lane": "backend",
+          "path": "api/tests/test_equipment_availability.py",
+          "test": "test_availability_insufficient_quantity"
+        },
+        {
+          "lane": "backend",
+          "path": "api/tests/test_equipment_availability.py",
+          "test": "test_touching_boundary_slots_do_not_overlap"
+        },
+        {
+          "lane": "backend",
+          "path": "api/tests/test_equipment_availability.py",
+          "test": "test_damaged_equipment_shows_zero_availability"
+        },
+        {
+          "lane": "backend",
+          "path": "api/tests/test_equipment_request_reservations_acceptance.py",
+          "test": "test_request_and_catalogue_compete_for_same_stock"
+        }
+      ],
+      "gaps": [],
+      "sql": [
+        "supabase/tests/equipment.sql"
+      ]
+    },
+    {
+      "id": "CORE-17",
+      "name": "Equipment reservation",
+      "owner": "Jessica",
+      "stories": [
+        "SCRUM-37"
+      ],
+      "intent": "Allocations reduce shared stock, remain event-associated, reject stale revisions/over-reservation and roll back every item on a failed allocation.",
+      "checks": [
+        {
+          "lane": "backend",
+          "path": "api/tests/test_equipment_request_reservations_acceptance.py",
+          "test": "test_capacity_failure_rolls_back_every_item_and_stale_retry_cannot_double_book"
+        },
+        {
+          "lane": "backend",
+          "path": "api/tests/test_equipment_request_reservations_acceptance.py",
+          "test": "test_cannot_adopt_another_events_booking"
+        },
+        {
+          "lane": "integrated",
+          "path": "frontend/integration/event-lifecycle.spec.ts",
+          "test": "INTEGRATED-01"
+        }
+      ],
+      "gaps": [],
+      "sql": [
+        "supabase/tests/equipment_request_reservations.sql"
+      ]
+    },
+    {
+      "id": "CORE-18",
+      "name": "Attendee registration",
+      "owner": "Jerome",
+      "stories": [
+        "SCRUM-40",
+        "SCRUM-41",
+        "SCRUM-43",
+        "SCRUM-44",
+        "SCRUM-45"
+      ],
+      "intent": "Attendees register once within capacity, retain their own receipt, and withdraw under the saved policy; competing final-place/withdrawal requests cannot duplicate capacity.",
+      "checks": [
+        {
+          "lane": "backend",
+          "path": "api/tests/test_registration_capacity_acceptance.py",
+          "test": "test_two_simultaneous_requests_cannot_take_the_same_final_place"
+        },
+        {
+          "lane": "backend",
+          "path": "api/tests/test_registration_withdrawal_acceptance.py",
+          "test": "test_two_simultaneous_withdrawals_release_exactly_one_place_and_receipt"
+        },
+        {
+          "lane": "backend",
+          "path": "api/tests/test_registration_withdrawal_acceptance.py",
+          "test": "test_conditions_are_enforced_on_rpc_and_direct_update_without_partial_state"
+        },
+        {
+          "lane": "integrated",
+          "path": "frontend/integration/event-lifecycle.spec.ts",
+          "test": "INTEGRATED-01"
+        }
+      ],
+      "gaps": [
+        "SCRUM-45 organiser/coordinator registration roster remains unimplemented; aggregate counts do not establish appropriate individual registration visibility.",
+        "TC-43-02 waiting-list promotion remains deferred SCRUM-80; do not mark it passed. Owner must reconcile that documented case with the agreed release slice.",
+        "Registration closes when safety approval moves to Preparation; owner must verify the customer accepts that signup window."
+      ],
+      "sql": [
+        "supabase/tests/registration_capacity.sql",
+        "supabase/tests/attendee_registration.sql",
+        "supabase/tests/registration_withdrawal.sql"
+      ]
+    },
+    {
+      "id": "CORE-19",
+      "name": "Event change requests",
+      "owner": "Ernest",
+      "stories": [
+        "SCRUM-46",
+        "SCRUM-47",
+        "SCRUM-48",
+        "SCRUM-138"
+      ],
+      "intent": "The Organiser raises a request without silently editing the event; assigned Coordinator reviews it with audit and notifications; outsiders cannot act.",
+      "checks": [
+        {
+          "lane": "backend",
+          "path": "api/tests/test_change_request_acceptance.py",
+          "test": "test_change_request_is_recorded_without_changing_the_event"
+        },
+        {
+          "lane": "backend",
+          "path": "api/tests/test_change_request_acceptance.py",
+          "test": "test_review_lifecycle_is_audited_and_notifies_each_party"
+        },
+        {
+          "lane": "backend",
+          "path": "api/tests/test_change_request_acceptance.py",
+          "test": "test_both_parties_see_status_and_outsiders_are_denied"
+        },
+        {
+          "lane": "backend",
+          "path": "api/tests/test_change_request_apply_acceptance.py",
+          "test": "test_approving_applies_the_values_and_records_the_decision"
+        },
+        {
+          "lane": "backend",
+          "path": "api/tests/test_change_request_apply_acceptance.py",
+          "test": "test_a_significant_change_flags_re_review_and_keeps_every_arrangement"
+        },
+        {
+          "lane": "backend",
+          "path": "api/tests/test_change_request_apply_acceptance.py",
+          "test": "test_a_failed_apply_leaves_the_event_and_request_unchanged"
+        }
+      ],
+      "gaps": [
+        "SCRUM-138 now applies approved proposed fields atomically and flags affected arrangements for re-review without cancelling them. A structured re-approval workflow (SCRUM-47) and date/time rescheduling (SCRUM-48) remain outside that implemented slice."
+      ],
+      "sql": []
+    },
+    {
+      "id": "CORE-20",
+      "name": "Notifications",
+      "owner": "Marcus",
+      "stories": [
+        "SCRUM-49",
+        "SCRUM-51"
+      ],
+      "intent": "Private and role-pool notifications reach only their intended readers; key request/assignment/booking/registration outcomes are emitted.",
+      "checks": [
+        {
+          "lane": "backend",
+          "path": "api/tests/test_notifications_feed_acceptance.py",
+          "test": "test_reader_returns_own_and_pool_rows_with_isolation"
+        },
+        {
+          "lane": "backend",
+          "path": "api/tests/test_notifications_feed_acceptance.py",
+          "test": "test_recipient_target_and_role_constraints_are_enforced_by_database"
+        },
+        {
+          "lane": "integrated",
+          "path": "frontend/integration/event-lifecycle.spec.ts",
+          "test": "INTEGRATED-01"
+        },
+        {
+          "lane": "backend",
+          "path": "api/tests/test_request_acceptance.py",
+          "test": "test_notifications_are_newest_first_and_limited_to_50"
+        },
+        {
+          "lane": "backend",
+          "path": "api/tests/test_event_cancellation_acceptance.py",
+          "test": "test_cancelling_releases_resources_and_notifies_registered_attendees"
+        },
+        {
+          "lane": "backend",
+          "path": "api/tests/test_venue_unavailability.py",
+          "test": "test_venue_staff_can_create_block_and_notify_each_coordinator_once"
+        }
+      ],
+      "gaps": [
+        "Cancellation and applied-change recipients now have database acceptance evidence; venue-unavailability notification wiring has route tests. A complete trigger-by-recipient matrix, persisted hold-expiry notices and full-stack replacement-venue notifications remain unproven."
+      ],
+      "sql": []
+    },
+    {
+      "id": "W7-01",
+      "name": "Venue setup and turnaround buffers",
+      "owner": "Jessica",
+      "stories": [
+        "SCRUM-129"
+      ],
+      "intent": "Venue setup/turnaround expand occupied windows; touching expanded boundaries remain non-conflicting; newly conflicting existing bookings are flagged.",
+      "checks": [
+        {
+          "lane": "backend",
+          "path": "api/tests/test_venue_overlap.py",
+          "test": "test_tc_129_01_booking_reserves_start_minus_setup_to_end_plus_turnaround"
+        },
+        {
+          "lane": "backend",
+          "path": "api/tests/test_venue_overlap.py",
+          "test": "test_identify_problematic_existing_bookings_when_buffers_introduced"
+        }
+      ],
+      "gaps": [
+        "Pure overlap maths is covered. Search/calendar raw-time behaviour and database exclusion ranges do not prove consistent buffer enforcement across create/edit/approval or competing writes."
+      ],
+      "sql": [
+        "supabase/tests/venue_buffers.sql"
+      ]
+    },
+    {
+      "id": "W7-02",
+      "name": "Venue becomes unavailable after booking",
+      "owner": "Jessica",
+      "stories": [
+        "SCRUM-60"
+      ],
+      "intent": "Venue Staff mark temporary unavailability with reason, retain affected events, notify Coordinators, and support replacement venue arrangements.",
+      "checks": [
+        {
+          "lane": "backend",
+          "path": "api/tests/test_venue_unavailability.py",
+          "test": "test_venue_staff_can_create_block_and_notify_each_coordinator_once"
+        },
+        {
+          "lane": "backend",
+          "path": "api/tests/test_venue_unavailability.py",
+          "test": "test_block_rejects_overlapping_active_block"
+        },
+        {
+          "lane": "browser",
+          "path": "frontend/e2e/venue-calendar.spec.ts",
+          "test": "Venue Staff can create and unblock a venue period"
+        }
+      ],
+      "gaps": [
+        "SCRUM-60 is now implemented with blocks, affected-booking notices, search/calendar integration and a replacement link. The mapped API tests use controlled persistence and the browser test mocks HTTP; a real DB block-to-notification-to-replacement journey and competing-write/rollback evidence are still needed."
+      ],
+      "sql": []
+    },
+    {
+      "id": "W7-03",
+      "name": "Multiple venues per event",
+      "owner": "Ernest",
+      "stories": [
+        "SCRUM-126",
+        "SCRUM-39"
+      ],
+      "intent": "One event owns independent venue bookings; sibling edits/cancellations are isolated and confirmation requires all active venues approved.",
+      "checks": [
+        {
+          "lane": "backend",
+          "path": "api/tests/test_booking_persistence_acceptance.py",
+          "test": "test_one_booking_changes_without_touching_its_sibling_or_parent"
+        },
+        {
+          "lane": "backend",
+          "path": "api/tests/test_event_confirmation_route.py",
+          "test": "test_confirm_blocked_when_a_booking_is_pending"
+        },
+        {
+          "lane": "integrated",
+          "path": "frontend/integration/event-lifecycle.spec.ts",
+          "test": "INTEGRATED-01"
+        }
+      ],
+      "gaps": [],
+      "sql": [
+        "supabase/tests/venue_overlap.sql"
+      ]
+    },
+    {
+      "id": "W7-04",
+      "name": "Expiring tentative venue holds",
+      "owner": "Jessica",
+      "stories": [
+        "SCRUM-79",
+        "SCRUM-120"
+      ],
+      "intent": "A hold has a future expiry before event start; exact-deadline expiry releases availability and must notify the Coordinator.",
+      "checks": [
+        {
+          "lane": "backend",
+          "path": "api/tests/test_venue_overlap.py",
+          "test": "test_tc_79_03_expired_hold_releases_slot_at_exact_expiry_boundary"
+        },
+        {
+          "lane": "backend",
+          "path": "api/tests/test_booking_decision_route.py",
+          "test": "test_tc_79_07_hold_with_past_or_late_expiry_is_rejected"
+        }
+      ],
+      "gaps": [
+        "Expiry exists in the value object and expires_at storage, but no automatic release/notification worker or equivalent persisted expiry workflow is established. SQL raw status constraints still need expiry/concurrency parity review."
+      ],
+      "sql": [
+        "supabase/tests/venue_holds.sql"
+      ]
+    },
+    {
+      "id": "W7-05",
+      "name": "Event Coordinator Lead",
+      "owner": "Ernest; Marcus for role policy",
+      "stories": [
+        "SCRUM-130",
+        "SCRUM-131",
+        "SCRUM-54"
+      ],
+      "intent": "Lead assigns/reassigns from the unassigned queue. Coordinator list visibility is broader than permission to open/edit another Coordinator event, per D28.",
+      "checks": [
+        {
+          "lane": "backend",
+          "path": "api/tests/test_coordinator_assignment_acceptance.py",
+          "test": "test_tc_130_04_coordinators_only_manage_events_assigned_to_them"
+        },
+        {
+          "lane": "backend",
+          "path": "api/tests/test_coordinator_assignment_acceptance.py",
+          "test": "test_refusals_leave_the_assignment_unchanged"
+        },
+        {
+          "lane": "integrated",
+          "path": "frontend/integration/event-lifecycle.spec.ts",
+          "test": "INTEGRATED-01"
+        }
+      ],
+      "gaps": [
+        "Week 7 original own-events wording and later SCRUM-54 view-all decision require final owner acceptance of D28; list visibility must not be presented as edit permission."
+      ],
+      "sql": [
+        "supabase/tests/coordinator_assignment.sql"
+      ]
+    },
+    {
+      "id": "W7-06",
+      "name": "Operational safety check",
+      "owner": "Marcus; Jerome for Safety Officer access",
+      "stories": [
+        "SCRUM-127",
+        "SCRUM-128",
+        "SCRUM-145"
+      ],
+      "intent": "Safety Officer sees scoped resource details and approves Confirmed to Preparation or sends back with a reason. Other roles cannot bypass the gate.",
+      "checks": [
+        {
+          "lane": "backend",
+          "path": "api/tests/test_safety_officer_acceptance.py",
+          "test": "test_safety_officer_reads_event_scoped_review_detail"
+        },
+        {
+          "lane": "backend",
+          "path": "api/tests/test_safety_check_route.py",
+          "test": "test_request_changes_returns_event_to_planning_with_reason"
+        },
+        {
+          "lane": "backend",
+          "path": "api/tests/test_safety_check_route.py",
+          "test": "test_non_safety_officer_cannot_submit_safety_check"
+        },
+        {
+          "lane": "integrated",
+          "path": "frontend/integration/event-lifecycle.spec.ts",
+          "test": "INTEGRATED-01"
+        }
+      ],
+      "gaps": [],
+      "sql": [
+        "supabase/tests/safety_officer.sql"
+      ]
+    }
+  ],
+  "reviewed_against": "Updated for main 8445c7b and the combined testing branch on 31 October 2026."
+}

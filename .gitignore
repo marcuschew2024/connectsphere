@@ -24,6 +24,7 @@ playwright-report/
 test-results/
 /frontend/blob-report/
 /frontend/playwright/.cache/
+/frontend/playwright-integrated-report/
 
 # OS / editor
 .DS_Store

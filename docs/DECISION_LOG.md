@@ -1045,6 +1045,42 @@ Shared Supabase migration deployment is separate and is not implied by the Git m
   flag is a notice, not a queue. SCRUM-47 can build on `significant`.
 - **Owner.** Ernest (implementation); Marcus (PO decision).
 
+### D37 — Release evidence and attendee lifecycle denial (SCRUM-146, partial SCRUM-135)
+
+- **Context.** The IS212 rubric requires traceable normal, boundary, conflict and
+  failure testing. Passing utility tests, mocked browser tests and an 80% coverage
+  gate do not establish complete feature acceptance. A registered attendee could
+  also pass the generic lifecycle route's role and event-membership guards.
+- **Decision.** Exclude Attendee at the mutation guard, after the existing private-draft
+  access check preserves its 404 response. Registration grants receipt/public reads, never
+  lifecycle mutation. Preserve the other roles and transition semantics in this
+  increment. SCRUM-135's complete forward-only transition matrix remains open.
+  Report backend statements and branches separately; include all frontend src TS/TSX
+  in unit coverage. Add a distinct real-browser/API/disposable-DB test lane and a
+  reviewed 26-requirement mapping joined to actual JUnit outcomes.
+- **Constraints.** Preserve existing test assertions, names, coverage floor and
+  application-code exclusions. No shared database or remote deployment. The test-only
+  API adapter only replaces the database client, rejects non-allowlisted URLs, uses
+  production password sessions and disables the demo switcher. Resource setup through
+  real HTTP is labelled API evidence rather than claiming every resource UI was tested.
+- **Verification.** New password-session/database regressions verify registered
+  attendee denial, unchanged event/history, continued receipt access and no private
+  fields. Real-browser journeys traverse one event across all seven roles and verify
+  conflict/ownership refusals. Persisted lockout/reset/audit tests and assignment RPC
+  failure tests cover additional boundaries. The report-tool tests preserve failure,
+  error, skip, absent-execution and unresolved-acceptance states. Exact final counts
+  and limitations are recorded in `docs/SCRUM-146.md` and the saved verification report.
+- **Trade-off.** This is a narrow correction and an evidence improvement, not release
+  certification. Remaining implementation, test and policy gaps stay explicit; newly merged
+  venue, cancellation, login and change-request work is reassessed against fresh
+  evidence before updating the checklist. Existing exclusions and green CI are not accepted coverage exceptions.
+- **Owner.** Marcus owns release scope and access-policy acceptance; the existing
+  Jira story owners own the respective business rules. Codex authored this proposal.
+  A human must review the authorization change, test intent, denominator, CI lane and
+  remaining gaps before merge. On 31 October 2026 the user explicitly authorised
+  pushing and merging the combined changes behind green CI. This is merge authority,
+  without a claim of independent teammate acceptance or a completed hosted run.
+
 ## AI usage summary
 
 Per-feature view of where AI assistance was applied, always under human specification and

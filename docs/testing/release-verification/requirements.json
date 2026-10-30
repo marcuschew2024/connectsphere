@@ -1,0 +1,2633 @@
+{
+  "generated_at": "2026-10-30T19:29:58.245159+00:00",
+  "all_requirements_accepted": false,
+  "meaning": "Mapped checks prove only their stated intent. Human acceptance is separate.",
+  "suites": {
+    "backend": {
+      "passed": 1843
+    },
+    "frontend": {
+      "passed": 67
+    },
+    "browser": {
+      "passed": 254
+    },
+    "integrated": {
+      "passed": 2
+    }
+  },
+  "coverage": {
+    "backend": {
+      "statements": {
+        "covered": 3560,
+        "total": 3695,
+        "percent": 96.34641407307171
+      },
+      "branches": {
+        "covered": 1282,
+        "total": 1374,
+        "percent": 93.3042212518195
+      },
+      "excluded_lines": 5,
+      "uncovered": {
+        "app/acting_user.py": {
+          "lines": [],
+          "branches": [
+            [
+              23,
+              28
+            ]
+          ]
+        },
+        "app/auth.py": {
+          "lines": [],
+          "branches": [
+            [
+              105,
+              126
+            ]
+          ]
+        },
+        "app/bookings.py": {
+          "lines": [
+            42,
+            47,
+            55,
+            56,
+            58,
+            60,
+            66,
+            68,
+            73,
+            76,
+            92,
+            93,
+            94,
+            107,
+            128,
+            132,
+            137,
+            144,
+            147,
+            159,
+            219,
+            228,
+            231,
+            245,
+            250,
+            262,
+            267,
+            281,
+            317,
+            318,
+            320,
+            328
+          ],
+          "branches": [
+            [
+              41,
+              42
+            ],
+            [
+              46,
+              47
+            ],
+            [
+              57,
+              58
+            ],
+            [
+              59,
+              60
+            ],
+            [
+              65,
+              66
+            ],
+            [
+              67,
+              68
+            ],
+            [
+              72,
+              73
+            ],
+            [
+              75,
+              76
+            ],
+            [
+              91,
+              92
+            ],
+            [
+              92,
+              93
+            ],
+            [
+              92,
+              94
+            ],
+            [
+              106,
+              107
+            ],
+            [
+              127,
+              128
+            ],
+            [
+              131,
+              132
+            ],
+            [
+              136,
+              137
+            ],
+            [
+              143,
+              144
+            ],
+            [
+              146,
+              147
+            ],
+            [
+              158,
+              159
+            ],
+            [
+              227,
+              228
+            ],
+            [
+              230,
+              231
+            ],
+            [
+              244,
+              245
+            ],
+            [
+              246,
+              250
+            ],
+            [
+              261,
+              262
+            ],
+            [
+              266,
+              267
+            ],
+            [
+              280,
+              281
+            ],
+            [
+              319,
+              320
+            ],
+            [
+              327,
+              328
+            ],
+            [
+              368,
+              370
+            ]
+          ]
+        },
+        "app/equipment.py": {
+          "lines": [
+            95,
+            124,
+            125,
+            151,
+            155,
+            159,
+            168,
+            169,
+            170,
+            189,
+            190,
+            214,
+            215,
+            217,
+            218
+          ],
+          "branches": [
+            [
+              94,
+              95
+            ],
+            [
+              150,
+              151
+            ],
+            [
+              154,
+              155
+            ],
+            [
+              158,
+              159
+            ],
+            [
+              167,
+              168
+            ]
+          ]
+        },
+        "app/event_repository.py": {
+          "lines": [
+            157,
+            170,
+            171,
+            172,
+            173
+          ],
+          "branches": [
+            [
+              156,
+              157
+            ]
+          ]
+        },
+        "app/events.py": {
+          "lines": [
+            160,
+            168,
+            175,
+            237,
+            244,
+            245,
+            246,
+            261,
+            316,
+            362,
+            379,
+            384,
+            386,
+            397,
+            433,
+            587,
+            594,
+            631,
+            640,
+            805,
+            811,
+            814,
+            816,
+            838,
+            842,
+            863,
+            921,
+            926,
+            937,
+            993,
+            998,
+            1000,
+            1001,
+            1004,
+            1008,
+            1011,
+            1014,
+            1046,
+            1049,
+            1050,
+            1087,
+            1090,
+            1095,
+            1100,
+            1101,
+            1108,
+            1109
+          ],
+          "branches": [
+            [
+              159,
+              160
+            ],
+            [
+              167,
+              168
+            ],
+            [
+              174,
+              175
+            ],
+            [
+              236,
+              237
+            ],
+            [
+              243,
+              244
+            ],
+            [
+              245,
+              243
+            ],
+            [
+              245,
+              246
+            ],
+            [
+              260,
+              261
+            ],
+            [
+              315,
+              316
+            ],
+            [
+              361,
+              362
+            ],
+            [
+              378,
+              379
+            ],
+            [
+              383,
+              384
+            ],
+            [
+              385,
+              386
+            ],
+            [
+              396,
+              397
+            ],
+            [
+              432,
+              433
+            ],
+            [
+              586,
+              587
+            ],
+            [
+              593,
+              594
+            ],
+            [
+              630,
+              631
+            ],
+            [
+              639,
+              640
+            ],
+            [
+              804,
+              805
+            ],
+            [
+              810,
+              811
+            ],
+            [
+              813,
+              814
+            ],
+            [
+              815,
+              816
+            ],
+            [
+              837,
+              838
+            ],
+            [
+              841,
+              842
+            ],
+            [
+              862,
+              863
+            ],
+            [
+              920,
+              921
+            ],
+            [
+              925,
+              926
+            ],
+            [
+              936,
+              937
+            ],
+            [
+              992,
+              993
+            ],
+            [
+              997,
+              998
+            ],
+            [
+              999,
+              1000
+            ],
+            [
+              1003,
+              1004
+            ],
+            [
+              1007,
+              1008
+            ],
+            [
+              1010,
+              1011
+            ],
+            [
+              1013,
+              1014
+            ],
+            [
+              1045,
+              1046
+            ],
+            [
+              1086,
+              1087
+            ],
+            [
+              1089,
+              1090
+            ],
+            [
+              1094,
+              1095
+            ],
+            [
+              1099,
+              1100
+            ]
+          ]
+        },
+        "app/registration_repository.py": {
+          "lines": [
+            48
+          ],
+          "branches": [
+            [
+              47,
+              48
+            ]
+          ]
+        },
+        "app/venue_search.py": {
+          "lines": [
+            111
+          ],
+          "branches": [
+            [
+              110,
+              111
+            ],
+            [
+              134,
+              153
+            ]
+          ]
+        },
+        "app/venue_suitability.py": {
+          "lines": [
+            196
+          ],
+          "branches": [
+            [
+              99,
+              94
+            ],
+            [
+              191,
+              195
+            ],
+            [
+              195,
+              196
+            ]
+          ]
+        },
+        "app/venue_unavailability_repository.py": {
+          "lines": [
+            14,
+            19,
+            20,
+            26,
+            27,
+            28,
+            29,
+            30,
+            31,
+            32,
+            49,
+            50,
+            51,
+            52,
+            56,
+            57,
+            58,
+            63,
+            64,
+            65,
+            66,
+            67,
+            68,
+            69,
+            73,
+            74,
+            80,
+            81,
+            82,
+            83,
+            84
+          ],
+          "branches": [
+            [
+              13,
+              14
+            ],
+            [
+              26,
+              27
+            ],
+            [
+              26,
+              28
+            ],
+            [
+              44,
+              46
+            ],
+            [
+              46,
+              48
+            ],
+            [
+              63,
+              64
+            ],
+            [
+              63,
+              65
+            ]
+          ]
+        },
+        "app/venues.py": {
+          "lines": [
+            88,
+            231
+          ],
+          "branches": [
+            [
+              87,
+              88
+            ],
+            [
+              230,
+              231
+            ]
+          ]
+        }
+      }
+    },
+    "frontend_unit": {
+      "lines": {
+        "total": 7031,
+        "covered": 193,
+        "skipped": 0,
+        "pct": 2.74
+      },
+      "statements": {
+        "total": 7031,
+        "covered": 193,
+        "skipped": 0,
+        "pct": 2.74
+      },
+      "functions": {
+        "total": 98,
+        "covered": 65,
+        "skipped": 0,
+        "pct": 66.32
+      },
+      "branches": {
+        "total": 171,
+        "covered": 140,
+        "skipped": 0,
+        "pct": 81.87
+      },
+      "branchesTrue": {
+        "total": 0,
+        "covered": 0,
+        "skipped": 0,
+        "pct": 100
+      }
+    },
+    "frontend_note": "All src TS/TSX included. Browser execution is not instrumented here. V8 branch/function denominators do not prove unexecuted UI branches."
+  },
+  "requirements": [
+    {
+      "id": "CORE-01",
+      "name": "Authentication and authorisation",
+      "owner": "Ernest; Marcus for access policy",
+      "stories": [
+        "SCRUM-20",
+        "SCRUM-21",
+        "SCRUM-139"
+      ],
+      "intent": "Password login resolves the stored role; record ownership and role restrict actions. Registered attendee membership cannot grant lifecycle mutation or internal fields.",
+      "checks": [
+        {
+          "lane": "backend",
+          "path": "api/tests/test_role_accounts_acceptance.py",
+          "test": "test_each_seeded_account_signs_in_with_its_role_in_production",
+          "status": "passed",
+          "cases": [
+            {
+              "class": "tests.test_role_accounts_acceptance",
+              "name": "test_each_seeded_account_signs_in_with_its_role_in_production[organiser.a@connectsphere.test-Organiser]",
+              "status": "passed"
+            },
+            {
+              "class": "tests.test_role_accounts_acceptance",
+              "name": "test_each_seeded_account_signs_in_with_its_role_in_production[organiser.b@connectsphere.test-Organiser]",
+              "status": "passed"
+            },
+            {
+              "class": "tests.test_role_accounts_acceptance",
+              "name": "test_each_seeded_account_signs_in_with_its_role_in_production[coordinator.a@connectsphere.test-Coordinator]",
+              "status": "passed"
+            },
+            {
+              "class": "tests.test_role_accounts_acceptance",
+              "name": "test_each_seeded_account_signs_in_with_its_role_in_production[coordinator.b@connectsphere.test-Coordinator]",
+              "status": "passed"
+            },
+            {
+              "class": "tests.test_role_accounts_acceptance",
+              "name": "test_each_seeded_account_signs_in_with_its_role_in_production[coordinator-lead@connectsphere.test-Event Coordinator Lead]",
+              "status": "passed"
+            },
+            {
+              "class": "tests.test_role_accounts_acceptance",
+              "name": "test_each_seeded_account_signs_in_with_its_role_in_production[venue-staff@connectsphere.test-Venue Staff]",
+              "status": "passed"
+            },
+            {
+              "class": "tests.test_role_accounts_acceptance",
+              "name": "test_each_seeded_account_signs_in_with_its_role_in_production[tech-support@connectsphere.test-Tech Support]",
+              "status": "passed"
+            },
+            {
+              "class": "tests.test_role_accounts_acceptance",
+              "name": "test_each_seeded_account_signs_in_with_its_role_in_production[safety-officer@connectsphere.test-Safety Officer]",
+              "status": "passed"
+            },
+            {
+              "class": "tests.test_role_accounts_acceptance",
+              "name": "test_each_seeded_account_signs_in_with_its_role_in_production[attendee.a@connectsphere.test-Attendee]",
+              "status": "passed"
+            },
+            {
+              "class": "tests.test_role_accounts_acceptance",
+              "name": "test_each_seeded_account_signs_in_with_its_role_in_production[attendee.b@connectsphere.test-Attendee]",
+              "status": "passed"
+            }
+          ]
+        },
+        {
+          "lane": "backend",
+          "path": "api/tests/test_release_login_acceptance.py",
+          "test": "test_five_real_failures_lock_across_clients_and_record_attributed_timestamps",
+          "status": "passed",
+          "cases": [
+            {
+              "class": "tests.test_release_login_acceptance",
+              "name": "test_five_real_failures_lock_across_clients_and_record_attributed_timestamps",
+              "status": "passed"
+            }
+          ]
+        },
+        {
+          "lane": "backend",
+          "path": "api/tests/test_release_login_acceptance.py",
+          "test": "test_correct_fifth_attempt_resets_stored_failures_and_logout_invalidates_session",
+          "status": "passed",
+          "cases": [
+            {
+              "class": "tests.test_release_login_acceptance",
+              "name": "test_correct_fifth_attempt_resets_stored_failures_and_logout_invalidates_session",
+              "status": "passed"
+            }
+          ]
+        },
+        {
+          "lane": "backend",
+          "path": "api/tests/test_release_security_acceptance.py",
+          "test": "test_registered_attendee_cannot_mutate_lifecycle_or_receive_private_fields",
+          "status": "passed",
+          "cases": [
+            {
+              "class": "tests.test_release_security_acceptance",
+              "name": "test_registered_attendee_cannot_mutate_lifecycle_or_receive_private_fields[Planning]",
+              "status": "passed"
+            },
+            {
+              "class": "tests.test_release_security_acceptance",
+              "name": "test_registered_attendee_cannot_mutate_lifecycle_or_receive_private_fields[Cancelled]",
+              "status": "passed"
+            },
+            {
+              "class": "tests.test_release_security_acceptance",
+              "name": "test_registered_attendee_cannot_mutate_lifecycle_or_receive_private_fields[Rejected]",
+              "status": "passed"
+            },
+            {
+              "class": "tests.test_release_security_acceptance",
+              "name": "test_registered_attendee_cannot_mutate_lifecycle_or_receive_private_fields[Submitted]",
+              "status": "passed"
+            }
+          ]
+        },
+        {
+          "lane": "integrated",
+          "path": "frontend/integration/event-lifecycle.spec.ts",
+          "test": "INTEGRATED-01",
+          "status": "passed",
+          "cases": [
+            {
+              "class": "event-lifecycle.spec.ts",
+              "name": "INTEGRATED-01 same event crosses seven password-authenticated roles and persists after reload",
+              "status": "passed"
+            }
+          ]
+        },
+        {
+          "lane": "backend",
+          "path": "api/tests/test_role_accounts_acceptance.py",
+          "test": "test_account_locks_after_real_consecutive_failures_then_recovers",
+          "status": "passed",
+          "cases": [
+            {
+              "class": "tests.test_role_accounts_acceptance",
+              "name": "test_account_locks_after_real_consecutive_failures_then_recovers",
+              "status": "passed"
+            }
+          ]
+        }
+      ],
+      "gaps": [
+        "Production HTTPS/cookie deployment and browser inactivity expiry need release-environment evidence. SCRUM-141 now uses an atomic failed-login RPC and adds persisted recovery tests; simultaneous login-failure evidence remains a separate concurrency check."
+      ],
+      "sql": [],
+      "mapped_checks_passed": true,
+      "acceptance": "gap recorded"
+    },
+    {
+      "id": "CORE-02",
+      "name": "Event request creation",
+      "owner": "Jerome",
+      "stories": [
+        "SCRUM-14"
+      ],
+      "intent": "Required request details are validated; valid submission persists with actor attribution, invalid submission leaves the draft unchanged.",
+      "checks": [
+        {
+          "lane": "backend",
+          "path": "api/tests/test_request_acceptance.py",
+          "test": "test_tc_us33_01_invalid_draft_cannot_submit",
+          "status": "passed",
+          "cases": [
+            {
+              "class": "tests.test_request_acceptance",
+              "name": "test_tc_us33_01_invalid_draft_cannot_submit",
+              "status": "passed"
+            }
+          ]
+        },
+        {
+          "lane": "backend",
+          "path": "api/tests/test_request_acceptance.py",
+          "test": "test_tc_us33_03_submission_has_actor_and_timestamp",
+          "status": "passed",
+          "cases": [
+            {
+              "class": "tests.test_request_acceptance",
+              "name": "test_tc_us33_03_submission_has_actor_and_timestamp",
+              "status": "passed"
+            }
+          ]
+        },
+        {
+          "lane": "integrated",
+          "path": "frontend/integration/event-lifecycle.spec.ts",
+          "test": "INTEGRATED-01",
+          "status": "passed",
+          "cases": [
+            {
+              "class": "event-lifecycle.spec.ts",
+              "name": "INTEGRATED-01 same event crosses seven password-authenticated roles and persists after reload",
+              "status": "passed"
+            }
+          ]
+        }
+      ],
+      "gaps": [],
+      "sql": [
+        "supabase/tests/drafts.sql"
+      ],
+      "mapped_checks_passed": true,
+      "acceptance": "human acceptance pending"
+    },
+    {
+      "id": "CORE-03",
+      "name": "Draft event requests",
+      "owner": "Jerome",
+      "stories": [
+        "SCRUM-15",
+        "SCRUM-16"
+      ],
+      "intent": "An incomplete private draft can be saved, reopened and submitted once using the same event reference.",
+      "checks": [
+        {
+          "lane": "backend",
+          "path": "api/tests/test_request_acceptance.py",
+          "test": "test_tc_us32_01_to_05_private_draft_can_be_saved_reopened_and_submitted",
+          "status": "passed",
+          "cases": [
+            {
+              "class": "tests.test_request_acceptance",
+              "name": "test_tc_us32_01_to_05_private_draft_can_be_saved_reopened_and_submitted",
+              "status": "passed"
+            }
+          ]
+        },
+        {
+          "lane": "backend",
+          "path": "api/tests/test_events.py",
+          "test": "test_concurrent_submission_returns_conflict",
+          "status": "passed",
+          "cases": [
+            {
+              "class": "tests.test_events",
+              "name": "test_concurrent_submission_returns_conflict",
+              "status": "passed"
+            }
+          ]
+        },
+        {
+          "lane": "integrated",
+          "path": "frontend/integration/event-lifecycle.spec.ts",
+          "test": "INTEGRATED-01",
+          "status": "passed",
+          "cases": [
+            {
+              "class": "event-lifecycle.spec.ts",
+              "name": "INTEGRATED-01 same event crosses seven password-authenticated roles and persists after reload",
+              "status": "passed"
+            }
+          ]
+        }
+      ],
+      "gaps": [],
+      "sql": [
+        "supabase/tests/drafts.sql"
+      ],
+      "mapped_checks_passed": true,
+      "acceptance": "human acceptance pending"
+    },
+    {
+      "id": "CORE-04",
+      "name": "Event review and approval",
+      "owner": "Jerome; Marcus for clarification scope",
+      "stories": [
+        "SCRUM-18",
+        "SCRUM-22"
+      ],
+      "intent": "Only the assigned Coordinator approves/rejects a submitted request; rejection requires a reason and the Organiser receives the outcome. Clarification supports revision/resubmission.",
+      "checks": [
+        {
+          "lane": "backend",
+          "path": "api/tests/test_event_decisions.py",
+          "test": "test_rejection_stores_reason_and_notifies_organiser",
+          "status": "passed",
+          "cases": [
+            {
+              "class": "tests.test_event_decisions",
+              "name": "test_rejection_stores_reason_and_notifies_organiser",
+              "status": "passed"
+            }
+          ]
+        },
+        {
+          "lane": "backend",
+          "path": "api/tests/test_events.py",
+          "test": "test_organiser_can_view_and_resubmit_clarified_request",
+          "status": "passed",
+          "cases": [
+            {
+              "class": "tests.test_events",
+              "name": "test_organiser_can_view_and_resubmit_clarified_request",
+              "status": "passed"
+            }
+          ]
+        },
+        {
+          "lane": "integrated",
+          "path": "frontend/integration/event-lifecycle.spec.ts",
+          "test": "INTEGRATED-01",
+          "status": "passed",
+          "cases": [
+            {
+              "class": "event-lifecycle.spec.ts",
+              "name": "INTEGRATED-01 same event crosses seven password-authenticated roles and persists after reload",
+              "status": "passed"
+            }
+          ]
+        }
+      ],
+      "gaps": [
+        "Clarification source conflict J2 and section-specific acceptance still require owner confirmation. Real-browser clarification/rejection branches are not in the integrated lane."
+      ],
+      "sql": [],
+      "mapped_checks_passed": true,
+      "acceptance": "gap recorded"
+    },
+    {
+      "id": "CORE-05",
+      "name": "Coordinator assignment and reassignment",
+      "owner": "Ernest",
+      "stories": [
+        "SCRUM-130",
+        "SCRUM-131"
+      ],
+      "intent": "Submission enters an unassigned queue. The Lead assigns/reassigns; prior Coordinator loses action access; recipients and stored membership follow the assignment.",
+      "checks": [
+        {
+          "lane": "backend",
+          "path": "api/tests/test_coordinator_assignment_acceptance.py",
+          "test": "test_tc_130_01_submission_enters_the_unassigned_queue_the_lead_can_see",
+          "status": "passed",
+          "cases": [
+            {
+              "class": "tests.test_coordinator_assignment_acceptance",
+              "name": "test_tc_130_01_submission_enters_the_unassigned_queue_the_lead_can_see",
+              "status": "passed"
+            }
+          ]
+        },
+        {
+          "lane": "backend",
+          "path": "api/tests/test_coordinator_assignment_acceptance.py",
+          "test": "test_tc_130_03_lead_reassigns_and_both_coordinators_are_notified",
+          "status": "passed",
+          "cases": [
+            {
+              "class": "tests.test_coordinator_assignment_acceptance",
+              "name": "test_tc_130_03_lead_reassigns_and_both_coordinators_are_notified",
+              "status": "passed"
+            }
+          ]
+        },
+        {
+          "lane": "backend",
+          "path": "api/tests/test_coordinator_assignment_acceptance.py",
+          "test": "test_tc_130_04_coordinators_only_manage_events_assigned_to_them",
+          "status": "passed",
+          "cases": [
+            {
+              "class": "tests.test_coordinator_assignment_acceptance",
+              "name": "test_tc_130_04_coordinators_only_manage_events_assigned_to_them",
+              "status": "passed"
+            }
+          ]
+        },
+        {
+          "lane": "integrated",
+          "path": "frontend/integration/event-lifecycle.spec.ts",
+          "test": "INTEGRATED-01",
+          "status": "passed",
+          "cases": [
+            {
+              "class": "event-lifecycle.spec.ts",
+              "name": "INTEGRATED-01 same event crosses seven password-authenticated roles and persists after reload",
+              "status": "passed"
+            }
+          ]
+        },
+        {
+          "lane": "backend",
+          "path": "api/tests/test_release_assignment_failures.py",
+          "test": "test_assignment_rpc_refusals_preserve_safe_http_meaning",
+          "status": "passed",
+          "cases": [
+            {
+              "class": "tests.test_release_assignment_failures",
+              "name": "test_assignment_rpc_refusals_preserve_safe_http_meaning[PT403-Forbidden]",
+              "status": "passed"
+            },
+            {
+              "class": "tests.test_release_assignment_failures",
+              "name": "test_assignment_rpc_refusals_preserve_safe_http_meaning[PT404-NotFound]",
+              "status": "passed"
+            },
+            {
+              "class": "tests.test_release_assignment_failures",
+              "name": "test_assignment_rpc_refusals_preserve_safe_http_meaning[PT409-Conflict]",
+              "status": "passed"
+            },
+            {
+              "class": "tests.test_release_assignment_failures",
+              "name": "test_assignment_rpc_refusals_preserve_safe_http_meaning[22023-BadRequest]",
+              "status": "passed"
+            },
+            {
+              "class": "tests.test_release_assignment_failures",
+              "name": "test_assignment_rpc_refusals_preserve_safe_http_meaning[XX000-ServiceUnavailable]",
+              "status": "passed"
+            }
+          ]
+        }
+      ],
+      "gaps": [],
+      "sql": [
+        "supabase/tests/coordinator_assignment.sql"
+      ],
+      "mapped_checks_passed": true,
+      "acceptance": "human acceptance pending"
+    },
+    {
+      "id": "CORE-06",
+      "name": "Event status management",
+      "owner": "Marcus; Ernest for cancellation",
+      "stories": [
+        "SCRUM-19",
+        "SCRUM-69",
+        "SCRUM-132",
+        "SCRUM-135"
+      ],
+      "intent": "Status presentation follows the actor; confirmation, safety and completion have dedicated gates; attendees cannot mutate lifecycle.",
+      "checks": [
+        {
+          "lane": "backend",
+          "path": "api/tests/test_event_status.py",
+          "test": "test_status_endpoint_cannot_set_confirmed_directly",
+          "status": "passed",
+          "cases": [
+            {
+              "class": "tests.test_event_status",
+              "name": "test_status_endpoint_cannot_set_confirmed_directly",
+              "status": "passed"
+            }
+          ]
+        },
+        {
+          "lane": "backend",
+          "path": "api/tests/test_event_completion_acceptance.py",
+          "test": "test_completion_closes_the_event_audits_it_and_releases_holds",
+          "status": "passed",
+          "cases": [
+            {
+              "class": "tests.test_event_completion_acceptance",
+              "name": "test_completion_closes_the_event_audits_it_and_releases_holds",
+              "status": "passed"
+            }
+          ]
+        },
+        {
+          "lane": "backend",
+          "path": "api/tests/test_release_security_acceptance.py",
+          "test": "test_registered_attendee_cannot_mutate_lifecycle_or_receive_private_fields",
+          "status": "passed",
+          "cases": [
+            {
+              "class": "tests.test_release_security_acceptance",
+              "name": "test_registered_attendee_cannot_mutate_lifecycle_or_receive_private_fields[Planning]",
+              "status": "passed"
+            },
+            {
+              "class": "tests.test_release_security_acceptance",
+              "name": "test_registered_attendee_cannot_mutate_lifecycle_or_receive_private_fields[Cancelled]",
+              "status": "passed"
+            },
+            {
+              "class": "tests.test_release_security_acceptance",
+              "name": "test_registered_attendee_cannot_mutate_lifecycle_or_receive_private_fields[Rejected]",
+              "status": "passed"
+            },
+            {
+              "class": "tests.test_release_security_acceptance",
+              "name": "test_registered_attendee_cannot_mutate_lifecycle_or_receive_private_fields[Submitted]",
+              "status": "passed"
+            }
+          ]
+        },
+        {
+          "lane": "integrated",
+          "path": "frontend/integration/event-lifecycle.spec.ts",
+          "test": "INTEGRATED-01",
+          "status": "passed",
+          "cases": [
+            {
+              "class": "event-lifecycle.spec.ts",
+              "name": "INTEGRATED-01 same event crosses seven password-authenticated roles and persists after reload",
+              "status": "passed"
+            }
+          ]
+        },
+        {
+          "lane": "backend",
+          "path": "api/tests/test_event_cancellation_acceptance.py",
+          "test": "test_cancelling_releases_resources_and_notifies_registered_attendees",
+          "status": "passed",
+          "cases": [
+            {
+              "class": "tests.test_event_cancellation_acceptance",
+              "name": "test_cancelling_releases_resources_and_notifies_registered_attendees",
+              "status": "passed"
+            }
+          ]
+        },
+        {
+          "lane": "backend",
+          "path": "api/tests/test_event_cancellation_acceptance.py",
+          "test": "test_concurrent_cancellations_cancel_once_and_notify_once",
+          "status": "passed",
+          "cases": [
+            {
+              "class": "tests.test_event_cancellation_acceptance",
+              "name": "test_concurrent_cancellations_cancel_once_and_notify_once",
+              "status": "passed"
+            }
+          ]
+        },
+        {
+          "lane": "backend",
+          "path": "api/tests/test_event_cancellation_acceptance.py",
+          "test": "test_a_cancelled_event_is_read_only_but_still_visible",
+          "status": "passed",
+          "cases": [
+            {
+              "class": "tests.test_event_cancellation_acceptance",
+              "name": "test_a_cancelled_event_is_read_only_but_still_visible",
+              "status": "passed"
+            }
+          ]
+        }
+      ],
+      "gaps": [
+        "SCRUM-135 remains partial: the generic route still needs a complete human-designed forward-only role/state matrix for Submitted, Planning and Rejected states. SCRUM-69 now provides dedicated atomic cancellation and a read-only Cancelled state; those previous gaps are closed by the mapped database tests."
+      ],
+      "sql": [],
+      "mapped_checks_passed": true,
+      "acceptance": "gap recorded"
+    },
+    {
+      "id": "CORE-07",
+      "name": "Event information management",
+      "owner": "Marcus; Ernest for significant changes",
+      "stories": [
+        "SCRUM-23",
+        "SCRUM-46",
+        "SCRUM-47",
+        "SCRUM-48",
+        "SCRUM-138"
+      ],
+      "intent": "Planning edits preserve attribution and become read-only after confirmation. Important changes need reconsideration of existing resource arrangements.",
+      "checks": [
+        {
+          "lane": "backend",
+          "path": "api/tests/test_events.py",
+          "test": "test_coordinator_edits_event_while_planning",
+          "status": "passed",
+          "cases": [
+            {
+              "class": "tests.test_events",
+              "name": "test_coordinator_edits_event_while_planning",
+              "status": "passed"
+            }
+          ]
+        },
+        {
+          "lane": "backend",
+          "path": "api/tests/test_events.py",
+          "test": "test_edit_blocked_once_confirmed",
+          "status": "passed",
+          "cases": [
+            {
+              "class": "tests.test_events",
+              "name": "test_edit_blocked_once_confirmed",
+              "status": "passed"
+            }
+          ]
+        },
+        {
+          "lane": "backend",
+          "path": "api/tests/test_change_request_acceptance.py",
+          "test": "test_change_request_is_recorded_without_changing_the_event",
+          "status": "passed",
+          "cases": [
+            {
+              "class": "tests.test_change_request_acceptance",
+              "name": "test_change_request_is_recorded_without_changing_the_event",
+              "status": "passed"
+            }
+          ]
+        },
+        {
+          "lane": "backend",
+          "path": "api/tests/test_change_request_apply_acceptance.py",
+          "test": "test_approving_applies_the_values_and_records_the_decision",
+          "status": "passed",
+          "cases": [
+            {
+              "class": "tests.test_change_request_apply_acceptance",
+              "name": "test_approving_applies_the_values_and_records_the_decision",
+              "status": "passed"
+            }
+          ]
+        },
+        {
+          "lane": "backend",
+          "path": "api/tests/test_change_request_apply_acceptance.py",
+          "test": "test_a_significant_change_flags_re_review_and_keeps_every_arrangement",
+          "status": "passed",
+          "cases": [
+            {
+              "class": "tests.test_change_request_apply_acceptance",
+              "name": "test_a_significant_change_flags_re_review_and_keeps_every_arrangement[changes0]",
+              "status": "passed"
+            },
+            {
+              "class": "tests.test_change_request_apply_acceptance",
+              "name": "test_a_significant_change_flags_re_review_and_keeps_every_arrangement[changes1]",
+              "status": "passed"
+            }
+          ]
+        },
+        {
+          "lane": "backend",
+          "path": "api/tests/test_change_request_apply_acceptance.py",
+          "test": "test_a_failed_apply_leaves_the_event_and_request_unchanged",
+          "status": "passed",
+          "cases": [
+            {
+              "class": "tests.test_change_request_apply_acceptance",
+              "name": "test_a_failed_apply_leaves_the_event_and_request_unchanged",
+              "status": "passed"
+            }
+          ]
+        }
+      ],
+      "gaps": [
+        "SCRUM-138 now applies approved proposed fields atomically and flags affected arrangements for re-review without cancelling them. A structured re-approval workflow (SCRUM-47) and date/time rescheduling (SCRUM-48) remain outside that implemented slice."
+      ],
+      "sql": [],
+      "mapped_checks_passed": true,
+      "acceptance": "gap recorded"
+    },
+    {
+      "id": "CORE-08",
+      "name": "Venue catalogue",
+      "owner": "Jessica",
+      "stories": [
+        "SCRUM-24",
+        "SCRUM-25",
+        "SCRUM-60"
+      ],
+      "intent": "Venue details persist, duplicates and invalid capacities are rejected, and updates preserve booking records and audit.",
+      "checks": [
+        {
+          "lane": "backend",
+          "path": "api/tests/test_venue_acceptance.py",
+          "test": "test_created_venue_is_persisted_and_immediately_in_coordinator_catalogue",
+          "status": "passed",
+          "cases": [
+            {
+              "class": "tests.test_venue_acceptance",
+              "name": "test_created_venue_is_persisted_and_immediately_in_coordinator_catalogue",
+              "status": "passed"
+            }
+          ]
+        },
+        {
+          "lane": "backend",
+          "path": "api/tests/test_venue_acceptance.py",
+          "test": "test_duplicate_name_and_location_are_blocked_case_and_whitespace_insensitively",
+          "status": "passed",
+          "cases": [
+            {
+              "class": "tests.test_venue_acceptance",
+              "name": "test_duplicate_name_and_location_are_blocked_case_and_whitespace_insensitively",
+              "status": "passed"
+            }
+          ]
+        },
+        {
+          "lane": "backend",
+          "path": "api/tests/test_venue_acceptance.py",
+          "test": "test_update_is_audited_searches_change_and_confirmed_booking_is_unchanged",
+          "status": "passed",
+          "cases": [
+            {
+              "class": "tests.test_venue_acceptance",
+              "name": "test_update_is_audited_searches_change_and_confirmed_booking_is_unchanged",
+              "status": "passed"
+            }
+          ]
+        }
+      ],
+      "gaps": [
+        "SCRUM-60 now implements temporary venue unavailability. The real-browser/API/database replacement journey remains an evidence gap under W7-02."
+      ],
+      "sql": [
+        "supabase/tests/venues.sql",
+        "supabase/tests/venue_updates.sql"
+      ],
+      "mapped_checks_passed": true,
+      "acceptance": "gap recorded"
+    },
+    {
+      "id": "CORE-09",
+      "name": "Venue availability calendar",
+      "owner": "Jessica",
+      "stories": [
+        "SCRUM-30",
+        "SCRUM-129"
+      ],
+      "intent": "Internal users can retrieve range bookings; calendar cells distinguish booked/blocked/free and closed hours with half-open raw-time boundaries.",
+      "checks": [
+        {
+          "lane": "backend",
+          "path": "api/tests/test_venue_calendar_routes.py",
+          "test": "test_venue_bookings_returns_range",
+          "status": "passed",
+          "cases": [
+            {
+              "class": "tests.test_venue_calendar_routes",
+              "name": "test_venue_bookings_returns_range",
+              "status": "passed"
+            }
+          ]
+        },
+        {
+          "lane": "backend",
+          "path": "api/tests/test_venue_calendar_routes.py",
+          "test": "test_venue_bookings_requires_from_and_to",
+          "status": "passed",
+          "cases": [
+            {
+              "class": "tests.test_venue_calendar_routes",
+              "name": "test_venue_bookings_requires_from_and_to",
+              "status": "passed"
+            }
+          ]
+        },
+        {
+          "lane": "browser",
+          "path": "frontend/e2e/venue-calendar.spec.ts",
+          "test": "coordinator sees the availability calendar with a confirmed slot",
+          "status": "passed",
+          "cases": [
+            {
+              "class": "venue-calendar.spec.ts",
+              "name": "coordinator sees the availability calendar with a confirmed slot",
+              "status": "passed"
+            }
+          ]
+        }
+      ],
+      "gaps": [
+        "The calendar classifier uses published booking times; buffer-expanded calendar parity is not established. See W7-01."
+      ],
+      "sql": [],
+      "mapped_checks_passed": true,
+      "acceptance": "gap recorded"
+    },
+    {
+      "id": "CORE-10",
+      "name": "Venue search and filtering",
+      "owner": "Jessica",
+      "stories": [
+        "SCRUM-28"
+      ],
+      "intent": "Combined filters run before pagination, reject malformed slots, and never claim availability when database reads fail.",
+      "checks": [
+        {
+          "lane": "backend",
+          "path": "api/tests/test_venue_search.py",
+          "test": "test_combined_filters_match_case_whitespace_and_inclusive_capacity",
+          "status": "passed",
+          "cases": [
+            {
+              "class": "tests.test_venue_search",
+              "name": "test_combined_filters_match_case_whitespace_and_inclusive_capacity",
+              "status": "passed"
+            }
+          ]
+        },
+        {
+          "lane": "backend",
+          "path": "api/tests/test_venue_search.py",
+          "test": "test_database_failure_never_claims_available",
+          "status": "passed",
+          "cases": [
+            {
+              "class": "tests.test_venue_search",
+              "name": "test_database_failure_never_claims_available",
+              "status": "passed"
+            }
+          ]
+        },
+        {
+          "lane": "backend",
+          "path": "api/tests/test_venue_acceptance.py",
+          "test": "test_search_availability_with_real_bookings",
+          "status": "passed",
+          "cases": [
+            {
+              "class": "tests.test_venue_acceptance",
+              "name": "test_search_availability_with_real_bookings[Confirmed-09:00-10:00-booked]",
+              "status": "passed"
+            },
+            {
+              "class": "tests.test_venue_acceptance",
+              "name": "test_search_availability_with_real_bookings[Blocked-09:00-10:00-blocked]",
+              "status": "passed"
+            },
+            {
+              "class": "tests.test_venue_acceptance",
+              "name": "test_search_availability_with_real_bookings[Requested-09:00-10:00-booked]",
+              "status": "passed"
+            },
+            {
+              "class": "tests.test_venue_acceptance",
+              "name": "test_search_availability_with_real_bookings[Rejected-09:00-10:00-available]",
+              "status": "passed"
+            },
+            {
+              "class": "tests.test_venue_acceptance",
+              "name": "test_search_availability_with_real_bookings[Cancelled-09:00-10:00-available]",
+              "status": "passed"
+            },
+            {
+              "class": "tests.test_venue_acceptance",
+              "name": "test_search_availability_with_real_bookings[Confirmed-08:00-09:00-available]",
+              "status": "passed"
+            },
+            {
+              "class": "tests.test_venue_acceptance",
+              "name": "test_search_availability_with_real_bookings[Confirmed-10:00-11:00-available]",
+              "status": "passed"
+            }
+          ]
+        }
+      ],
+      "gaps": [
+        "Search uses raw overlap lookup; complete buffer-aware search/calendar/booking consistency is not established."
+      ],
+      "sql": [
+        "supabase/tests/venues.sql"
+      ],
+      "mapped_checks_passed": true,
+      "acceptance": "gap recorded"
+    },
+    {
+      "id": "CORE-11",
+      "name": "Venue suitability checking",
+      "owner": "Jessica",
+      "stories": [
+        "SCRUM-29"
+      ],
+      "intent": "Capacity, layout, facilities and accessibility contribute independent suitability flags, including exact capacity and missing-data boundaries.",
+      "checks": [
+        {
+          "lane": "backend",
+          "path": "api/tests/test_venue_suitability.py",
+          "test": "test_capacity_rule_passes_on_exact_capacity_match",
+          "status": "passed",
+          "cases": [
+            {
+              "class": "tests.test_venue_suitability",
+              "name": "test_capacity_rule_passes_on_exact_capacity_match",
+              "status": "passed"
+            }
+          ]
+        },
+        {
+          "lane": "backend",
+          "path": "api/tests/test_venue_suitability.py",
+          "test": "test_suitability_engine_returns_multiple_flags",
+          "status": "passed",
+          "cases": [
+            {
+              "class": "tests.test_venue_suitability",
+              "name": "test_suitability_engine_returns_multiple_flags",
+              "status": "passed"
+            }
+          ]
+        },
+        {
+          "lane": "backend",
+          "path": "api/tests/test_venue_suitability.py",
+          "test": "test_api_suitability_endpoint_returns_unsuitable_advisory_flags",
+          "status": "passed",
+          "cases": [
+            {
+              "class": "tests.test_venue_suitability",
+              "name": "test_api_suitability_endpoint_returns_unsuitable_advisory_flags",
+              "status": "passed"
+            }
+          ]
+        }
+      ],
+      "gaps": [
+        "TC-29-04 advisory suitability versus booking hard capacity gate needs section-specific acceptance reconciliation."
+      ],
+      "sql": [],
+      "mapped_checks_passed": true,
+      "acceptance": "gap recorded"
+    },
+    {
+      "id": "CORE-12",
+      "name": "Venue booking request",
+      "owner": "Ernest",
+      "stories": [
+        "SCRUM-31",
+        "SCRUM-126"
+      ],
+      "intent": "An assigned Coordinator submits independent bookings for one event. Editing/cancelling one booking must preserve its sibling and parent; persistence failures must not report success.",
+      "checks": [
+        {
+          "lane": "backend",
+          "path": "api/tests/test_booking_persistence_acceptance.py",
+          "test": "test_one_booking_changes_without_touching_its_sibling_or_parent",
+          "status": "passed",
+          "cases": [
+            {
+              "class": "tests.test_booking_persistence_acceptance",
+              "name": "test_one_booking_changes_without_touching_its_sibling_or_parent[edit]",
+              "status": "passed"
+            },
+            {
+              "class": "tests.test_booking_persistence_acceptance",
+              "name": "test_one_booking_changes_without_touching_its_sibling_or_parent[cancel]",
+              "status": "passed"
+            }
+          ]
+        },
+        {
+          "lane": "backend",
+          "path": "api/tests/test_booking_persistence_acceptance.py",
+          "test": "test_failed_database_write_is_not_reported_as_success",
+          "status": "passed",
+          "cases": [
+            {
+              "class": "tests.test_booking_persistence_acceptance",
+              "name": "test_failed_database_write_is_not_reported_as_success[edit]",
+              "status": "passed"
+            },
+            {
+              "class": "tests.test_booking_persistence_acceptance",
+              "name": "test_failed_database_write_is_not_reported_as_success[cancel]",
+              "status": "passed"
+            }
+          ]
+        },
+        {
+          "lane": "integrated",
+          "path": "frontend/integration/event-lifecycle.spec.ts",
+          "test": "INTEGRATED-01",
+          "status": "passed",
+          "cases": [
+            {
+              "class": "event-lifecycle.spec.ts",
+              "name": "INTEGRATED-01 same event crosses seven password-authenticated roles and persists after reload",
+              "status": "passed"
+            }
+          ]
+        }
+      ],
+      "gaps": [
+        "Venue/equipment bookings can have timing independent of the event; cross-feature alignment policy is not fully enforced."
+      ],
+      "sql": [
+        "supabase/tests/venue_overlap.sql"
+      ],
+      "mapped_checks_passed": true,
+      "acceptance": "gap recorded"
+    },
+    {
+      "id": "CORE-13",
+      "name": "Venue booking approval",
+      "owner": "Ernest",
+      "stories": [
+        "SCRUM-32"
+      ],
+      "intent": "Venue Staff approve/reject with reasons, confirmation affects availability, and a competing confirmed booking blocks approval.",
+      "checks": [
+        {
+          "lane": "backend",
+          "path": "api/tests/test_booking_decision_route.py",
+          "test": "test_approve_confirms_and_notifies",
+          "status": "passed",
+          "cases": [
+            {
+              "class": "tests.test_booking_decision_route",
+              "name": "test_approve_confirms_and_notifies",
+              "status": "passed"
+            }
+          ]
+        },
+        {
+          "lane": "backend",
+          "path": "api/tests/test_booking_decision_route.py",
+          "test": "test_reject_requires_reason",
+          "status": "passed",
+          "cases": [
+            {
+              "class": "tests.test_booking_decision_route",
+              "name": "test_reject_requires_reason",
+              "status": "passed"
+            }
+          ]
+        },
+        {
+          "lane": "backend",
+          "path": "api/tests/test_booking_decision_route.py",
+          "test": "test_overlapping_approve_conflicts",
+          "status": "passed",
+          "cases": [
+            {
+              "class": "tests.test_booking_decision_route",
+              "name": "test_overlapping_approve_conflicts",
+              "status": "passed"
+            }
+          ]
+        },
+        {
+          "lane": "integrated",
+          "path": "frontend/integration/event-lifecycle.spec.ts",
+          "test": "INTEGRATED-02",
+          "status": "passed",
+          "cases": [
+            {
+              "class": "event-lifecycle.spec.ts",
+              "name": "INTEGRATED-02 real conflict and cross-owner refusals preserve the event and bookings",
+              "status": "passed"
+            }
+          ]
+        }
+      ],
+      "gaps": [],
+      "sql": [
+        "supabase/tests/venue_overlap.sql"
+      ],
+      "mapped_checks_passed": true,
+      "acceptance": "human acceptance pending"
+    },
+    {
+      "id": "CORE-14",
+      "name": "Booking conflict detection",
+      "owner": "Jessica",
+      "stories": [
+        "SCRUM-33",
+        "SCRUM-79",
+        "SCRUM-120",
+        "SCRUM-129"
+      ],
+      "intent": "Half-open boundaries, confirmed/blocked precedence and tentative holds prevent incompatible booking requests.",
+      "checks": [
+        {
+          "lane": "backend",
+          "path": "api/tests/test_venue_overlap.py",
+          "test": "test_confirmed_overlap_is_hard_blocked",
+          "status": "passed",
+          "cases": [
+            {
+              "class": "tests.test_venue_overlap",
+              "name": "test_confirmed_overlap_is_hard_blocked",
+              "status": "passed"
+            }
+          ]
+        },
+        {
+          "lane": "backend",
+          "path": "api/tests/test_venue_overlap.py",
+          "test": "test_tc_129_02_touching_occupied_boundaries_do_not_conflict",
+          "status": "passed",
+          "cases": [
+            {
+              "class": "tests.test_venue_overlap",
+              "name": "test_tc_129_02_touching_occupied_boundaries_do_not_conflict",
+              "status": "passed"
+            }
+          ]
+        },
+        {
+          "lane": "integrated",
+          "path": "frontend/integration/event-lifecycle.spec.ts",
+          "test": "INTEGRATED-02",
+          "status": "passed",
+          "cases": [
+            {
+              "class": "event-lifecycle.spec.ts",
+              "name": "INTEGRATED-02 real conflict and cross-owner refusals preserve the event and bookings",
+              "status": "passed"
+            }
+          ]
+        }
+      ],
+      "gaps": [
+        "Concurrent approval of published-adjacent bookings with overlapping buffers needs independent SQL enforcement evidence."
+      ],
+      "sql": [
+        "supabase/tests/venue_overlap.sql",
+        "supabase/tests/venue_holds.sql"
+      ],
+      "mapped_checks_passed": true,
+      "acceptance": "gap recorded"
+    },
+    {
+      "id": "CORE-15",
+      "name": "Equipment request management",
+      "owner": "Jerome",
+      "stories": [
+        "SCRUM-34",
+        "SCRUM-35",
+        "SCRUM-38"
+      ],
+      "intent": "Coordinator requests route to Tech Support with quantities and notes; invalid multi-item writes roll back; reservation-derived status agrees with actual allocations.",
+      "checks": [
+        {
+          "lane": "backend",
+          "path": "api/tests/test_equipment_request_acceptance.py",
+          "test": "test_record_two_items_routing_audit_reload_and_no_stock_change",
+          "status": "passed",
+          "cases": [
+            {
+              "class": "tests.test_equipment_request_acceptance",
+              "name": "test_record_two_items_routing_audit_reload_and_no_stock_change",
+              "status": "passed"
+            }
+          ]
+        },
+        {
+          "lane": "backend",
+          "path": "api/tests/test_equipment_request_acceptance.py",
+          "test": "test_api_and_database_reject_invalid_second_item_atomically",
+          "status": "passed",
+          "cases": [
+            {
+              "class": "tests.test_equipment_request_acceptance",
+              "name": "test_api_and_database_reject_invalid_second_item_atomically[0]",
+              "status": "passed"
+            },
+            {
+              "class": "tests.test_equipment_request_acceptance",
+              "name": "test_api_and_database_reject_invalid_second_item_atomically[-1]",
+              "status": "passed"
+            },
+            {
+              "class": "tests.test_equipment_request_acceptance",
+              "name": "test_api_and_database_reject_invalid_second_item_atomically[1.5]",
+              "status": "passed"
+            },
+            {
+              "class": "tests.test_equipment_request_acceptance",
+              "name": "test_api_and_database_reject_invalid_second_item_atomically[True]",
+              "status": "passed"
+            },
+            {
+              "class": "tests.test_equipment_request_acceptance",
+              "name": "test_api_and_database_reject_invalid_second_item_atomically[1]",
+              "status": "passed"
+            },
+            {
+              "class": "tests.test_equipment_request_acceptance",
+              "name": "test_api_and_database_reject_invalid_second_item_atomically[None]",
+              "status": "passed"
+            },
+            {
+              "class": "tests.test_equipment_request_acceptance",
+              "name": "test_api_and_database_reject_invalid_second_item_atomically[2147483648]",
+              "status": "passed"
+            }
+          ]
+        },
+        {
+          "lane": "backend",
+          "path": "api/tests/test_equipment_request_reservations_acceptance.py",
+          "test": "test_derived_status_cannot_be_set_manually",
+          "status": "passed",
+          "cases": [
+            {
+              "class": "tests.test_equipment_request_reservations_acceptance",
+              "name": "test_derived_status_cannot_be_set_manually[Reserved]",
+              "status": "passed"
+            },
+            {
+              "class": "tests.test_equipment_request_reservations_acceptance",
+              "name": "test_derived_status_cannot_be_set_manually[Partially fulfilled]",
+              "status": "passed"
+            }
+          ]
+        },
+        {
+          "lane": "integrated",
+          "path": "frontend/integration/event-lifecycle.spec.ts",
+          "test": "INTEGRATED-01",
+          "status": "passed",
+          "cases": [
+            {
+              "class": "event-lifecycle.spec.ts",
+              "name": "INTEGRATED-01 same event crosses seven password-authenticated roles and persists after reload",
+              "status": "passed"
+            }
+          ]
+        }
+      ],
+      "gaps": [],
+      "sql": [
+        "supabase/tests/equipment_requests.sql",
+        "supabase/tests/equipment_request_status.sql"
+      ],
+      "mapped_checks_passed": true,
+      "acceptance": "human acceptance pending"
+    },
+    {
+      "id": "CORE-16",
+      "name": "Equipment availability checking",
+      "owner": "Jessica",
+      "stories": [
+        "SCRUM-36"
+      ],
+      "intent": "Overlapping stock reservations reduce availability; touching windows do not; damaged/maintenance stock is unavailable.",
+      "checks": [
+        {
+          "lane": "backend",
+          "path": "api/tests/test_equipment_availability.py",
+          "test": "test_availability_insufficient_quantity",
+          "status": "passed",
+          "cases": [
+            {
+              "class": "tests.test_equipment_availability",
+              "name": "test_availability_insufficient_quantity",
+              "status": "passed"
+            }
+          ]
+        },
+        {
+          "lane": "backend",
+          "path": "api/tests/test_equipment_availability.py",
+          "test": "test_touching_boundary_slots_do_not_overlap",
+          "status": "passed",
+          "cases": [
+            {
+              "class": "tests.test_equipment_availability",
+              "name": "test_touching_boundary_slots_do_not_overlap",
+              "status": "passed"
+            }
+          ]
+        },
+        {
+          "lane": "backend",
+          "path": "api/tests/test_equipment_availability.py",
+          "test": "test_damaged_equipment_shows_zero_availability",
+          "status": "passed",
+          "cases": [
+            {
+              "class": "tests.test_equipment_availability",
+              "name": "test_damaged_equipment_shows_zero_availability",
+              "status": "passed"
+            }
+          ]
+        },
+        {
+          "lane": "backend",
+          "path": "api/tests/test_equipment_request_reservations_acceptance.py",
+          "test": "test_request_and_catalogue_compete_for_same_stock",
+          "status": "passed",
+          "cases": [
+            {
+              "class": "tests.test_equipment_request_reservations_acceptance",
+              "name": "test_request_and_catalogue_compete_for_same_stock",
+              "status": "passed"
+            }
+          ]
+        }
+      ],
+      "gaps": [],
+      "sql": [
+        "supabase/tests/equipment.sql"
+      ],
+      "mapped_checks_passed": true,
+      "acceptance": "human acceptance pending"
+    },
+    {
+      "id": "CORE-17",
+      "name": "Equipment reservation",
+      "owner": "Jessica",
+      "stories": [
+        "SCRUM-37"
+      ],
+      "intent": "Allocations reduce shared stock, remain event-associated, reject stale revisions/over-reservation and roll back every item on a failed allocation.",
+      "checks": [
+        {
+          "lane": "backend",
+          "path": "api/tests/test_equipment_request_reservations_acceptance.py",
+          "test": "test_capacity_failure_rolls_back_every_item_and_stale_retry_cannot_double_book",
+          "status": "passed",
+          "cases": [
+            {
+              "class": "tests.test_equipment_request_reservations_acceptance",
+              "name": "test_capacity_failure_rolls_back_every_item_and_stale_retry_cannot_double_book",
+              "status": "passed"
+            }
+          ]
+        },
+        {
+          "lane": "backend",
+          "path": "api/tests/test_equipment_request_reservations_acceptance.py",
+          "test": "test_cannot_adopt_another_events_booking",
+          "status": "passed",
+          "cases": [
+            {
+              "class": "tests.test_equipment_request_reservations_acceptance",
+              "name": "test_cannot_adopt_another_events_booking",
+              "status": "passed"
+            }
+          ]
+        },
+        {
+          "lane": "integrated",
+          "path": "frontend/integration/event-lifecycle.spec.ts",
+          "test": "INTEGRATED-01",
+          "status": "passed",
+          "cases": [
+            {
+              "class": "event-lifecycle.spec.ts",
+              "name": "INTEGRATED-01 same event crosses seven password-authenticated roles and persists after reload",
+              "status": "passed"
+            }
+          ]
+        }
+      ],
+      "gaps": [],
+      "sql": [
+        "supabase/tests/equipment_request_reservations.sql"
+      ],
+      "mapped_checks_passed": true,
+      "acceptance": "human acceptance pending"
+    },
+    {
+      "id": "CORE-18",
+      "name": "Attendee registration",
+      "owner": "Jerome",
+      "stories": [
+        "SCRUM-40",
+        "SCRUM-41",
+        "SCRUM-43",
+        "SCRUM-44",
+        "SCRUM-45"
+      ],
+      "intent": "Attendees register once within capacity, retain their own receipt, and withdraw under the saved policy; competing final-place/withdrawal requests cannot duplicate capacity.",
+      "checks": [
+        {
+          "lane": "backend",
+          "path": "api/tests/test_registration_capacity_acceptance.py",
+          "test": "test_two_simultaneous_requests_cannot_take_the_same_final_place",
+          "status": "passed",
+          "cases": [
+            {
+              "class": "tests.test_registration_capacity_acceptance",
+              "name": "test_two_simultaneous_requests_cannot_take_the_same_final_place",
+              "status": "passed"
+            }
+          ]
+        },
+        {
+          "lane": "backend",
+          "path": "api/tests/test_registration_withdrawal_acceptance.py",
+          "test": "test_two_simultaneous_withdrawals_release_exactly_one_place_and_receipt",
+          "status": "passed",
+          "cases": [
+            {
+              "class": "tests.test_registration_withdrawal_acceptance",
+              "name": "test_two_simultaneous_withdrawals_release_exactly_one_place_and_receipt",
+              "status": "passed"
+            }
+          ]
+        },
+        {
+          "lane": "backend",
+          "path": "api/tests/test_registration_withdrawal_acceptance.py",
+          "test": "test_conditions_are_enforced_on_rpc_and_direct_update_without_partial_state",
+          "status": "passed",
+          "cases": [
+            {
+              "class": "tests.test_registration_withdrawal_acceptance",
+              "name": "test_conditions_are_enforced_on_rpc_and_direct_update_without_partial_state[overrides0]",
+              "status": "passed"
+            },
+            {
+              "class": "tests.test_registration_withdrawal_acceptance",
+              "name": "test_conditions_are_enforced_on_rpc_and_direct_update_without_partial_state[overrides1]",
+              "status": "passed"
+            },
+            {
+              "class": "tests.test_registration_withdrawal_acceptance",
+              "name": "test_conditions_are_enforced_on_rpc_and_direct_update_without_partial_state[overrides2]",
+              "status": "passed"
+            },
+            {
+              "class": "tests.test_registration_withdrawal_acceptance",
+              "name": "test_conditions_are_enforced_on_rpc_and_direct_update_without_partial_state[overrides3]",
+              "status": "passed"
+            },
+            {
+              "class": "tests.test_registration_withdrawal_acceptance",
+              "name": "test_conditions_are_enforced_on_rpc_and_direct_update_without_partial_state[overrides4]",
+              "status": "passed"
+            }
+          ]
+        },
+        {
+          "lane": "integrated",
+          "path": "frontend/integration/event-lifecycle.spec.ts",
+          "test": "INTEGRATED-01",
+          "status": "passed",
+          "cases": [
+            {
+              "class": "event-lifecycle.spec.ts",
+              "name": "INTEGRATED-01 same event crosses seven password-authenticated roles and persists after reload",
+              "status": "passed"
+            }
+          ]
+        }
+      ],
+      "gaps": [
+        "SCRUM-45 organiser/coordinator registration roster remains unimplemented; aggregate counts do not establish appropriate individual registration visibility.",
+        "TC-43-02 waiting-list promotion remains deferred SCRUM-80; do not mark it passed. Owner must reconcile that documented case with the agreed release slice.",
+        "Registration closes when safety approval moves to Preparation; owner must verify the customer accepts that signup window."
+      ],
+      "sql": [
+        "supabase/tests/registration_capacity.sql",
+        "supabase/tests/attendee_registration.sql",
+        "supabase/tests/registration_withdrawal.sql"
+      ],
+      "mapped_checks_passed": true,
+      "acceptance": "gap recorded"
+    },
+    {
+      "id": "CORE-19",
+      "name": "Event change requests",
+      "owner": "Ernest",
+      "stories": [
+        "SCRUM-46",
+        "SCRUM-47",
+        "SCRUM-48",
+        "SCRUM-138"
+      ],
+      "intent": "The Organiser raises a request without silently editing the event; assigned Coordinator reviews it with audit and notifications; outsiders cannot act.",
+      "checks": [
+        {
+          "lane": "backend",
+          "path": "api/tests/test_change_request_acceptance.py",
+          "test": "test_change_request_is_recorded_without_changing_the_event",
+          "status": "passed",
+          "cases": [
+            {
+              "class": "tests.test_change_request_acceptance",
+              "name": "test_change_request_is_recorded_without_changing_the_event",
+              "status": "passed"
+            }
+          ]
+        },
+        {
+          "lane": "backend",
+          "path": "api/tests/test_change_request_acceptance.py",
+          "test": "test_review_lifecycle_is_audited_and_notifies_each_party",
+          "status": "passed",
+          "cases": [
+            {
+              "class": "tests.test_change_request_acceptance",
+              "name": "test_review_lifecycle_is_audited_and_notifies_each_party",
+              "status": "passed"
+            }
+          ]
+        },
+        {
+          "lane": "backend",
+          "path": "api/tests/test_change_request_acceptance.py",
+          "test": "test_both_parties_see_status_and_outsiders_are_denied",
+          "status": "passed",
+          "cases": [
+            {
+              "class": "tests.test_change_request_acceptance",
+              "name": "test_both_parties_see_status_and_outsiders_are_denied",
+              "status": "passed"
+            }
+          ]
+        },
+        {
+          "lane": "backend",
+          "path": "api/tests/test_change_request_apply_acceptance.py",
+          "test": "test_approving_applies_the_values_and_records_the_decision",
+          "status": "passed",
+          "cases": [
+            {
+              "class": "tests.test_change_request_apply_acceptance",
+              "name": "test_approving_applies_the_values_and_records_the_decision",
+              "status": "passed"
+            }
+          ]
+        },
+        {
+          "lane": "backend",
+          "path": "api/tests/test_change_request_apply_acceptance.py",
+          "test": "test_a_significant_change_flags_re_review_and_keeps_every_arrangement",
+          "status": "passed",
+          "cases": [
+            {
+              "class": "tests.test_change_request_apply_acceptance",
+              "name": "test_a_significant_change_flags_re_review_and_keeps_every_arrangement[changes0]",
+              "status": "passed"
+            },
+            {
+              "class": "tests.test_change_request_apply_acceptance",
+              "name": "test_a_significant_change_flags_re_review_and_keeps_every_arrangement[changes1]",
+              "status": "passed"
+            }
+          ]
+        },
+        {
+          "lane": "backend",
+          "path": "api/tests/test_change_request_apply_acceptance.py",
+          "test": "test_a_failed_apply_leaves_the_event_and_request_unchanged",
+          "status": "passed",
+          "cases": [
+            {
+              "class": "tests.test_change_request_apply_acceptance",
+              "name": "test_a_failed_apply_leaves_the_event_and_request_unchanged",
+              "status": "passed"
+            }
+          ]
+        }
+      ],
+      "gaps": [
+        "SCRUM-138 now applies approved proposed fields atomically and flags affected arrangements for re-review without cancelling them. A structured re-approval workflow (SCRUM-47) and date/time rescheduling (SCRUM-48) remain outside that implemented slice."
+      ],
+      "sql": [],
+      "mapped_checks_passed": true,
+      "acceptance": "gap recorded"
+    },
+    {
+      "id": "CORE-20",
+      "name": "Notifications",
+      "owner": "Marcus",
+      "stories": [
+        "SCRUM-49",
+        "SCRUM-51"
+      ],
+      "intent": "Private and role-pool notifications reach only their intended readers; key request/assignment/booking/registration outcomes are emitted.",
+      "checks": [
+        {
+          "lane": "backend",
+          "path": "api/tests/test_notifications_feed_acceptance.py",
+          "test": "test_reader_returns_own_and_pool_rows_with_isolation",
+          "status": "passed",
+          "cases": [
+            {
+              "class": "tests.test_notifications_feed_acceptance",
+              "name": "test_reader_returns_own_and_pool_rows_with_isolation",
+              "status": "passed"
+            }
+          ]
+        },
+        {
+          "lane": "backend",
+          "path": "api/tests/test_notifications_feed_acceptance.py",
+          "test": "test_recipient_target_and_role_constraints_are_enforced_by_database",
+          "status": "passed",
+          "cases": [
+            {
+              "class": "tests.test_notifications_feed_acceptance",
+              "name": "test_recipient_target_and_role_constraints_are_enforced_by_database",
+              "status": "passed"
+            }
+          ]
+        },
+        {
+          "lane": "integrated",
+          "path": "frontend/integration/event-lifecycle.spec.ts",
+          "test": "INTEGRATED-01",
+          "status": "passed",
+          "cases": [
+            {
+              "class": "event-lifecycle.spec.ts",
+              "name": "INTEGRATED-01 same event crosses seven password-authenticated roles and persists after reload",
+              "status": "passed"
+            }
+          ]
+        },
+        {
+          "lane": "backend",
+          "path": "api/tests/test_request_acceptance.py",
+          "test": "test_notifications_are_newest_first_and_limited_to_50",
+          "status": "passed",
+          "cases": [
+            {
+              "class": "tests.test_request_acceptance",
+              "name": "test_notifications_are_newest_first_and_limited_to_50",
+              "status": "passed"
+            }
+          ]
+        },
+        {
+          "lane": "backend",
+          "path": "api/tests/test_event_cancellation_acceptance.py",
+          "test": "test_cancelling_releases_resources_and_notifies_registered_attendees",
+          "status": "passed",
+          "cases": [
+            {
+              "class": "tests.test_event_cancellation_acceptance",
+              "name": "test_cancelling_releases_resources_and_notifies_registered_attendees",
+              "status": "passed"
+            }
+          ]
+        },
+        {
+          "lane": "backend",
+          "path": "api/tests/test_venue_unavailability.py",
+          "test": "test_venue_staff_can_create_block_and_notify_each_coordinator_once",
+          "status": "passed",
+          "cases": [
+            {
+              "class": "tests.test_venue_unavailability",
+              "name": "test_venue_staff_can_create_block_and_notify_each_coordinator_once",
+              "status": "passed"
+            }
+          ]
+        }
+      ],
+      "gaps": [
+        "Cancellation and applied-change recipients now have database acceptance evidence; venue-unavailability notification wiring has route tests. A complete trigger-by-recipient matrix, persisted hold-expiry notices and full-stack replacement-venue notifications remain unproven."
+      ],
+      "sql": [],
+      "mapped_checks_passed": true,
+      "acceptance": "gap recorded"
+    },
+    {
+      "id": "W7-01",
+      "name": "Venue setup and turnaround buffers",
+      "owner": "Jessica",
+      "stories": [
+        "SCRUM-129"
+      ],
+      "intent": "Venue setup/turnaround expand occupied windows; touching expanded boundaries remain non-conflicting; newly conflicting existing bookings are flagged.",
+      "checks": [
+        {
+          "lane": "backend",
+          "path": "api/tests/test_venue_overlap.py",
+          "test": "test_tc_129_01_booking_reserves_start_minus_setup_to_end_plus_turnaround",
+          "status": "passed",
+          "cases": [
+            {
+              "class": "tests.test_venue_overlap",
+              "name": "test_tc_129_01_booking_reserves_start_minus_setup_to_end_plus_turnaround",
+              "status": "passed"
+            }
+          ]
+        },
+        {
+          "lane": "backend",
+          "path": "api/tests/test_venue_overlap.py",
+          "test": "test_identify_problematic_existing_bookings_when_buffers_introduced",
+          "status": "passed",
+          "cases": [
+            {
+              "class": "tests.test_venue_overlap",
+              "name": "test_identify_problematic_existing_bookings_when_buffers_introduced",
+              "status": "passed"
+            }
+          ]
+        }
+      ],
+      "gaps": [
+        "Pure overlap maths is covered. Search/calendar raw-time behaviour and database exclusion ranges do not prove consistent buffer enforcement across create/edit/approval or competing writes."
+      ],
+      "sql": [
+        "supabase/tests/venue_buffers.sql"
+      ],
+      "mapped_checks_passed": true,
+      "acceptance": "gap recorded"
+    },
+    {
+      "id": "W7-02",
+      "name": "Venue becomes unavailable after booking",
+      "owner": "Jessica",
+      "stories": [
+        "SCRUM-60"
+      ],
+      "intent": "Venue Staff mark temporary unavailability with reason, retain affected events, notify Coordinators, and support replacement venue arrangements.",
+      "checks": [
+        {
+          "lane": "backend",
+          "path": "api/tests/test_venue_unavailability.py",
+          "test": "test_venue_staff_can_create_block_and_notify_each_coordinator_once",
+          "status": "passed",
+          "cases": [
+            {
+              "class": "tests.test_venue_unavailability",
+              "name": "test_venue_staff_can_create_block_and_notify_each_coordinator_once",
+              "status": "passed"
+            }
+          ]
+        },
+        {
+          "lane": "backend",
+          "path": "api/tests/test_venue_unavailability.py",
+          "test": "test_block_rejects_overlapping_active_block",
+          "status": "passed",
+          "cases": [
+            {
+              "class": "tests.test_venue_unavailability",
+              "name": "test_block_rejects_overlapping_active_block",
+              "status": "passed"
+            }
+          ]
+        },
+        {
+          "lane": "browser",
+          "path": "frontend/e2e/venue-calendar.spec.ts",
+          "test": "Venue Staff can create and unblock a venue period",
+          "status": "passed",
+          "cases": [
+            {
+              "class": "venue-calendar.spec.ts",
+              "name": "Venue Staff can create and unblock a venue period",
+              "status": "passed"
+            }
+          ]
+        }
+      ],
+      "gaps": [
+        "SCRUM-60 is now implemented with blocks, affected-booking notices, search/calendar integration and a replacement link. The mapped API tests use controlled persistence and the browser test mocks HTTP; a real DB block-to-notification-to-replacement journey and competing-write/rollback evidence are still needed."
+      ],
+      "sql": [],
+      "mapped_checks_passed": true,
+      "acceptance": "gap recorded"
+    },
+    {
+      "id": "W7-03",
+      "name": "Multiple venues per event",
+      "owner": "Ernest",
+      "stories": [
+        "SCRUM-126",
+        "SCRUM-39"
+      ],
+      "intent": "One event owns independent venue bookings; sibling edits/cancellations are isolated and confirmation requires all active venues approved.",
+      "checks": [
+        {
+          "lane": "backend",
+          "path": "api/tests/test_booking_persistence_acceptance.py",
+          "test": "test_one_booking_changes_without_touching_its_sibling_or_parent",
+          "status": "passed",
+          "cases": [
+            {
+              "class": "tests.test_booking_persistence_acceptance",
+              "name": "test_one_booking_changes_without_touching_its_sibling_or_parent[edit]",
+              "status": "passed"
+            },
+            {
+              "class": "tests.test_booking_persistence_acceptance",
+              "name": "test_one_booking_changes_without_touching_its_sibling_or_parent[cancel]",
+              "status": "passed"
+            }
+          ]
+        },
+        {
+          "lane": "backend",
+          "path": "api/tests/test_event_confirmation_route.py",
+          "test": "test_confirm_blocked_when_a_booking_is_pending",
+          "status": "passed",
+          "cases": [
+            {
+              "class": "tests.test_event_confirmation_route",
+              "name": "test_confirm_blocked_when_a_booking_is_pending",
+              "status": "passed"
+            }
+          ]
+        },
+        {
+          "lane": "integrated",
+          "path": "frontend/integration/event-lifecycle.spec.ts",
+          "test": "INTEGRATED-01",
+          "status": "passed",
+          "cases": [
+            {
+              "class": "event-lifecycle.spec.ts",
+              "name": "INTEGRATED-01 same event crosses seven password-authenticated roles and persists after reload",
+              "status": "passed"
+            }
+          ]
+        }
+      ],
+      "gaps": [],
+      "sql": [
+        "supabase/tests/venue_overlap.sql"
+      ],
+      "mapped_checks_passed": true,
+      "acceptance": "human acceptance pending"
+    },
+    {
+      "id": "W7-04",
+      "name": "Expiring tentative venue holds",
+      "owner": "Jessica",
+      "stories": [
+        "SCRUM-79",
+        "SCRUM-120"
+      ],
+      "intent": "A hold has a future expiry before event start; exact-deadline expiry releases availability and must notify the Coordinator.",
+      "checks": [
+        {
+          "lane": "backend",
+          "path": "api/tests/test_venue_overlap.py",
+          "test": "test_tc_79_03_expired_hold_releases_slot_at_exact_expiry_boundary",
+          "status": "passed",
+          "cases": [
+            {
+              "class": "tests.test_venue_overlap",
+              "name": "test_tc_79_03_expired_hold_releases_slot_at_exact_expiry_boundary",
+              "status": "passed"
+            }
+          ]
+        },
+        {
+          "lane": "backend",
+          "path": "api/tests/test_booking_decision_route.py",
+          "test": "test_tc_79_07_hold_with_past_or_late_expiry_is_rejected",
+          "status": "passed",
+          "cases": [
+            {
+              "class": "tests.test_booking_decision_route",
+              "name": "test_tc_79_07_hold_with_past_or_late_expiry_is_rejected",
+              "status": "passed"
+            }
+          ]
+        }
+      ],
+      "gaps": [
+        "Expiry exists in the value object and expires_at storage, but no automatic release/notification worker or equivalent persisted expiry workflow is established. SQL raw status constraints still need expiry/concurrency parity review."
+      ],
+      "sql": [
+        "supabase/tests/venue_holds.sql"
+      ],
+      "mapped_checks_passed": true,
+      "acceptance": "gap recorded"
+    },
+    {
+      "id": "W7-05",
+      "name": "Event Coordinator Lead",
+      "owner": "Ernest; Marcus for role policy",
+      "stories": [
+        "SCRUM-130",
+        "SCRUM-131",
+        "SCRUM-54"
+      ],
+      "intent": "Lead assigns/reassigns from the unassigned queue. Coordinator list visibility is broader than permission to open/edit another Coordinator event, per D28.",
+      "checks": [
+        {
+          "lane": "backend",
+          "path": "api/tests/test_coordinator_assignment_acceptance.py",
+          "test": "test_tc_130_04_coordinators_only_manage_events_assigned_to_them",
+          "status": "passed",
+          "cases": [
+            {
+              "class": "tests.test_coordinator_assignment_acceptance",
+              "name": "test_tc_130_04_coordinators_only_manage_events_assigned_to_them",
+              "status": "passed"
+            }
+          ]
+        },
+        {
+          "lane": "backend",
+          "path": "api/tests/test_coordinator_assignment_acceptance.py",
+          "test": "test_refusals_leave_the_assignment_unchanged",
+          "status": "passed",
+          "cases": [
+            {
+              "class": "tests.test_coordinator_assignment_acceptance",
+              "name": "test_refusals_leave_the_assignment_unchanged",
+              "status": "passed"
+            }
+          ]
+        },
+        {
+          "lane": "integrated",
+          "path": "frontend/integration/event-lifecycle.spec.ts",
+          "test": "INTEGRATED-01",
+          "status": "passed",
+          "cases": [
+            {
+              "class": "event-lifecycle.spec.ts",
+              "name": "INTEGRATED-01 same event crosses seven password-authenticated roles and persists after reload",
+              "status": "passed"
+            }
+          ]
+        }
+      ],
+      "gaps": [
+        "Week 7 original own-events wording and later SCRUM-54 view-all decision require final owner acceptance of D28; list visibility must not be presented as edit permission."
+      ],
+      "sql": [
+        "supabase/tests/coordinator_assignment.sql"
+      ],
+      "mapped_checks_passed": true,
+      "acceptance": "gap recorded"
+    },
+    {
+      "id": "W7-06",
+      "name": "Operational safety check",
+      "owner": "Marcus; Jerome for Safety Officer access",
+      "stories": [
+        "SCRUM-127",
+        "SCRUM-128",
+        "SCRUM-145"
+      ],
+      "intent": "Safety Officer sees scoped resource details and approves Confirmed to Preparation or sends back with a reason. Other roles cannot bypass the gate.",
+      "checks": [
+        {
+          "lane": "backend",
+          "path": "api/tests/test_safety_officer_acceptance.py",
+          "test": "test_safety_officer_reads_event_scoped_review_detail",
+          "status": "passed",
+          "cases": [
+            {
+              "class": "tests.test_safety_officer_acceptance",
+              "name": "test_safety_officer_reads_event_scoped_review_detail",
+              "status": "passed"
+            }
+          ]
+        },
+        {
+          "lane": "backend",
+          "path": "api/tests/test_safety_check_route.py",
+          "test": "test_request_changes_returns_event_to_planning_with_reason",
+          "status": "passed",
+          "cases": [
+            {
+              "class": "tests.test_safety_check_route",
+              "name": "test_request_changes_returns_event_to_planning_with_reason",
+              "status": "passed"
+            }
+          ]
+        },
+        {
+          "lane": "backend",
+          "path": "api/tests/test_safety_check_route.py",
+          "test": "test_non_safety_officer_cannot_submit_safety_check",
+          "status": "passed",
+          "cases": [
+            {
+              "class": "tests.test_safety_check_route",
+              "name": "test_non_safety_officer_cannot_submit_safety_check",
+              "status": "passed"
+            }
+          ]
+        },
+        {
+          "lane": "integrated",
+          "path": "frontend/integration/event-lifecycle.spec.ts",
+          "test": "INTEGRATED-01",
+          "status": "passed",
+          "cases": [
+            {
+              "class": "event-lifecycle.spec.ts",
+              "name": "INTEGRATED-01 same event crosses seven password-authenticated roles and persists after reload",
+              "status": "passed"
+            }
+          ]
+        }
+      ],
+      "gaps": [],
+      "sql": [
+        "supabase/tests/safety_officer.sql"
+      ],
+      "mapped_checks_passed": true,
+      "acceptance": "human acceptance pending"
+    }
+  ],
+  "revision": "6c029691be44199afd0b551d9c264f1872c1d791",
+  "source_sha256": "afe37a8de4e34cf122f39e06c6f63ff999acb769cc292a3a553de7d86f36968d",
+  "working_tree_dirty": true
+}
