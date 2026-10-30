@@ -359,9 +359,10 @@ def test_only_the_assigned_coordinator_can_review(app, monkeypatch):
     assert response.status_code == 403
 
 
-def test_change_requests_of_a_completed_event_cannot_be_reviewed(app, monkeypatch):
+@pytest.mark.parametrize("status", ["Completed", "Cancelled"])
+def test_change_requests_of_a_closed_event_cannot_be_reviewed(app, monkeypatch, status):
     event = _event()
-    event["status"] = "Completed"
+    event["status"] = status
     _wire(monkeypatch, event, [{"id": 1, "event_id": "event-46", "status": "Pending"}])
     monkeypatch.setattr("app.events.require_related_user", lambda user, event, action: user)
     client = app.test_client()

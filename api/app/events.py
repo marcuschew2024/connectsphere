@@ -866,6 +866,8 @@ def change_requests(event_id):
         raise Forbidden("Only the Organiser who owns this request can raise a change request.")
     if event.get("status") == "Completed":
         raise Conflict(_COMPLETED_READ_ONLY)
+    if event.get("status") == "Cancelled":
+        raise Conflict(_CANCELLED_READ_ONLY)
     if event.get("status") in {"Draft", "Rejected", "Cancelled"}:
         raise Conflict("Change requests are only available after an event is submitted.")
     if event.get("coordinator_id") is None:
@@ -904,6 +906,8 @@ def review_change_request(event_id, request_id):
         raise Forbidden("Only the assigned Coordinator can review this request.")
     if event.get("status") == "Completed":
         raise Conflict(_COMPLETED_READ_ONLY)
+    if event.get("status") == "Cancelled":
+        raise Conflict(_CANCELLED_READ_ONLY)
 
     data = request.get_json(silent=True)
     if not isinstance(data, dict) or set(data) - {"status", "review_note"} or "status" not in data:
