@@ -76,7 +76,7 @@ export function classifyCell(
     if (!overlaps) continue;
     if (b.status === "Confirmed") return "confirmed"; // confirmed wins outright
     if (b.status === "Blocked") blocked = true;
-    else if (b.status === "Requested" || b.status === "Pending") tentative = true;
+    else if (b.status === "Requested" || b.status === "Pending" || b.status === "Held") tentative = true;
   }
   if (blocked) return "blocked";
   return tentative ? "tentative" : "available";

@@ -102,6 +102,8 @@ def booking_db(monkeypatch):
         q.select.return_value = q
         q.eq.side_effect = _eq
         q.in_.side_effect = _in
+        q.lt.return_value = q
+        q.gt.return_value = q
         q.order.return_value = q
         q.limit.return_value = q
         q.insert.side_effect = insert
@@ -249,3 +251,31 @@ def test_tc_79_07_hold_with_past_or_late_expiry_is_rejected(venue_staff, booking
     r = decide(venue_staff, b["id"], "hold", expires_at=late_exp)
     assert r.status_code == 400
     assert "before the event starts" in r.json["error"]
+
+
+# ==============================================================================
+# SCRUM-120: Tentative Hold + FCFS Route Tests
+# ==============================================================================
+
+def test_tc_120_route_approve_beats_tentative_hold_fcfs(venue_staff, booking_db):
+    """AC2: Confirmed booking (FCFS) beats a hold; approval succeeds despite active hold."""
+    # Seed an active tentative hold on the same slot
+    seed(booking_db, status="Held", slot=SLOT_2_4PM)
+    # Target booking to approve
+    target = seed(booking_db, status="Requested", slot=SLOT_2_4PM)
+
+    r = decide(venue_staff, target["id"], "approve")
+    assert r.status_code == 200
+    assert r.json["booking"]["status"] == "Confirmed"
+    assert any(n["notification_type"] == "booking_approved" for n in booking_db.notifications)
+
+
+def test_tc_120_route_blocked_maintenance_prevents_approval(venue_staff, booking_db):
+    """AC3: Blocked/maintenance counts as unavailable; approval on blocked slot returns 409."""
+    # Seed a maintenance block on the same slot
+    seed(booking_db, status="Blocked", slot=SLOT_2_4PM)
+    target = seed(booking_db, status="Requested", slot=SLOT_2_4PM)
+
+    r = decide(venue_staff, target["id"], "approve")
+    assert r.status_code == 409
+    assert "already confirmed or blocked" in r.json["error"]

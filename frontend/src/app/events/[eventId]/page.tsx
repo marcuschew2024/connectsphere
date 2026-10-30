@@ -112,7 +112,7 @@ export default function EventStatusPage() {
   const canReview = actingRole === "Coordinator" && event?.status === "Submitted" && !clarification;
   const completed = event?.status === "Completed";
   const cancelled = event?.status === "Cancelled";
-  // SCRUM-69 (D32): the assigned Coordinator or the Event Coordinator Lead may cancel.
+  // SCRUM-69 (D33): the assigned Coordinator or the Event Coordinator Lead may cancel.
   // Coordinators can view every event (SCRUM-54), so the panel checks it is theirs.
   const canCancel = actingRole === "Event Coordinator Lead"
     || (actingRole === "Coordinator" && userId !== null && event?.coordinator_id === userId);

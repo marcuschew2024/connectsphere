@@ -820,7 +820,36 @@ Shared Supabase migration deployment is separate and is not implied by the Git m
   behind green CI, with the deferred waiting-list criterion already disclosed. This
   records merge authorization, without claiming an independent teammate review.
 
-### D32 — Who may cancel an event, and what cancelling does (SCRUM-69)
+### D32 — FCFS precedence rule: confirmed booking beats tentative hold; no auto-cancellation of superseded holds (SCRUM-120)
+
+- **Context.** SCRUM-120 (split from SCRUM-33). The overlap engine must implement a FCFS rule: when
+  a confirmed booking and a tentative hold compete for the same venue/slot, the confirmed booking
+  wins. S1 Q3, Q17, and Q31 all confirm this is the intended business rule. Additionally, S1 Q44
+  states that superseded holds are cancelled manually by Venue Staff rather than auto-cancelled by
+  the system.
+- **Decision.** The domain engine (`_highest_priority` in `venue_overlap.py`) sorts conflicting
+  bookings by a three-level key: (1) status tier -- Confirmed/Blocked rank 0, Held ranks 1,
+  Requested/Pending rank 2; (2) `requested_at` ascending (earliest first) within the same tier;
+  (3) `start_at` ascending as a final tie-breaker. A confirmed booking therefore always outranks a
+  hold in the priority sort, and `can_confirm` returns `True` when the only conflict is tentative.
+  No auto-cancellation: the application does not automatically cancel or expire the superseded hold
+  when a confirmation wins. Venue Staff must manually cancel it.
+- **Constraints.** S1 Q44 (no auto-cancellation); SCRUM-33 DB constraint structure (must not break
+  existing `venue_bookings_no_overlap_hard` / `venue_bookings_one_tentative_hold`); `api/AGENTS.md`
+  value-object rule (domain engine has zero DB/Flask dependency).
+- **Verification.** TC-120-01 through TC-120-06 (unit, `test_venue_overlap.py`);
+  TC-120-route-01 / TC-120-route-02 (integration, `test_booking_decision_route.py`);
+  DB-120-01 through DB-120-03 (`supabase/tests/venue_fcfs.sql`). 100% statement and branch coverage
+  on `app/venue_overlap.py` (106 stmts, 38 branches). All pass alongside the existing suite.
+- **Trade-off.** Holding both a Confirmed and a (now-superseded) Held row in the DB simultaneously
+  is intentional: the DB constraint allows one hard row + one soft row on the same slot so the
+  application layer can perform FCFS resolution and then separately cancel the hold. The window
+  between confirmation and manual hold-cancellation means the hold is visible as "Tentative" in the
+  calendar even after confirmation -- acceptable per S1 Q44.
+- **Owner.** Jerome (SCRUM-120). The FCFS resolution policy is a domain rule reviewed and merged
+  only behind green CI.
+
+### D33 — Who may cancel an event, and what cancelling does (SCRUM-69)
 
 - **Context.** SCRUM-69 says "an authorised user can cancel an event; its venue and
   equipment reservations are automatically released" and "registered Attendees are
@@ -887,7 +916,7 @@ system, test scaffolding, and boilerplate following existing patterns.
 | Equipment epic (D12) | Partially | CRUD/requests/reservations scaffolding; **availability & state rules human-designed** | `docs/SCRUM-34.md`, `docs/SCRUM-37.md` |
 | Event completion (D13) | Partially | Endpoint/test scaffolding; **gate rule + DB-lock re-check human-designed** | `docs/SCRUM-132.md` |
 | Change management (D14) | Partially | Implementation of change/cancel flows; **rules human-decided** | `docs/SCRUM-46.md` |
-| Event cancellation (D32) | Partially | Endpoint, DB function and test scaffolding; **authorised-user rule human-decided** | `docs/SCRUM-69.md` |
+| Event cancellation (D33) | Partially | Endpoint, DB function and test scaffolding; **authorised-user rule human-decided** | `docs/SCRUM-69.md` |
 
 **Summary statement.** AI accelerated routine implementation and scaffolding throughout,
 under human-authored specifications. Every safety-critical decision — the overlap engine,
