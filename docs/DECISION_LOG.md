@@ -40,6 +40,14 @@ An at-a-glance summary of where AI was and was not used sits in the
 
 ## Decision records
 
+### SCRUM-60 — Preserve bookings when a venue becomes unavailable
+- **Context.** Venue Staff may block a venue after Requested, Held, or Confirmed arrangements already exist.
+- **Decision.** Store active periods in a separate `venue_unavailability` table; preserve every booking and event row; flag all half-open overlapping active bookings; notify each affected Coordinator; and provide an active-period unblocking workflow.
+- **Constraints / guardrails.** Only Venue Staff may create or unblock periods. Database triggers prevent active bookings entering active blocks and prevent overlapping active blocks from being created. Existing venue booking rows and status transitions are not rewritten by the block operation.
+- **Verification.** Backend pure-rule and route tests cover validation, overlap notifications, permissions, listing, and unblock; Playwright covers the Staff UI.
+- **Trade-off.** The separate table adds an additional availability data source, but avoids destructive changes to confirmed booking history and lets blocks overlap independent maintenance reasons.
+- **Owner.** SCRUM-60 human team owner (to be named before merge).
+
 ### D1 — DB-independent value objects as the domain spine
 - **Context.** Core business rules (decisions, gates, suitability, overlap) must be
   correct, fast to test, and independent of Flask and the database.

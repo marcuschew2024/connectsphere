@@ -103,6 +103,7 @@ def test_availability_uses_existing_booking_check_with_singapore_offset(
 ):
     check = MagicMock(return_value=[{"status": status} for status in statuses])
     monkeypatch.setattr("app.venue_search.find_overlapping_bookings", check)
+    monkeypatch.setattr("app.venue_search.list_unavailability", MagicMock(return_value=[]))
     assert availability({**details(), "id": "venue-1"}, slot()) == expected
     check.assert_called_once_with("venue-1", "2026-10-05T09:00:00+08:00",
                                   "2026-10-05T18:00:00+08:00")
@@ -127,6 +128,7 @@ def test_retired_closed_and_unchecked_do_not_query_bookings(monkeypatch):
 def test_database_failure_never_claims_available(monkeypatch):
     monkeypatch.setattr("app.venue_search.find_overlapping_bookings",
                         MagicMock(side_effect=ServiceUnavailable("Could not check availability.")))
+    monkeypatch.setattr("app.venue_search.list_unavailability", MagicMock(return_value=[]))
     with pytest.raises(ServiceUnavailable):
         availability({**details(), "id": "venue-1"}, slot())
 
@@ -153,6 +155,7 @@ def search_api(app, monkeypatch):
     monkeypatch.setattr("app.rbac.get_supabase_client", lambda: None)
     monkeypatch.setattr("app.venue_search.list_venues",
                         lambda page: ([{**details(), "id": "venue-1"}], False))
+    monkeypatch.setattr("app.venue_search.list_unavailability", lambda *args: [])
     return app.test_client()
 
 

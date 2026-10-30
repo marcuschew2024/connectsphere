@@ -27,7 +27,13 @@ def live_venues(monkeypatch):
     with SyncPostgrestClient(os.environ["POSTGREST_TEST_URL"]) as db:
         # Only the disposable test role has DELETE; production migration grants do not.
         db.table("venues").delete().ilike("name", "Venue acceptance %").execute()
-        for name in ("users", "venue_repository", "rbac", "auth"):
+        for name in (
+            "users",
+            "venue_repository",
+            "venue_unavailability_repository",
+            "rbac",
+            "auth",
+        ):
             monkeypatch.setattr(importlib.import_module(f"app.{name}"),
                                 "get_supabase_client", lambda: db)
         app = create_app({
