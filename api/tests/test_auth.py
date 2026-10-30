@@ -1,5 +1,7 @@
 """Tests for SCRUM-20: Secure login (TC-US1.1-01..08)."""
 
+import time
+from datetime import UTC, datetime, timedelta
 from types import SimpleNamespace
 from unittest.mock import MagicMock
 
@@ -92,6 +94,31 @@ def auth_db(monkeypatch):
         return q
 
     client.table.side_effect = table
+
+    def rpc(name, params):
+        # SCRUM-141: the atomic failed-login RPC. Mutate the in-memory user the same way
+        # register_failed_login() does, and return the new counter + lock state.
+        assert name == "register_failed_login"
+        q = MagicMock()
+
+        def rpc_execute():
+            user = next((u for u in users if u["id"] == params["p_user_id"]), None)
+            if user is None:
+                return SimpleNamespace(data=None)
+            user["failed_attempts"] = user.get("failed_attempts", 0) + 1
+            if user["failed_attempts"] >= params["p_max_attempts"]:
+                user["locked_until"] = (
+                    datetime.now(UTC) + timedelta(minutes=params["p_lockout_minutes"])
+                ).isoformat()
+            return SimpleNamespace(data={
+                "failed_attempts": user["failed_attempts"],
+                "locked_until": user["locked_until"],
+            })
+
+        q.execute.side_effect = rpc_execute
+        return q
+
+    client.rpc.side_effect = rpc
     monkeypatch.setattr("app.auth.get_supabase_client", lambda: client)
     return users, audit_log, updates
 
@@ -162,21 +189,38 @@ def test_login_unknown_email_same_error(app, auth_db):
 # ---------------------------------------------------------------------------
 # TC-US1.1-04: Account locked after MAX_FAILED_ATTEMPTS → 429
 # ---------------------------------------------------------------------------
-def test_login_account_lockout_after_max_failures(app, auth_db):
-    users, _, updates = auth_db
-    # Pre-set the user to one attempt below the threshold.
-    users[0]["failed_attempts"] = 4  # MAX_FAILED_ATTEMPTS - 1
+def test_login_sequential_failures_lock_then_recover(app, auth_db):
+    """TC-US1.1-04: five *real* consecutive wrong passwords lock the account (429 even with
+    the correct password); once the lock window elapses, a correct login recovers and resets
+    the counter. No preset counter — the failures are counted through the atomic RPC."""
+    users, audit_log, updates = auth_db
 
-    with app.test_client() as client:
-        resp = client.post(
-            "/auth/login",
-            json={"email": "organiser@example.com", "password": "WrongPassword"},
-            headers=ORIGIN,
-        )
-    assert resp.status_code == 401
-    # The update call should have set locked_until.
-    lock_updates = [u for u in updates if "locked_until" in u.get("patch", {})]
-    assert lock_updates, "Expected locked_until to be set after threshold reached"
+    def attempt(password):
+        with app.test_client() as client:
+            return client.post(
+                "/auth/login",
+                json={"email": "organiser@example.com", "password": password},
+                headers=ORIGIN,
+            )
+
+    # Four failures: counted but still unlocked (401, not 429).
+    for _ in range(4):
+        assert attempt("WrongPassword").status_code == 401
+    assert users[0]["locked_until"] is None
+
+    # The fifth consecutive failure reaches the threshold and locks the account.
+    assert attempt("WrongPassword").status_code == 401
+    assert users[0]["failed_attempts"] == 5
+    assert users[0]["locked_until"] is not None
+    assert "account_locked" in [entry["event_type"] for entry in audit_log]
+
+    # While locked, even the correct password is refused.
+    assert attempt("CorrectPassword1!").status_code == 429
+
+    # Once the lock window has elapsed, a correct login succeeds and resets the counter.
+    users[0]["locked_until"] = (datetime.now(UTC) - timedelta(minutes=1)).isoformat()
+    assert attempt("CorrectPassword1!").status_code == 200
+    assert any(update.get("patch", {}).get("failed_attempts") == 0 for update in updates)
 
 
 # ---------------------------------------------------------------------------
@@ -184,7 +228,6 @@ def test_login_account_lockout_after_max_failures(app, auth_db):
 # ---------------------------------------------------------------------------
 def test_login_locked_account_rejects_correct_password(app, auth_db):
     users, _, _ = auth_db
-    from datetime import UTC, datetime, timedelta
     users[0]["locked_until"] = (datetime.now(UTC) + timedelta(minutes=10)).isoformat()
     users[0]["failed_attempts"] = 5
 
@@ -195,6 +238,35 @@ def test_login_locked_account_rejects_correct_password(app, auth_db):
             headers=ORIGIN,
         )
     assert resp.status_code == 429
+
+
+# ---------------------------------------------------------------------------
+# TC-US1.1-05: Session expires after inactivity (genuine timed journey)
+# ---------------------------------------------------------------------------
+def test_session_expires_after_inactivity(auth_db):
+    """A session left idle past PERMANENT_SESSION_LIFETIME is no longer authenticated —
+    exercised as a real timed journey, not asserted from config."""
+    short_app = create_app({
+        "TESTING": True,
+        "APP_ENV": "production",
+        "DEV_ROLE_SWITCHER_ENABLED": False,
+        "SECRET_KEY": "test-only-secret",
+        "FRONTEND_ORIGIN": ORIGIN["Origin"],
+        "PERMANENT_SESSION_LIFETIME": timedelta(seconds=1),
+    })
+    with short_app.test_client() as client:
+        assert client.post(
+            "/auth/login",
+            json={"email": "organiser@example.com", "password": "CorrectPassword1!"},
+            headers=ORIGIN,
+        ).status_code == 200
+        # Authenticated immediately after login.
+        assert client.get("/auth/session").get_json()["user"] is not None
+        # Exceed the one-second lifetime. itsdangerous ages sessions in whole seconds and
+        # expires on age > max_age, so sleep past two seconds to clear the boundary reliably.
+        time.sleep(2.2)
+        # The idle session cookie is no longer accepted.
+        assert client.get("/auth/session").get_json()["user"] is None
 
 
 # ---------------------------------------------------------------------------

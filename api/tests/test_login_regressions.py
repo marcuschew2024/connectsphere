@@ -60,7 +60,29 @@ def login_store(monkeypatch):
         query.execute.side_effect = execute
         return query
 
+    def rpc(name, params):
+        # SCRUM-141: atomic failed-login RPC, applied statefully to the local user.
+        assert name == "register_failed_login"
+        query = MagicMock()
+
+        def rpc_execute():
+            if user["id"] != params["p_user_id"]:
+                return SimpleNamespace(data=None)
+            user["failed_attempts"] = user.get("failed_attempts", 0) + 1
+            if user["failed_attempts"] >= params["p_max_attempts"]:
+                user["locked_until"] = (
+                    datetime.now(UTC) + timedelta(minutes=params["p_lockout_minutes"])
+                ).isoformat()
+            return SimpleNamespace(data={
+                "failed_attempts": user["failed_attempts"],
+                "locked_until": user["locked_until"],
+            })
+
+        query.execute.side_effect = rpc_execute
+        return query
+
     database.table.side_effect = table
+    database.rpc.side_effect = rpc
     monkeypatch.setattr("app.auth.get_supabase_client", lambda: database)
     app = create_app({
         "TESTING": True, "APP_ENV": "production", "DEV_ROLE_SWITCHER_ENABLED": False,

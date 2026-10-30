@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from datetime import UTC, datetime, timedelta
+from datetime import UTC, datetime
 
 import bcrypt
 from flask import Blueprint, current_app, g, jsonify, request, session
@@ -72,18 +72,23 @@ def _record_audit(
         current_app.logger.exception("auth_audit_log insert failed (non-fatal)")
 
 
-def _increment_failed_attempts(user_id: int, current_count: int) -> None:
-    """Increment the failure counter; lock the account if the threshold is reached."""
+def _register_failed_login(user_id: int) -> dict | None:
+    """Count a failed attempt and lock the account at the threshold, atomically.
+
+    One UPDATE increments the counter and sets locked_until in the same statement
+    (register_failed_login, SCRUM-141 / R12), so concurrent failures cannot lose an
+    increment the way the former read-then-write could. Returns the new
+    {failed_attempts, locked_until}, or None if the database is unavailable.
+    """
     client = get_supabase_client()
     if client is None:
-        return
-    new_count = current_count + 1
-    patch: dict = {"failed_attempts": new_count}
-    if new_count >= MAX_FAILED_ATTEMPTS:
-        patch["locked_until"] = (
-            datetime.now(UTC) + timedelta(minutes=LOCKOUT_MINUTES)
-        ).isoformat()
-    client.table("app_users").update(patch).eq("id", user_id).execute()
+        return None
+    result = client.rpc("register_failed_login", {
+        "p_user_id": user_id,
+        "p_max_attempts": MAX_FAILED_ATTEMPTS,
+        "p_lockout_minutes": LOCKOUT_MINUTES,
+    }).execute()
+    return result.data if isinstance(result.data, dict) else None
 
 
 def _reset_failed_attempts(user_id: int) -> None:
@@ -199,11 +204,10 @@ def login():
     password_correct = bcrypt.checkpw(password.encode(), stored_hash.encode())
 
     if not password_correct:
-        _increment_failed_attempts(user["id"], user.get("failed_attempts", 0))
+        # The atomic RPC returns the new state, so no re-fetch is needed to detect a lock.
+        outcome = _register_failed_login(user["id"])
         _record_audit("login_failure", user_id=user["id"], attempted_email=email)
-        # Re-fetch to check if this failure just triggered a lock.
-        updated = _get_user_by_email(email.lower().strip())
-        if updated and updated.get("locked_until"):
+        if outcome and outcome.get("locked_until"):
             _record_audit("account_locked", user_id=user["id"], attempted_email=email)
         return jsonify({"error": GENERIC_ERROR}), 401
 

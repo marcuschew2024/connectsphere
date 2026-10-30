@@ -82,6 +82,35 @@ def test_seeded_account_rejects_a_wrong_password_without_starting_a_session(prod
     assert login(client, "organiser.b@connectsphere.test").status_code == 200
 
 
+def test_account_locks_after_real_consecutive_failures_then_recovers(production_app):
+    """SCRUM-141 / R12: five real wrong-password logins lock the account (429 even with the
+    correct password); clearing the lock lets a correct login recover and reset the counter.
+    Exercises the atomic register_failed_login RPC end-to-end against the real database."""
+    db, app = production_app
+    client = app.test_client()
+    email = "attendee.b@connectsphere.test"
+    # Start from a known-clean counter regardless of test order.
+    db.table("app_users").update({"failed_attempts": 0, "locked_until": None}).eq(
+        "email", email).execute()
+    try:
+        for _ in range(5):
+            assert login(client, email, "wrong-password").status_code == 401
+        # The fifth failure locks the account; the correct password is now refused.
+        assert login(client, email).status_code == 429
+        locked = db.table("app_users").select("failed_attempts,locked_until").eq(
+            "email", email).execute().data[0]
+        assert locked["failed_attempts"] >= 5 and locked["locked_until"] is not None
+    finally:
+        # Clear the lock window so the account recovers (and later tests are not blocked).
+        db.table("app_users").update({"locked_until": None}).eq("email", email).execute()
+
+    # A correct login now succeeds and resets the counter to zero.
+    assert login(client, email).status_code == 200
+    recovered = db.table("app_users").select("failed_attempts,locked_until").eq(
+        "email", email).execute().data[0]
+    assert recovered["failed_attempts"] == 0 and recovered["locked_until"] is None
+
+
 def test_production_never_resolves_a_demo_identity(production_app):
     db, app = production_app
     demo = db.table("app_users").select("id").eq("is_demo", True).limit(1).execute().data[0]

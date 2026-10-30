@@ -21,6 +21,22 @@ test("an unreachable API keeps home on a sign-in prompt instead of redirecting",
   await expect(page).toHaveURL(/\/$/);
 });
 
+// SCRUM-141 (R12): a failed sign-out must not pretend success.
+test("a failed sign-out surfaces an error and keeps the user on the page", async ({ page }) => {
+  const user = { id: 42, display_name: "Coordinator Account A", role: "Coordinator" };
+  await page.route(`${API}/session`, (route) => route.fulfill({ json: { user } }));
+  await page.route(`${API}/notifications`, (route) => route.fulfill({ json: { notifications: [] } }));
+  await page.route(`${API}/events`, (route) => route.fulfill({ json: { events: [] } }));
+  await page.route(`${API}/auth/logout`, (route) =>
+    route.fulfill({ status: 503, json: { error: "Database unavailable." } }));
+
+  await page.goto("/");
+  await page.getByRole("button", { name: "Sign out" }).click();
+
+  await expect(page.getByText("Could not sign you out. Please try again.")).toBeVisible();
+  await expect(page).toHaveURL(/\/$/); // stayed put — not redirected to /login
+});
+
 test("signing in lands on the account's own workspace with no demo lookups", async ({ page }) => {
   const devRequests: string[] = [];
   page.on("request", (request) => {

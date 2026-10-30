@@ -19,7 +19,7 @@ def test_missing_auth_database_cannot_resolve_an_identity_or_write_counters(app,
         session["user_id"] = 10
         assert auth.get_authenticated_user() is None
         assert auth._get_user_by_email("alice@example.com") is None
-        assert auth._increment_failed_attempts(10, 4) is None
+        assert auth._register_failed_login(10) is None
         assert auth._reset_failed_attempts(10) is None
         assert auth._record_audit("login_failure", user_id=10) is None
 
