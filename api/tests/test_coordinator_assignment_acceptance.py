@@ -69,8 +69,11 @@ def test_tc_130_01_submission_enters_the_unassigned_queue_the_lead_can_see(live,
     stored = database.table("events").select("*").eq("id", event["id"]).execute().data[0]
     assert stored["status"] == "Submitted" and stored["coordinator_id"] is None
     for coordinator in (2, 7):
+        # SCRUM-54: a Coordinator now sees the unassigned request in their list, but it is
+        # not theirs to action yet (is_mine False); routing still belongs to the Lead.
         queue = users[coordinator].get("/events", headers=ORIGIN).json["events"]
-        assert all(row["id"] != event["id"] for row in queue)
+        row = next(row for row in queue if row["id"] == event["id"])
+        assert row["is_mine"] is False
     supervised = lead.get("/events", headers=ORIGIN).json["events"]
     row = next(row for row in supervised if row["id"] == event["id"])
     # Basic event info the Lead needs to route the request.
@@ -151,8 +154,11 @@ def test_tc_130_04_coordinators_only_manage_events_assigned_to_them(live, lead, 
                              headers=ORIGIN).status_code == 403
         assert users[2].patch(f"/events/{event['id']}", json={"title": "Taken over"},
                               headers=ORIGIN).status_code == 403
-        assert all(row["id"] != event["id"]
-                   for row in users[2].get("/events", headers=ORIGIN).json["events"])
+        # SCRUM-54: coordinator 2 now sees both events in the list, but neither is theirs
+        # to manage (is_mine False) — the 403s above prove read does not grant edit.
+        row = next(row for row in users[2].get("/events", headers=ORIGIN).json["events"]
+                   if row["id"] == event["id"])
+        assert row["is_mine"] is False
     assert other.post(f"/events/{moved['id']}/decision", json={"decision": "approve"},
                       headers=ORIGIN).status_code == 200
 
