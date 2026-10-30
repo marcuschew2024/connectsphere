@@ -69,6 +69,11 @@ for pass in 1 2; do
 done
 psql -v ON_ERROR_STOP=1 -f /sql/tests/venue_holds.sql
 
+# SCRUM-120: Tentative hold + FCFS (confirmed beats hold, blocked counts as unavailable).
+# No migration needed - all required columns and constraints already exist from SCRUM-33/79.
+psql -v ON_ERROR_STOP=1 -f /sql/tests/venue_fcfs.sql
+echo "venue_fcfs database checks: PASS"
+
 for pass in 1 2; do
   psql -v ON_ERROR_STOP=1 -f /sql/migrations/20261025120000_scrum_132_complete_event.sql > /tmp/migration-output.txt
   echo "Event completion migration pass $pass: PASS"
