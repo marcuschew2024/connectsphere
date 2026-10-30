@@ -909,6 +909,9 @@ Shared Supabase migration deployment is separate and is not implied by the Git m
     reason. It also notifies the Organiser with the reason and, when the Lead cancels,
     the assigned Coordinator. This is the cancellation trigger D27 deferred to SCRUM-69.
   Registrations are **not** changed. Per D31, cancellation is not an attendee withdrawal.
+  Because the row stays *Registered*, the Attendee's own pages read the event status:
+  a Registered or Waitlisted Attendee of a cancelled event sees **Event cancelled** (no
+  "place is booked" text, no withdraw action); a withdrawal still shows as Withdrawn.
   The generic status route can no longer set `Cancelled` or move an event out of it, and
   change requests on a cancelled event can no longer be raised or reviewed.
 - **Constraints.** Like `complete_event` (D13), the function is `security definer`, has
@@ -917,7 +920,8 @@ Shared Supabase migration deployment is separate and is not implied by the Git m
   mapping, and real-database acceptance tests: resources released, registrations
   unchanged, the right recipients notified, refused actors audited, database re-checks,
   two simultaneous cancellations and the read-only cancelled event. Browser tests cover
-  the panel, its visibility and the read-only view. The migration is replayed twice.
+  the panel, its visibility, the read-only view and the Attendee's cancelled-event view.
+  The migration is replayed twice.
   See `docs/SCRUM-69.md`.
 - **Trade-off.** Organiser self-service cancellation was not added; the team can revisit
   that if the customer wants it. Rejected events remain changeable through the generic

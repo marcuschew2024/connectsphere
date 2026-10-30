@@ -17,7 +17,13 @@ export type OwnRegistration = Registration & {
   } | null;
 };
 
-export function registrationStatus(status: string) {
+// SCRUM-69 (D34): cancelling leaves the registration Registered, so the event status
+// decides what an Attendee is told. A withdrawal stays visible as a withdrawal.
+export function registrationStatus(status: string, eventStatus?: string | null) {
+  if (eventStatus === "Cancelled" && status !== "Withdrawn") {
+    return { label: "Event cancelled", heading: "Event cancelled",
+      description: "This event has been cancelled and will not take place. You do not need to do anything." };
+  }
   switch (status) {
     case "Registered": return { label: "Registered", heading: "Registration confirmed",
       description: "Your place is booked. A confirmation is also available on Home under Registration confirmations." };

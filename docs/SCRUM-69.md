@@ -34,7 +34,10 @@ Completed, Rejected and already Cancelled events are closed (409).
   - notifies the Organiser, including the reason;
   - notifies the assigned Coordinator when the Lead cancelled.
 - Registrations are **not** changed. Per D31, cancellation is not an attendee withdrawal,
-  so Attendees' own registration list shows *Registered* on a *Cancelled* event.
+  so the stored registration stays *Registered*. The Attendee's **My registrations**
+  card and event page show **Event cancelled** with "This event has been cancelled and
+  will not take place" in place of "Your place is booked", and the withdraw action is
+  hidden. A registration withdrawn earlier still shows as *Withdrawn*.
 - The response returns the event, how many bookings and reservations were released,
   and how many Attendees were notified.
 
@@ -68,3 +71,5 @@ automatically.
   database re-checks, two simultaneous cancellations and the read-only cancelled event.
 - `frontend/e2e/event-cancel.spec.ts`: the cancel panel, the required reason,
   confirmation, refusals, who sees the panel, and the read-only view.
+- `frontend/src/lib/registration-status.test.ts` and `frontend/e2e/own-registration-status.spec.ts`:
+  what a registered Attendee sees once their event is cancelled.
