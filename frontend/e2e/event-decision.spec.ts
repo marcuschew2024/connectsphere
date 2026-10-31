@@ -64,3 +64,47 @@ test("coordinator rejects with a reason and the reason is sent", async ({ page }
   expect(state.decisions).toEqual([{ decision: "reject", reason: "Venue requirements cannot be met." }]);
   await expect(page.getByRole("heading", { name: "Review request" })).toHaveCount(0);
 });
+
+// Core feature #7 (SCRUM-23): the assigned Coordinator edits event details while the event
+// is in Planning. The PATCH route is shared with draft edits (covered in drafts.spec.ts); this
+// pins the coordinator Planning-edit path through EventEditForm (no action:"draft").
+const PLANNING = {
+  id: EVENT_ID, title: "Campus workshop", status: "Planning", request_status: "Planning",
+  organiser_id: 1, coordinator_id: 2, category: "Workshop", expected_attendance: 40,
+  event_datetime: "2099-10-20T06:00:00Z", venue_requirements: "Seminar room",
+  accessibility_requirements: "Step-free access", equipment_requirements: "Projector",
+  registration_requirements: "RSVP", updated_at: "2026-10-31T01:00:00Z",
+};
+
+test("coordinator edits event details during Planning and the change is saved", async ({ page }) => {
+  const edits: Array<Record<string, unknown>> = [];
+  await page.route("**/notifications", (r) => r.fulfill({ json: { notifications: [] } }));
+  await page.route("**/session", (r) => r.fulfill({ json: {
+    user: { id: 2, display_name: "Demo Coordinator", role: "Coordinator" },
+  } }));
+  await page.route(`${API}/events/${EVENT_ID}/history`, (r) => r.fulfill({ json: { history: [] } }));
+  await page.route(`${API}/events/${EVENT_ID}/clarification`, (r) => r.fulfill({ json: { clarification: null } }));
+  await page.route(`${API}/events/${EVENT_ID}/change-requests`, (r) => r.fulfill({ json: { change_requests: [] } }));
+  await page.route(`${API}/venues/bookings/event/${EVENT_ID}`, (r) => r.fulfill({ json: { bookings: [] } }));
+  await page.route(`${API}/events/${EVENT_ID}`, (r) => {
+    if (r.request().method() === "PATCH") {
+      const body = r.request().postDataJSON();
+      edits.push(body);
+      return r.fulfill({ json: {
+        event: { ...PLANNING, title: body.title }, importance: "ordinary", changed_fields: ["title"],
+      } });
+    }
+    return r.fulfill({ json: { event: PLANNING } });
+  });
+
+  await page.goto(`/events/${EVENT_ID}`);
+  await page.locator("summary").filter({ hasText: "Edit event details" }).click();
+  await page.getByLabel("Event name").fill("Campus workshop (revised)");
+  await page.getByRole("button", { name: "Save changes" }).click();
+
+  await expect(page.getByText("Saved. Recorded as an ordinary change.")).toBeVisible();
+  expect(edits).toHaveLength(1);
+  expect(edits[0].title).toBe("Campus workshop (revised)");
+  // A coordinator Planning edit is not a draft save.
+  expect(edits[0].action).toBeUndefined();
+});

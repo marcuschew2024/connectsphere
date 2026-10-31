@@ -23,7 +23,7 @@ file) in the *same PR as the fix*. Owner does a final sweep at freeze — any ro
 | 5 | Coordinator assignment | Auto-assign on submit | `coordinator-assignment.spec.ts` | ✅ | — |
 | 5 | Coordinator assignment | Lead reassign from queue | *(verify)* | 🔶 | Ernest |
 | 6 | Event status mgmt | Lifecycle Planning→Confirmed→Completed view | `event-status.spec.ts` | ✅ | — |
-| 7 | Event info mgmt | Edit during Planning | *(verify)* | 🔶 | Marcus |
+| 7 | Event info mgmt | Edit during Planning | `event-decision.spec.ts` (coordinator Planning edit) | ✅ | Marcus |
 | 7 | Event info mgmt | **Impactful change flagged vs ordinary edit** (SCRUM-58) | `change-request-apply.spec.ts` (significant vs ordinary) | ✅ | Marcus |
 | 8 | Venue catalogue | Add / update / retire + full record + layouts | `venues.spec.ts`, `venue-edit.spec.ts` | 🔶 | Jessica |
 | 9 | Venue availability calendar | Availability + blocked periods | `venue-calendar.spec.ts` | ✅ | — |
