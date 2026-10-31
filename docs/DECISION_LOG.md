@@ -102,18 +102,19 @@ An at-a-glance summary of where AI was and was not used sits in the
   intervals conflict only when `existing.start < new.end AND new.start < existing.end`, so
   **touching endpoints are compatible**. Classify conflicts by status — `Confirmed` and
   `Blocked` are **hard** conflicts; `Requested`/`Pending` are a single **tentative** hold
-  that blocks another *request* but never defeats a later confirmed decision. **No setup
-  or turnaround buffer** is applied by the engine.
+  that blocks another *request* but never defeats a later confirmed decision.   With the SCRUM-129 PO decision and its SCRUM-137 reconciliation, buffers do apply.
+  The engine expands published bookings to the occupied interval
+  `[start_at - setup_time, end_at + turnaround_time)` using each venue's configurable
+  minutes; zero values preserve the original half-open behaviour.
 - **Constraints / guardrails.** The engine is pure and total — unrecognised statuses are
   ignored defensively; the half-open rule is the single source of truth for "do these
   overlap?".
 - **Verification.** Unit tests cover the exact boundary (back-to-back allowed, true
   overlap rejected) and status precedence; the database enforces the same invariant
   independently (see D7).
-- **Trade-off.** No buffer means consecutive events have zero changeover gap — accepted
-  for the MVP; a configurable turnaround is a known future change (venue setup/turnaround).
-  **Update:** delivered by SCRUM-129 (Week 7 Customer Change #1), which adds per-venue
-  setup/turnaround buffers to the same half-open check; zero buffers keep this rule.
+- **Trade-off.** Configurable buffers reduce usable availability and can reveal historical
+  conflicts. Those conflicts are reported rather than deleted, and the database is the
+  final concurrency backstop.
 - **Owner.** Venue & booking work.
 
 ### D5 — Event confirmation gate (multi-venue), with a documented deferred seam
@@ -1233,3 +1234,25 @@ auto-assign in D9) are recorded explicitly rather than left implicit.
   unchanged, repair, confirm allowed. The new tests fail without the fix.
   `e2e/unusable-equipment.spec.ts` covers the request page.
 - **Owner.** Ernest Wong.
+
+### D43 — Buffered venue availability is consistent across every write and read path (SCRUM-137)
+
+- **Context.** Week 7 Change #1 introduced per-venue setup and turnaround buffers, but
+  search, calendar, booking checks, and the database exclusion constraints could use
+  different published/raw intervals.
+- **Decision.** Buffers apply. A booking occupies
+  `[start_at - setup_time_minutes, end_at + turnaround_time_minutes)` across search,
+  availability calendar, booking application checks, and the database. Back-to-back
+  published slots remain compatible only when their occupied intervals do not overlap.
+- **Constraints / guardrails.** Venue buffers are snapshotted on venue bookings and
+  refreshed when venue configuration changes. Existing bookings that conflict under the
+  buffered rule are preserved and recorded in `problematic_venue_bookings`; database
+  exclusion constraints are the concurrency backstop once the conflicts are cleared.
+- **Verification.** Pure overlap unit tests, repository/search/calendar route tests,
+  booking request and approval integration tests, and a real PostgreSQL buffer/constraint
+  acceptance test.
+- **Trade-off.** Venue buffer changes can make previously valid bookings conflict and
+  therefore require human disposition; this is safer than silently deleting history or
+  weakening the exclusion constraint.
+- **Owner.** Jessica (Venue Staff/Safety Officer stream), with Ernest as technical
+  implementation reviewer.

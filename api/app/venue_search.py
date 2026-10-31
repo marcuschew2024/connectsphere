@@ -92,7 +92,7 @@ def matches_filters(venue, filters):
 
 
 def availability(venue, filters):
-    """Use SCRUM-31's existing half-open conflict check; never reserve a venue here."""
+    """Use the venue's buffer-aware half-open conflict check; never reserve a venue here."""
     if venue.get("is_retired", False):
         return "retired"
     if "date" not in filters:
@@ -102,7 +102,9 @@ def availability(venue, filters):
             or filters["end_time"] > hours["closes"]):
         return "closed"
     conflicts = find_overlapping_bookings(
-        venue["id"], filters["start_time_iso"], filters["end_time_iso"]
+        venue["id"], filters["start_time_iso"], filters["end_time_iso"],
+        setup_minutes=max(0, int(venue.get("setup_time_minutes") or 0)),
+        turnaround_minutes=max(0, int(venue.get("turnaround_time_minutes") or 0)),
     )
     blocks = list_unavailability(
         venue["id"], filters["start_time_iso"], filters["end_time_iso"]

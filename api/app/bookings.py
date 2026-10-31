@@ -84,10 +84,9 @@ def _validated_booking_fields(data, event: dict, existing: dict | None = None) -
 
     setup_m = int(venue.get("setup_time_minutes") or 0)
     turnaround_m = int(venue.get("turnaround_time_minutes") or 0)
-    buffer_window = setup_m + turnaround_m
-
     conflicts = find_overlapping_bookings(
-        venue_id, start.isoformat(), end.isoformat(), buffer_window_minutes=buffer_window
+        venue_id, start.isoformat(), end.isoformat(),
+        setup_minutes=setup_m, turnaround_minutes=turnaround_m,
     )
     overlap = OverlapEngine().evaluate(
         venue_id, start, end, conflicts,
@@ -183,14 +182,13 @@ def submit_booking():
 
     setup_m = int(venue.get("setup_time_minutes") or 0)
     turnaround_m = int(venue.get("turnaround_time_minutes") or 0)
-    buffer_window = setup_m + turnaround_m
-
     overlap = OverlapEngine().evaluate(
         venue_id,
         start,
         end,
         find_overlapping_bookings(
-            venue_id, start.isoformat(), end.isoformat(), buffer_window_minutes=buffer_window
+            venue_id, start.isoformat(), end.isoformat(),
+            setup_minutes=setup_m, turnaround_minutes=turnaround_m,
         ),
         setup_minutes=setup_m,
         turnaround_minutes=turnaround_m,
@@ -343,8 +341,6 @@ def decide_booking(booking_id):
         venue = get_venue(booking["venue_id"]) or {}
         setup_m = int(venue.get("setup_time_minutes") or 0)
         turnaround_m = int(venue.get("turnaround_time_minutes") or 0)
-        buffer_window = setup_m + turnaround_m
-
         overlap = OverlapEngine().evaluate(
             booking["venue_id"],
             booking["start_at"],
@@ -353,7 +349,7 @@ def decide_booking(booking_id):
                 booking["venue_id"],
                 booking["start_at"],
                 booking["end_at"],
-                buffer_window_minutes=buffer_window,
+                setup_minutes=setup_m, turnaround_minutes=turnaround_m,
             ),
             exclude_booking_id=booking_id,
             setup_minutes=setup_m,

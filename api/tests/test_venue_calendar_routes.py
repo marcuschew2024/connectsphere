@@ -17,7 +17,7 @@ def stubbed(monkeypatch):
     monkeypatch.setattr("app.venues.get_venue", lambda vid: VENUE if vid == VID else None)
     monkeypatch.setattr(
         "app.venues.list_venue_bookings_in_range",
-        lambda vid, frm, to: [
+        lambda vid, frm, to, **_buffers: [
             {"id": "b1", "venue_id": vid, "start_at": frm, "end_at": to, "status": "Confirmed"},
         ],
     )
