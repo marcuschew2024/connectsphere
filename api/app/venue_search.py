@@ -7,6 +7,7 @@ from zoneinfo import ZoneInfo
 from werkzeug.exceptions import BadRequest
 
 from .booking_repository import find_overlapping_bookings
+from .venue_overlap import OverlapEngine
 from .venue_repository import PAGE_SIZE, list_venues
 from .venue_unavailability_repository import list_unavailability
 from .venue_validation import DAYS
@@ -101,19 +102,39 @@ def availability(venue, filters):
     if (not hours or filters["start_time"] < hours["opens"]
             or filters["end_time"] > hours["closes"]):
         return "closed"
+    setup_m = max(0, int(venue.get("setup_time_minutes") or 0))
+    turnaround_m = max(0, int(venue.get("turnaround_time_minutes") or 0))
     conflicts = find_overlapping_bookings(
         venue["id"], filters["start_time_iso"], filters["end_time_iso"],
-        setup_minutes=max(0, int(venue.get("setup_time_minutes") or 0)),
-        turnaround_minutes=max(0, int(venue.get("turnaround_time_minutes") or 0)),
+        setup_minutes=setup_m,
+        turnaround_minutes=turnaround_m,
     )
     blocks = list_unavailability(
         venue["id"], filters["start_time_iso"], filters["end_time_iso"]
     )
     if blocks:
         return "blocked"
-    if any(row["status"] == "Blocked" for row in conflicts):
+    if not conflicts:
+        return "available"
+
+    # If records have start_at, evaluate buffer overlap via OverlapEngine; otherwise respect status
+    has_full_records = all("start_at" in r and "end_at" in r for r in conflicts)
+    if has_full_records:
+        overlap = OverlapEngine().evaluate(
+            venue["id"],
+            datetime.fromisoformat(filters["start_time_iso"]),
+            datetime.fromisoformat(filters["end_time_iso"]),
+            conflicts,
+            setup_minutes=setup_m,
+            turnaround_minutes=turnaround_m,
+        )
+        if overlap.hard_conflict is not None:
+            return "blocked" if overlap.hard_conflict.status == "Blocked" else "booked"
+        return "available"
+
+    if any(row.get("status") == "Blocked" for row in conflicts):
         return "blocked"
-    if conflicts:
+    if any(row.get("status") == "Confirmed" for row in conflicts):
         return "booked"
     return "available"
 
