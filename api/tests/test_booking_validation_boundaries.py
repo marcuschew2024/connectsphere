@@ -19,12 +19,24 @@ def _soon(hours):
     return (datetime.now(UTC) + timedelta(hours=hours)).isoformat()
 
 
+def _anchored(hours):
+    """SCRUM-157: 09:00 SGT (01:00 UTC) three days ahead, plus ``hours`` - never crosses
+    midnight in Singapore (D40), whatever time the suite runs."""
+    base = (datetime.now(UTC) + timedelta(days=3)).replace(
+        hour=1, minute=0, second=0, microsecond=0
+    )
+    return (base + timedelta(hours=hours)).isoformat()
+
+
 # One timestamp for "end equals start": two separate calls would differ by microseconds.
 SAME_TIME = _soon(72)
 
 
 def _conflict(status, venue_id="venue-1"):
-    start = datetime.now(UTC) + timedelta(days=3)
+    # SCRUM-157: same 09:00 SGT anchor as payload(), so the conflict overlaps it at any hour.
+    start = (datetime.now(UTC) + timedelta(days=3)).replace(
+        hour=1, minute=0, second=0, microsecond=0
+    )
     return {"id": f"existing-{status}", "venue_id": venue_id, "status": status,
             "start_at": start.isoformat(), "end_at": (start + timedelta(hours=2)).isoformat()}
 
@@ -149,7 +161,7 @@ def test_submission_requires_the_trusted_origin(booking_api):  # noqa: F811
 def changing(app, monkeypatch):
     saved = []
     monkeypatch.setattr("app.bookings.get_booking", lambda booking_id: {
-        **booking(), "start_at": _soon(72), "end_at": _soon(74),
+        **booking(), "start_at": _anchored(0), "end_at": _anchored(2),
     } if booking_id == "booking-a" else None)
     monkeypatch.setattr("app.bookings.get_event_by_id", lambda event_id: event())
     monkeypatch.setattr("app.bookings.get_venue", lambda venue_id: (
@@ -199,7 +211,8 @@ def test_a_change_into_an_occupied_slot_is_refused(changing, monkeypatch, status
     monkeypatch.setattr("app.bookings.find_overlapping_bookings",
                         lambda *args, **kwargs: [_conflict(status)])
     response = client.patch("/venues/bookings/booking-a",
-                            json={"start_at": _soon(72), "end_at": _soon(74)}, headers=ORIGIN)
+                            json={"start_at": _anchored(0), "end_at": _anchored(2)},
+                            headers=ORIGIN)
     assert response.status_code == 409
     assert message in response.json["error"]
     assert saved == []
