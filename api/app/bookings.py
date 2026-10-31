@@ -27,6 +27,10 @@ from .supabase_client import get_supabase_client  # noqa: F401
 from .venue_overlap import OverlapEngine
 from .venue_repository import get_venue
 from .venue_retirement import VenueRetirement
+from .venue_suitability import CapacityRule
+
+# Bookings that still hold (or may hold) the venue for the event.
+ACTIVE_BOOKING_STATUSES = frozenset({"Requested", "Pending", "Held", "Confirmed"})
 
 bookings = Blueprint("bookings", __name__, url_prefix="/venues/bookings")
 
@@ -257,7 +261,15 @@ def event_bookings(event_id):
         require_related_user(user, event, action="view_event_bookings")
     else:
         require_role(user, "Venue Staff", action="view_event_bookings")
-    return jsonify({"bookings": list_bookings_for_event_detail(event_id)}), 200
+    bookings = list_bookings_for_event_detail(event_id)
+    # SCRUM-152 (SCRUM-47/62): re-check every active booking against the event's
+    # current attendance, so a change after booking flags a now-too-small venue.
+    for booking in bookings:
+        active = booking.get("status") in ACTIVE_BOOKING_STATUSES
+        booking["capacity_warning"] = (
+            CapacityRule().evaluate(event, booking.get("venue") or {}) if active else None
+        )
+    return jsonify({"bookings": bookings}), 200
 
 
 @bookings.patch("/<booking_id>")
