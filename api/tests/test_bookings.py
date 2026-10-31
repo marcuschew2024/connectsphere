@@ -18,7 +18,10 @@ def event_record():
 
 
 def payload(**overrides):
-    start = datetime.now(UTC) + timedelta(days=3)
+    # Anchor to 09:00 SGT (01:00 UTC) so T+1h to T+5h stay on the same Singapore day (D40)
+    start = (datetime.now(UTC) + timedelta(days=3)).replace(
+        hour=1, minute=0, second=0, microsecond=0
+    )
     values = {
         "event_id": "event-1", "venue_id": "venue-1",
         "start_at": start.isoformat(),
@@ -222,7 +225,9 @@ def test_tc_129_02_integration_back_to_back_bookings_conflict_due_to_buffers(
         },
     )
 
-    base = datetime.now(UTC) + timedelta(days=3)
+    base = (datetime.now(UTC) + timedelta(days=3)).replace(
+        hour=1, minute=0, second=0, microsecond=0
+    )
     existing_start = (base + timedelta(hours=1)).isoformat()
     existing_end = (base + timedelta(hours=3)).isoformat()
 
