@@ -27,9 +27,15 @@ def test_own_list_excludes_others_and_private_fields_even_on_the_same_event(sign
     assert response.status_code == 200
     rows = response.json["registrations"]
     assert [row["id"] for row in rows] == [own["id"]]
-    assert set(rows[0]) == {"id", "event_id", "status", "registered_at", "withdrawn_at", "event"}
-    assert set(rows[0]["event"]) == {"id", "title", "category", "event_datetime", "status"}
+    assert set(rows[0]) == {
+        "id", "reference", "event_id", "status", "registered_at", "withdrawn_at", "event",
+    }
+    assert set(rows[0]["event"]) == {
+        "id", "reference", "title", "category", "event_datetime", "status",
+    }
     assert rows[0]["event"]["title"] == event["title"]
+    assert rows[0]["reference"] == own["reference"]
+    assert rows[0]["event"]["reference"] == event["reference"]
     assert other["id"] not in response.get_data(as_text=True)
     assert "IS year 2" not in response.get_data(as_text=True)
     assert clients[41002].get("/events/registrations", headers=ORIGIN).json[

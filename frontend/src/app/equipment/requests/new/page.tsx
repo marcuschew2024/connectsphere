@@ -1,5 +1,7 @@
 "use client";
 
+import { recordReference } from "@/lib/record-reference";
+
 import Link from "next/link";
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import { apiRequest, ApiError } from "@/lib/api";
@@ -92,7 +94,7 @@ function RequestForm() {
     <h2 className="text-xl font-semibold">Equipment request submitted</h2>
     <p className="text-sm">Status: <strong>{saved.status}</strong> · Routed to {saved.routed_to}</p>
     <p className="text-sm text-muted-foreground">Recorded {equipmentTimestamp(saved.requested_at)} SGT. Tech Support can now review every item and note.</p>
-    <p className="break-all text-xs text-muted-foreground">Request reference: {saved.id}</p>
+    <p className="break-all text-xs text-muted-foreground">Request reference: {recordReference(saved, saved.requested_at)}</p>
     <Link href="/equipment/requests" className="inline-flex rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground">View requests</Link>
   </section>;
 

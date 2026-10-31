@@ -1,5 +1,6 @@
 export type Registration = {
   id: string;
+  reference?: string;
   event_id: string;
   status: "Registered" | "Waitlisted" | "Withdrawn";
   registered_at: string;
@@ -10,6 +11,7 @@ export type OwnRegistration = Registration & {
   withdrawn_at: string | null;
   event: {
     id: string;
+    reference?: string;
     title: string | null;
     category: string | null;
     event_datetime: string | null;
@@ -39,6 +41,7 @@ export function registrationStatus(status: string, eventStatus?: string | null) 
 export type RegistrationOffer = {
   event: {
     id: string;
+    reference?: string;
     title: string | null;
     description: string | null;
     category: string | null;

@@ -1,5 +1,7 @@
 "use client";
 
+import { recordReference } from "@/lib/record-reference";
+
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { ApiError, apiRequest } from "@/lib/api";
@@ -30,7 +32,7 @@ export default function BookingQueuePage() {
       {error && <p role="alert" className="rounded-xl border border-destructive/30 bg-destructive/5 p-4 text-sm text-destructive">{error}</p>}
       {loading && <p className="text-muted-foreground">Loading booking requests...</p>}
       {!loading && !error && bookings.length === 0 && <section className="rounded-2xl border border-dashed border-border px-6 py-12 text-center text-muted-foreground">There are no requested venue bookings.</section>}
-      {!loading && !error && bookings.length > 0 && <ul className="grid gap-4 sm:grid-cols-2">{bookings.map((booking) => <li key={booking.id}><Link href={`/venues/bookings/${booking.id}`} className="block rounded-2xl border border-border bg-card p-5 shadow-sm transition hover:border-primary/40 hover:shadow-md"><div className="flex items-start justify-between gap-3"><div><h2 className="font-semibold">{booking.venue?.name ?? "Venue booking"}</h2><p className="mt-1 text-sm text-muted-foreground">{booking.event?.title ?? "Event"}</p></div><BookingStatusBadge status={booking.status} /></div><p className="mt-4 text-sm text-muted-foreground">{formatSlot(booking.start_at, booking.end_at)}</p><p className="mt-3 text-sm text-primary">Open request →</p></Link></li>)}</ul>}
+      {!loading && !error && bookings.length > 0 && <ul className="grid gap-4 sm:grid-cols-2">{bookings.map((booking) => <li key={booking.id}><Link href={`/venues/bookings/${booking.id}`} className="block rounded-2xl border border-border bg-card p-5 shadow-sm transition hover:border-primary/40 hover:shadow-md"><div className="flex items-start justify-between gap-3"><div><h2 className="font-semibold">{booking.venue?.name ?? "Venue booking"}</h2><p className="mt-1 text-sm text-muted-foreground">{booking.event?.title ?? "Event"}</p></div><BookingStatusBadge status={booking.status} /></div>{booking.reference && <p className="mt-2 text-xs text-muted-foreground">{recordReference(booking, booking.start_at)}</p>}<p className="mt-4 text-sm text-muted-foreground">{formatSlot(booking.start_at, booking.end_at)}</p><p className="mt-3 text-sm text-primary">Open request →</p></Link></li>)}</ul>}
     </main>
   </AppShell>;
 }

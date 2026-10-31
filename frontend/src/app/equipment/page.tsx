@@ -1,5 +1,7 @@
 "use client";
 
+import { recordReference } from "@/lib/record-reference";
+
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { Package, Plus } from "lucide-react";
@@ -61,6 +63,7 @@ function CatalogueResults({
               <Badge variant={item.operational_status === "Operational" ? "secondary" : "destructive"}>
                 {item.operational_status}
               </Badge>
+          {item.reference && <p className="text-xs text-muted-foreground">{recordReference(item, item.created_at)}</p>}
               <h2 className="mt-3 break-words text-lg font-semibold">{item.equipment_type}</h2>
               <p className="mt-1 break-words text-sm text-muted-foreground">{item.location}</p>
               <p className="my-4 whitespace-pre-wrap break-words text-sm">{item.description}</p>

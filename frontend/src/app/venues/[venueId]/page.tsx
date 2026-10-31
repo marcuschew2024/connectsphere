@@ -1,5 +1,7 @@
 "use client";
 
+import { recordReference } from "@/lib/record-reference";
+
 import { useParams } from "next/navigation";
 import { useEffect, useState, type FormEvent } from "react";
 import { ApiError, apiRequest } from "@/lib/api";
@@ -158,6 +160,7 @@ export default function VenueDetailPage() {
         {venue && canView && <>
           <header>
             <p className="text-xs font-medium uppercase tracking-[0.16em] text-primary">Venue</p>
+          {venue.reference && <p className="text-xs text-muted-foreground">{recordReference(venue, venue.created_at)}</p>}
             <h1 className="mt-2 text-2xl font-semibold tracking-tight sm:text-3xl">{venue.name}</h1>
             <p className="mt-1 text-sm text-muted-foreground">{venue.location} · capacity {venue.capacity}</p>
           </header>

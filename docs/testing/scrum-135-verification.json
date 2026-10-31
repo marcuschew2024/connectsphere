@@ -1,0 +1,77 @@
+{
+  "story": "SCRUM-135",
+  "verified_at": "2026-10-30T20:09:55.758841+00:00",
+  "base_commit": "3f5131e3bed172ef4d63e6ff6be4735a38e82b09",
+  "branch": "feature/SCRUM-135-status-transitions",
+  "backend": {
+    "total": 1952,
+    "passed": 1952,
+    "failed": 0,
+    "errors": 0,
+    "skipped": 0
+  },
+  "integrated_browser": {
+    "total": 2,
+    "passed": 2,
+    "failed": 0,
+    "errors": 0,
+    "skipped": 0
+  },
+  "strengthened_denial_audit_rerun": {
+    "total": 9,
+    "passed": 9,
+    "failed": 0,
+    "errors": 0,
+    "skipped": 0
+  },
+  "tooling_tests_passed": 7,
+  "ruff": "passed",
+  "requirement_mapping_validation": "26 mappings valid",
+  "database": {
+    "migration_replays": 2,
+    "rollback_and_execute_privileges": "passed",
+    "terminal_trigger": "passed",
+    "target": "disposable local Postgres 17 and PostgREST only"
+  },
+  "coverage": {
+    "backend_statements_percent": 96.33395772009634,
+    "backend_branches_percent": 93.19826338639653,
+    "transition_value_object": {
+      "covered_lines": 26,
+      "num_statements": 26,
+      "percent_covered": 100.0,
+      "percent_covered_display": "100",
+      "missing_lines": 0,
+      "excluded_lines": 0,
+      "percent_statements_covered": 100.0,
+      "percent_statements_covered_display": "100",
+      "num_branches": 12,
+      "num_partial_branches": 0,
+      "covered_branches": 12,
+      "missing_branches": 0,
+      "percent_branches_covered": 100.0,
+      "percent_branches_covered_display": "100"
+    }
+  },
+  "source_sha256": {
+    "api/app/event_transition.py": "d9e236429cf1a6444ad35028d9a4cbb3aaf6ab53a0fc57257c6f1ac3b2d8c698",
+    "api/app/events.py": "660d431534c9f6e446d579d35a68598486e7ddc64f580ce153fe0fdd4e3b1856",
+    "api/app/event_repository.py": "65b3c82763824750d099d2b42e37f967bfb921a41195b0e384631231ab6de364",
+    "api/tests/test_event_transition.py": "893ea4d5902e959c789202266592e7ac129af54c0320d3c9f3c712eca533503b",
+    "api/tests/test_status_transition_acceptance.py": "7e86961688a2c58d87ca4379b2a6c11f0990e48999d2ca05fa01fd779cc71b58",
+    "api/tests/test_status_transition_failures.py": "f6c84e2a975f14dd93f1c1ade9ea28cc1a7b84d5f6aa8f21ab635c291e508ae0",
+    "supabase/migrations/20261030195932_scrum_135_status_transitions.sql": "9fbdc738bf5390dad0792df82a3672ddfc742252d066c7e5e354b190ab2714ba",
+    "supabase/tests/status_transitions.sql": "95dd9f140a33ba2431f8aa147c4550833cf7a26c90412605997a05848a6b0a62"
+  },
+  "limitations": [
+    "Human review and hosted CI/merge remain pending.",
+    "Migration has not been applied to the shared database.",
+    "Supabase CLI security advisor could not connect to the Docker-only network; direct SQL assertions verified function invoker mode, empty search path in the migration, and restricted EXECUTE privileges.",
+    "Frontend source was unchanged; the matching existing production build was reused for the real browser journeys.",
+    "Other user-flow audit findings are outside SCRUM-135."
+  ],
+  "test_changes": [
+    "Two existing status actor/history tests now use the assigned Coordinator, with assertions retained.",
+    "Existing persistence double and scoped fixture cleanup adapted for RPC and denial audit."
+  ]
+}

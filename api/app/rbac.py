@@ -84,7 +84,7 @@ def require_related_user(user: dict, event: dict, *, action: str) -> dict:
 # consciously adds it here. Everything else (coordinator_id, organiser_id, submitted_at,
 # last_status_changed_by/at, timestamps) is treated as internal planning info.
 PUBLIC_EVENT_FIELDS = frozenset(
-    {"id", "title", "description", "category", "event_datetime", "status"}
+    {"id", "reference", "title", "description", "category", "event_datetime", "status"}
 )
 
 

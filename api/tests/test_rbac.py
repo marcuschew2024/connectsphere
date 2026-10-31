@@ -103,6 +103,8 @@ def test_require_related_user_allows_a_participant(app_ctx, denial_log, monkeypa
 def test_public_event_view_strips_internal_fields():
     full = {
         "id": "evt-1",
+        "reference": "EVT-001",
+        "reference_number": 1,
         "title": "Tech Talk",
         "description": "Guest speaker",
         "category": "Workshop",
@@ -121,6 +123,8 @@ def test_public_event_view_strips_internal_fields():
                    "last_status_changed_by", "last_status_changed_at"):
         assert hidden not in view
     assert view["title"] == "Tech Talk"  # public data is preserved
+    assert view["reference"] == "EVT-001"
+    assert "reference_number" not in view
 
 
 # --- TC-US1.2-06: no admin role / no admin bypass -------------------------------------
