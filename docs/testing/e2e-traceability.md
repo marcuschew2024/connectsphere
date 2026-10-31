@@ -36,7 +36,7 @@ file) in the *same PR as the fix*. Owner does a final sweep at freeze — any ro
 | 16 | Equipment availability | **Unavailable/damaged excluded from available** (SCRUM-63) | `equipment.spec.ts` (extend) | 🔶 | Ernest |
 | 17 | Equipment reservation | Reserve reduces availability; **confirm blocked while equipment pending** (SCRUM-136) | `event-confirm.spec.ts` (extend) | 🔶 | Ernest |
 | 18 | Attendee registration | Register / withdraw / view own status | `attendee-registration.spec.ts` + 3 | ✅ | — |
-| 18 | Attendee registration | **Organiser/Coordinator view event registrations** (SCRUM-45) | NEW / extend | ❌ | Jerome |
+| 18 | Attendee registration | **Organiser/Coordinator view event registrations** (SCRUM-45) | `event-registration-roster.spec.ts`; integrated lifecycle | ✅ roster; SCRUM-80 waitlist deferred | Jerome |
 | 19 | Event change requests | Raise change post-submit/confirm | `change-requests.spec.ts` | ✅ | — |
 | 19 | Event change requests | **Significant change re-opens venue/equipment review + notifies** (SCRUM-47/62) | `change-requests.spec.ts` (extend) | 🔶 | Ernest |
 | 20 | Notifications | **Fires on submit/decision/assignment/booking/registration/change/cancel** (SCRUM-51) | `notifications.spec.ts` (extend) | 🔶 | Marcus |

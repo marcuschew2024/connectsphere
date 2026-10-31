@@ -156,6 +156,15 @@ test("INTEGRATED-01 same event crosses seven password-authenticated roles and pe
     await attendee.page.reload();
     await expect(attendee.page.getByRole("heading", { name: "Registration confirmed", exact: true })).toBeVisible();
     await call(attendee, "PATCH", `/events/${event.id}/status`, { status: "Cancelled" }, 403);
+    // SCRUM-45: the event owner and current coordinator discover the real signup.
+    for (const viewer of [organiser, coordinator]) {
+      await viewer.page.goto(`/events/${event.id}`);
+      await viewer.page.getByRole("link", { name: "View registrations →", exact: true }).click();
+      await expect(viewer.page.getByRole("row", { name: new RegExp(attendee.name) })).toContainText(receipt.reference);
+      await expect(viewer.page.getByText("1 / 1", { exact: true })).toBeVisible();
+    }
+    await call(attendee, "GET", `/events/${event.id}/registrations`, undefined, 403);
+    await call(lead, "GET", `/events/${event.id}/registrations`, undefined, 403);
     await attendee.page.getByRole("button", { name: "Withdraw registration", exact: true }).click();
     await attendee.page.getByRole("button", { name: "Confirm withdrawal", exact: true }).click();
     await expect(attendee.page.getByRole("heading", { name: "Registration withdrawn", exact: true })).toBeVisible();
@@ -164,6 +173,13 @@ test("INTEGRATED-01 same event crosses seven password-authenticated roles and pe
     await expect(attendee.page.getByRole("heading", { name: "Registration withdrawn", exact: true })).toBeVisible();
     const offer = await call(attendee, "GET", `/events/${event.id}/registration-offer`);
     expect(offer.capacity.remaining).toBe(1);
+
+    await organiser.page.getByRole("button", { name: "Refresh registrations" }).click();
+    await expect(organiser.page.getByRole("row", { name: new RegExp(attendee.name) })).toContainText("Withdrawn");
+    await expect(organiser.page.getByText("0 / 1", { exact: true })).toBeVisible();
+    await organiser.page.reload();
+    await expect(organiser.page.getByRole("row", { name: new RegExp(attendee.name) })).toContainText("Withdrawn");
+    await coordinator.page.getByRole("link", { name: "Back to event" }).click();
 
     await safety.page.goto(`/events/${event.id}`);
     await expect(safety.page.getByRole("region", { name: "Venue & technical detail" })).toContainText(`${title} projector`);

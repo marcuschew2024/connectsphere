@@ -168,6 +168,13 @@ export default function EventStatusPage() {
             </div>
           </header>
 
+          {((actingRole === "Organiser" && userId === event.organiser_id)
+            || (actingRole === "Coordinator" && userId === event.coordinator_id)) && (
+            <Link href={`/events/${event.id}/registrations`} className="inline-flex text-sm font-medium text-primary hover:underline">
+              View registrations →
+            </Link>
+          )}
+
           {completed && <section aria-labelledby="completed-heading" className="rounded-2xl border border-border bg-muted/40 p-5">
             <h2 id="completed-heading" className="font-semibold">Event completed and closed</h2>
             <p role="status" className="mt-1 text-sm text-muted-foreground">

@@ -168,3 +168,6 @@ for pass in 1 2; do
   echo "Readable references migration pass $pass: PASS"
 done
 psql -v ON_ERROR_STOP=1 -f /sql/tests/readable_references.sql
+
+# SCRUM-45: local-only attendee fixtures for event-roster pagination.
+psql -v ON_ERROR_STOP=1 -f /sql/tests/registration_roster_fixtures.sql
