@@ -28,10 +28,10 @@ file) in the *same PR as the fix*. Owner does a final sweep at freeze — any ro
 | 8 | Venue catalogue | Add / update / retire + full record + layouts | `venues.spec.ts`, `venue-edit.spec.ts` | 🔶 | Jessica |
 | 9 | Venue availability calendar | Availability + blocked periods | `venue-calendar.spec.ts` | ✅ | — |
 | 10 | Venue search & filter | Filter by date/capacity/facility/etc | `venues.spec.ts` *(verify)* | 🔶 | Jessica |
-| 11 | **Venue suitability** | **Unsuitable on facility/accessibility/layout, not just capacity** (SCRUM-116/117) | NEW `venue-suitability.spec.ts` | ❌ | Jessica |
+| 11 | **Venue suitability** | **Unsuitable on facility/accessibility/layout, not just capacity** (SCRUM-116/117) | `venue-suitability.spec.ts` | ✅ | Jessica |
 | 12 | Venue booking request | Coordinator requests venue from Planning event | `bookings.spec.ts` | ✅ | — |
 | 13 | Venue booking approval | **Approve blocks the slot + notifies coordinator** (SCRUM-118/119) | `bookings.spec.ts` (extend) | 🔶 | Jessica / Marcus |
-| 14 | Booking conflict detection | **Overlapping / buffered double-book hard-blocked** (SCRUM-137) | `bookings.spec.ts` (extend) | 🔶 | Jessica |
+| 14 | Booking conflict detection | **Overlapping / buffered double-book hard-blocked** (SCRUM-137) | `bookings.spec.ts` | ✅ | Jessica |
 | 15 | Equipment request mgmt | Record + review/update request | `equipment-requests.spec.ts`, `equipment-request-status.spec.ts` | ✅ | — |
 | 16 | Equipment availability | **Unavailable/damaged excluded from available** (SCRUM-63) | `equipment.spec.ts` (extend) | 🔶 | Ernest |
 | 17 | Equipment reservation | Reserve reduces availability; **confirm blocked while equipment pending** (SCRUM-136) | `event-confirm.spec.ts`, `event-confirm-equipment.spec.ts` | ✅ | Ernest |

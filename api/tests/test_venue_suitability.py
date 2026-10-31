@@ -17,6 +17,13 @@ from app.venue_suitability import (
     LayoutRule,
     SuitabilityEngine,
     SuitabilityRule,
+    _display,
+    _levenshtein,
+    _matches_any,
+    _ngrams,
+    _normalise,
+    find_requested,
+    near_miss_hints,
 )
 
 from .conftest import ORIGIN, select_user
@@ -31,6 +38,74 @@ class AlwaysWarnRule(SuitabilityRule):
 # ============================================================================
 # UNIT TESTING
 # ============================================================================
+
+
+def test_suitability_free_text_normalisation_variants():
+    assert _normalise(" Theater / Board Room / U-Shaped / Wi-Fi ") == (
+        "theatre / boardroom / u shape / wifi"
+    )
+    assert _normalise("") == ""
+
+
+def test_find_requested_handles_exact_variants_and_empty_canonical():
+    assert find_requested("Theatre", "theater style seating") == (True, None)
+    assert find_requested("", "anything") == (False, None)
+
+
+def test_find_requested_reports_single_character_typos():
+    assert find_requested("Projector", "projrctor") == (
+        False,
+        "Did you mean 'Projector'?",
+    )
+
+
+def test_find_requested_ignores_unrelated_and_conservative_typo_matches():
+    assert find_requested("Projector", "projector screen") == (True, None)
+    assert find_requested("Banquet", "banqetly") == (False, None)
+    assert find_requested("Stage", "stage lights") == (True, None)
+
+
+def test_levenshtein_and_display_helpers():
+    assert _levenshtein("", "abc") == 3
+    assert _levenshtein("abc", "") == 3
+    assert _levenshtein("abc", "abc") == 0
+    assert _levenshtein("banquet", "banqet") == 1
+    assert _levenshtein("abc", "axc") == 1
+    assert _display("u-shape") == "U Shape"
+    assert _display("") == ""
+
+
+def test_ngram_helper_splits_normalised_text():
+    assert _ngrams("accessible toilet ramp", 2) == [
+        "accessible toilet",
+        "toilet ramp",
+    ]
+
+
+def test_matches_any_normalises_venue_feature_names():
+    assert _matches_any("Wheelchair", ["Wheelchair Ramp"]) is True
+    assert _matches_any("Wi-Fi", ["WiFi"]) is True
+    assert _matches_any("Projector", ["Whiteboard"]) is False
+
+
+def test_near_miss_hints_find_and_deduplicate_vendor_feature_typos():
+    hints = near_miss_hints("projrctor projrctor", ["Projector", "Whiteboard"])
+    assert hints == ["'projrctor' -> Did you mean 'Projector'?"]
+    assert near_miss_hints("pro", ["Projector"]) == []
+    assert near_miss_hints("microfone", ["Classroom"]) == []
+    assert near_miss_hints("projrctor", ["Projector", "Projector"]) == [
+        "'projrctor' -> Did you mean 'Projector'?"
+    ]
+
+
+def test_find_requested_chooses_lexicographically_first_near_miss():
+    assert find_requested(
+        "Projector",
+        "projrctor projecctor projectar",
+    ) == (
+        False,
+        "Did you mean 'Projector'?",
+    )
 
 # --------------- CapacityRule ---------------
 
@@ -147,6 +222,15 @@ def test_facility_rule_flags_missing_facilities():
     venue = {"facilities": ["Whiteboard"]}
     result = rule.evaluate(event, venue)
     assert "Missing required facility feature(s): Projector, Stage." in result
+
+
+def test_facility_rule_surfaces_typo_hint_without_creating_missing_requirement():
+    rule = FacilityRule()
+    result = rule.evaluate(
+        {"venue_requirements": "projrctor"},
+        {"facilities": ["Projector"]},
+    )
+    assert result == "'projrctor' -> Did you mean 'Projector'?"
 
 
 # ---------------  AccessibilityRule ------------------
