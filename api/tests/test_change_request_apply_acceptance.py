@@ -256,7 +256,9 @@ def test_two_simultaneous_approvals_apply_once(live):  # noqa: F811
         outcomes = sorted(pool.map(lambda _: approve(), range(2)))
 
     assert outcomes == ["already_reviewed", "applied"]
+    # SCRUM-156: a significant approval is recorded as approved-with-re-review.
     assert len([h for h in _history(db, event["id"])
-                if h["action"] == "change_request_approved"]) == 1
+                if h["action"] in ("change_request_approved",
+                                   "change_request_approved_re_review")]) == 1
     assert len([n for n in _notifications(db, event["id"])
                 if n["notification_type"] == "event_re_review_required"]) == 1

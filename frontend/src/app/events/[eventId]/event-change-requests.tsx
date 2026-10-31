@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, useState } from "react";
+import { FormEvent, useEffect, useState } from "react";
 import { ApiError, apiRequest } from "@/lib/api";
 import {
   CHANGE_FIELDS,
@@ -12,6 +12,7 @@ import {
   proposedChanges,
   SIGNIFICANT_FIELDS,
 } from "@/lib/change-requests";
+import { type BookingRecord } from "@/lib/bookings";
 import { ChangeRequestStatusBadge, type EventChangeRequest, type EventRecord } from "@/lib/events";
 import { Button } from "@/components/ui/button";
 
@@ -33,6 +34,22 @@ export default function EventChangeRequests({
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const [affected, setAffected] = useState<Record<number, ChangeApprovalResult["affected"]>>({});
   const [error, setError] = useState("");
+  // SCRUM-156: current capacity problems on the event's bookings (survive a reload), and
+  // the request awaiting a "re-review is complete" confirmation before Implemented.
+  const [capacityWarnings, setCapacityWarnings] = useState<string[]>([]);
+  const [confirmingId, setConfirmingId] = useState<number | null>(null);
+  const reReviewOpen = requests.some(needsReReview);
+
+  useEffect(() => {
+    if (!reReviewOpen) return;
+    const controller = new AbortController();
+    apiRequest<{ bookings: BookingRecord[] }>(`/venues/bookings/event/${event.id}`, { signal: controller.signal })
+      .then((result) => setCapacityWarnings(result.bookings
+        .filter((booking) => booking.capacity_warning)
+        .map((booking) => `${booking.venue?.name ?? "Venue"}: ${booking.capacity_warning}`)))
+      .catch(() => { /* The bookings panel reports load failures; the banner stays generic. */ });
+    return () => controller.abort();
+  }, [event.id, event.expected_attendance, reReviewOpen]);
   const [busy, setBusy] = useState(false);
   const [proposing, setProposing] = useState(false);
 
@@ -84,10 +101,17 @@ export default function EventChangeRequests({
         <h2 id="change-requests-heading" className="font-semibold">Change requests</h2>
         <p className="mt-1 text-sm text-muted-foreground">Changes are routed to the assigned Coordinator and can be raised at any time.</p>
       </div>
-      {requests.some(needsReReview) && (
+      {reReviewOpen && (
         <div role="status" className="rounded-xl border border-amber-300 bg-amber-50 p-4 text-sm text-amber-900 dark:border-amber-400/30 dark:bg-amber-500/10 dark:text-amber-200">
           <p className="font-semibold">Re-review needed</p>
-          <p className="mt-1">An approved change to the number of attendees or the venue may affect this event&apos;s venue bookings and equipment. Nothing was cancelled; re-check them, then mark the change as implemented.</p>
+          <p className="mt-1">{isCoordinator
+            ? "An approved change to the number of attendees or the venue may affect this event's venue bookings and equipment. Nothing was cancelled; re-check them, then mark the change as implemented."
+            : "Your change has been applied. Because it changes the number of attendees or the venue, your Coordinator is re-reviewing the venue and equipment arrangements before it is complete."}</p>
+          {capacityWarnings.length > 0 && <div className="mt-2 rounded-lg border border-destructive/30 bg-destructive/5 p-2 text-destructive">
+            <p className="font-medium">Venue too small</p>
+            <ul className="mt-1 list-disc pl-5">{capacityWarnings.map((warning) => <li key={warning}>{warning}</li>)}</ul>
+            {!isCoordinator && <p className="mt-1">Your Coordinator will re-book a larger venue, or you can raise a new change request with a lower number of attendees.</p>}
+          </div>}
         </div>
       )}
       {!isCoordinator && !["Draft", "Rejected", "Cancelled", "Completed"].includes(event.status) && (
@@ -129,7 +153,7 @@ export default function EventChangeRequests({
           {requests.map((request) => <li key={request.id} className="rounded-xl border border-border p-4">
             <div className="flex flex-wrap items-center justify-between gap-2">
               <span className="text-xs text-muted-foreground">Requested {new Date(request.requested_at).toLocaleString()}</span>
-              <ChangeRequestStatusBadge status={request.status} />
+              <ChangeRequestStatusBadge status={request.status} reReview={needsReReview(request)} />
             </div>
             <p className="mt-3 whitespace-pre-wrap text-sm">{request.description}</p>
             {request.applied_changes ? (
@@ -161,8 +185,17 @@ export default function EventChangeRequests({
               <Button type="button" size="sm" onClick={() => void review(request, "Approved")} className="bg-emerald-600 text-white hover:bg-emerald-500">{request.requested_changes ? "Approve and apply" : "Approve change"}</Button>
               <Button type="button" size="sm" onClick={() => void review(request, "Rejected")} className="bg-destructive text-white hover:bg-destructive/80">Reject change</Button>
             </div>}
-            {isCoordinator && request.status === "Approved" && request.applied_changes && <div className="mt-3">
-              <Button type="button" variant="outline" size="sm" onClick={() => void review(request, "Implemented")}>Mark as implemented</Button>
+            {isCoordinator && request.status === "Approved" && request.applied_changes && confirmingId !== request.id && <div className="mt-3">
+              <Button type="button" variant="outline" size="sm" onClick={() => needsReReview(request)
+                ? setConfirmingId(request.id) : void review(request, "Implemented")}>Mark as implemented</Button>
+            </div>}
+            {isCoordinator && confirmingId === request.id && <div role="group" aria-label="Confirm the re-review is complete" className="mt-3 space-y-2 rounded-lg border border-amber-300 bg-amber-50 p-3 text-sm text-amber-900 dark:border-amber-400/30 dark:bg-amber-500/10 dark:text-amber-200">
+              <p className="font-medium">Have you re-checked the venue bookings and equipment for this change?</p>
+              {capacityWarnings.length > 0 && <p className="text-destructive">Still unresolved: {capacityWarnings.join("; ")}</p>}
+              <div className="flex flex-wrap gap-2">
+                <Button type="button" size="sm" onClick={() => { setConfirmingId(null); void review(request, "Implemented"); }}>Yes, re-review complete</Button>
+                <Button type="button" variant="outline" size="sm" onClick={() => setConfirmingId(null)}>Not yet</Button>
+              </div>
             </div>}
           </li>)}
         </ul>

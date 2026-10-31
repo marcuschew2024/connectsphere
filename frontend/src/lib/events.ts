@@ -125,13 +125,19 @@ const changeRequestStatusStyles: Record<EventChangeRequest["status"], string> = 
   Implemented: "bg-violet-100 text-violet-700 border-violet-200 dark:bg-violet-500/15 dark:text-violet-300 dark:border-violet-400/30",
 };
 
-export function ChangeRequestStatusBadge({ status }: { status: EventChangeRequest["status"] }) {
+// SCRUM-156: an approved significant change stays "in re-review" until implemented.
+const RE_REVIEW_STYLE = changeRequestStatusStyles.Pending;
+
+export function ChangeRequestStatusBadge({ status, reReview = false }: {
+  status: EventChangeRequest["status"];
+  reReview?: boolean;
+}) {
   return createElement(
     "span",
     {
       "data-testid": "change-request-status-badge",
-      className: `inline-flex items-center rounded-full border px-2.5 py-1 text-xs font-semibold ${changeRequestStatusStyles[status]}`,
+      className: `inline-flex items-center rounded-full border px-2.5 py-1 text-xs font-semibold ${reReview ? RE_REVIEW_STYLE : changeRequestStatusStyles[status]}`,
     },
-    status,
+    reReview ? "Approved · Re-review in progress" : status,
   );
 }
