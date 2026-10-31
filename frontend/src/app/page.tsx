@@ -40,6 +40,7 @@ const ROLE_ACTIONS: Record<string, Action[]> = {
     { title: "Supervised events", description: "Oversee intake and every Coordinator's assignments.", href: "/events/supervised", icon: ClipboardCheck, primary: true },
   ],
   Organiser: [
+    { title: "My submitted requests", description: "Track your requests and reopen their details.", href: "/events/mine", icon: ClipboardCheck },
     { title: "Create an event request", description: "Start a new request for approval.", href: "/events/new", icon: Plus, primary: true },
     { title: "My drafts", description: "Pick up a private draft where you left off.", href: "/events/drafts", icon: FileText },
   ],

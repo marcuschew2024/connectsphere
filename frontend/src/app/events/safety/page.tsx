@@ -1,5 +1,7 @@
 "use client";
 
+import { recordReference } from "@/lib/record-reference";
+
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { apiRequest } from "@/lib/api";
@@ -51,6 +53,7 @@ export default function SafetyReviewsPage() {
           {!loading && !error && <section aria-label="Events awaiting safety review" className="grid gap-4 sm:grid-cols-2">
             {result?.events.map((event) => <Link key={event.id} href={`/events/${event.id}`} className="rounded-2xl border border-border bg-card p-5 shadow-sm hover:border-primary">
               <h2 className="break-words font-semibold">{event.title}</h2>
+          {event.reference && <p className="text-xs text-muted-foreground">{recordReference(event, event.event_datetime)}</p>}
               <p className="mt-2 text-sm text-muted-foreground">{event.event_datetime ? new Date(event.event_datetime).toLocaleString("en-SG", { timeZone: "Asia/Singapore" }) + " (Singapore)" : "Date not provided"}</p>
               <p className="mt-4 text-sm text-primary">Review safety →</p>
             </Link>)}

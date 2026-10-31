@@ -1,5 +1,7 @@
 "use client";
 
+import { recordReference } from "@/lib/record-reference";
+
 import Link from "next/link";
 import { Building2, CheckCircle2, CircleHelp, CircleX, MapPin, Users } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
@@ -89,6 +91,7 @@ function Catalogue({ canCreate }: { canCreate: boolean }) {
               <div className="flex size-11 items-center justify-center rounded-xl border border-primary/15 bg-background text-primary"><Building2 className="size-6" aria-hidden="true" /></div>
               <span className="flex items-center gap-1.5 rounded-full bg-background px-3 py-1.5 text-sm font-semibold text-foreground"><Users className="size-4 text-primary" aria-hidden="true" />{venue.capacity} people</span>
             </div>
+          {venue.reference && <p className="text-xs text-muted-foreground">{recordReference(venue, venue.created_at)}</p>}
             <h2 className="break-words text-xl font-semibold tracking-tight sm:text-2xl">{venue.name}</h2>
             <p className="mt-2 flex items-start gap-1.5 text-sm text-muted-foreground"><MapPin className="mt-0.5 size-4 shrink-0" aria-hidden="true" /><span className="break-words">{venue.location}</span></p>
           </div>

@@ -95,7 +95,7 @@ def list_registration_events(page: int) -> tuple[list[dict], bool]:
             raise ServiceUnavailable("The database is not configured. Contact the team.")
         start = (page - 1) * 25
         rows = (client.table("events").select(
-            "id,title,description,category,event_datetime,status,registration_requirements,"
+            "id,reference,title,description,category,event_datetime,status,registration_requirements,"
             "registration_capacity,registered_count,registration_opens_at,registration_closes_at,"
             "withdrawal_closes_at"
         ).eq("status", "Confirmed").order("event_datetime").order("id")
@@ -113,7 +113,7 @@ def get_own_registration(event_id: str, attendee_id: int) -> dict | None:
         if client is None:
             raise ServiceUnavailable("The database is not configured. Contact the team.")
         rows = (client.table("event_registrations")
-                .select("id,event_id,status,registered_at,withdrawn_at")
+                .select("id,reference,event_id,status,registered_at,withdrawn_at")
                 .eq("event_id", event_id).eq("attendee_id", attendee_id)
                 .limit(1).execute().data or [])
         return rows[0] if rows else None
@@ -131,8 +131,8 @@ def list_own_registrations(attendee_id: int, page: int) -> tuple[list[dict], boo
             raise ServiceUnavailable("The database is not configured. Contact the team.")
         start = (page - 1) * 25
         rows = (client.table("event_registrations").select(
-            "id,event_id,status,registered_at,withdrawn_at,"
-            "event:events(id,title,category,event_datetime,status)"
+            "id,reference,event_id,status,registered_at,withdrawn_at,"
+            "event:events(id,reference,title,category,event_datetime,status)"
         ).eq("attendee_id", attendee_id).order("registered_at", desc=True).order("id")
             .range(start, start + 25).execute().data or [])
         return rows[:25], len(rows) > 25

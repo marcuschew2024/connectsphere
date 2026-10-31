@@ -38,13 +38,14 @@ from .event_repository import (
     list_safety_review_events,
     log_event_edit,
     mark_clarification_resubmitted,
-    record_event_decision,
     save_event_draft,
+    transition_event_intake,
     update_change_request,
     update_event_fields,
     update_event_status,
 )
 from .event_status import canonical_event_status, customer_event_status
+from .event_transition import EventTransition, TransitionRefused
 from .event_validation import TEXT_LIMITS, validate_event
 from .rbac import log_access_denied, public_event_view, require_related_user, require_role
 from .registration_capacity import valid_capacity
@@ -517,61 +518,44 @@ def get_registration_offer(event_id):
     return jsonify({**registration_offer(event), "registration": registration})
 
 
+def _apply_intake_transition(event, user, transition, *, decision=False, reason=None):
+    """Validate intent here, then re-check assignment/state under the database lock."""
+    try:
+        transition.validate(event["status"], decision=decision)
+    except TransitionRefused as error:
+        log_access_denied(user, action="change_status", event_id=event["id"], reason=str(error))
+        raise Conflict(str(error)) from error
+    if not transition.actor_allowed(user, event):
+        log_access_denied(user, action="change_status", event_id=event["id"],
+                          reason="only the currently assigned Coordinator may change intake status")
+        raise Forbidden("Only the assigned Coordinator can change this event's status.")
+    try:
+        return transition_event_intake(event["id"], event["status"], transition.target,
+                                       user["id"], reason)
+    except (Conflict, Forbidden) as error:
+        log_access_denied(user, action="change_status", event_id=event["id"],
+                          reason=error.description)
+        raise
+
+
 @events.patch("/<event_id>/status")
 def change_event_status(event_id):
     if request.headers.get("Origin") != current_app.config["FRONTEND_ORIGIN"]:
         raise Forbidden("Request must come from the configured frontend origin.")
-
     user = require_acting_user()
-    require_role(user, "Organiser", "Coordinator", "Venue Staff", "Tech Support", "Attendee",
-                 action="change_status")
     event = require_event_access(event_id, user)
-    # Preserve private-draft 404s before checking mutation rights. Registration
-    # membership permits public reads, never lifecycle changes (SCRUM-146/135).
-    require_role(user, "Organiser", "Coordinator", "Venue Staff", "Tech Support",
-                 action="change_status")
+    # Keep private draft 404s, then refuse non-management roles before parsing input.
+    require_role(user, "Organiser", "Coordinator", action="change_status")
     if event["status"] == "Draft":
+        log_access_denied(user, action="change_status", event_id=event_id,
+                          reason="draft submission must use the draft form")
         raise Conflict("Complete and submit this request through the draft form first.")
-    if event["status"] == "Completed":
-        raise Conflict(_COMPLETED_READ_ONLY)
-    if event["status"] == "Cancelled":
-        raise Conflict(_CANCELLED_READ_ONLY)
-    require_related_user(user, event, action="change_status")
-
-    data = request.get_json(silent=True)
-    if not isinstance(data, dict) or set(data) != {"status"}:
-        raise BadRequest("Send a JSON object containing only status.")
-
-    status = data["status"]
-    if status == "Confirmed":
-        # Confirmation is gated (SCRUM-39): it must go through the confirm step so the
-        # "all venue bookings approved" check cannot be bypassed by a direct status set.
-        raise Conflict("Confirm an event through its confirmation step, not a status update.")
-    if status == "Preparation":
-        # Preparation is gated (SCRUM-128): only a Safety Officer's approval of the
-        # operational safety check can move an event into preparation.
-        raise Conflict("An event reaches preparation only through the operational safety check.")
-    if status == "Completed":
-        # Completion is gated (SCRUM-132): only the assigned Coordinator's completion
-        # step closes an event, so its checks and resource release cannot be skipped.
-        raise Conflict("Complete an event through its completion step, not a status update.")
-    if status == "Cancelled":
-        # Cancellation is gated (SCRUM-69): only the assigned Coordinator or the Lead may
-        # cancel, and the cancellation step releases resources and notifies attendees.
-        raise Conflict("Cancel an event through its cancellation step, not a status update.")
-    allowed_statuses = {
-        "Submitted", "Assigned", "Under review", "Approved", "Planning", "Rejected",
-    }
-    if status not in allowed_statuses:
-        raise BadRequest("Choose a valid event status.")
-
-    old_status = event.get("status")
-    updated = update_event_status(event_id, status, user["id"])
-    add_status_history(event_id, old_status, status, user["id"])
-
-    updated["status"] = canonical_event_status(updated.get("status"))
-    return jsonify({"event": updated}), 200
-
+    try:
+        transition = EventTransition.from_payload(request.get_json(silent=True))
+    except ValueError as error:
+        raise BadRequest(str(error)) from error
+    updated = _apply_intake_transition(event, user, transition)
+    return jsonify({"event": event_response(updated, user)}), 200
 
 
 @events.post("/<event_id>/confirm")
@@ -766,36 +750,14 @@ def decide_event(event_id):
 
     require_related_user(user, event, action="decide_event")
 
-    if event.get("status") != "Submitted":
-        raise Conflict("This request has already been decided.")
-
     try:
         decision = EventDecision.from_payload(request.get_json(silent=True))
     except ValueError as error:
         raise BadRequest(str(error)) from error
-
-    updated = record_event_decision(
-        event_id, decision.status, decision.reason, user["id"]
+    updated = _apply_intake_transition(
+        event, user, EventTransition(decision.status), decision=True, reason=decision.reason,
     )
-    add_status_history(event_id, event["status"], decision.status, user["id"])
-
-    if decision.is_rejection:
-        create_notification(
-            event["organiser_id"],
-            event_id,
-            "event_rejected",
-            f"Your event request was rejected: {decision.reason}",
-        )
-    else:
-        create_notification(
-            event["organiser_id"],
-            event_id,
-            "event_approved",
-            "Your event request was accepted by the Coordinator and is now in Planning.",
-        )
-
-    updated["status"] = canonical_event_status(updated.get("status"))
-    return jsonify({"event": updated}), 200
+    return jsonify({"event": event_response(updated, user)}), 200
 
 
 @events.post("/<event_id>/clarification")

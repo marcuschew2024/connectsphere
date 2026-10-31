@@ -1,5 +1,7 @@
 "use client";
 
+import { recordReference } from "@/lib/record-reference";
+
 import Link from "next/link";
 import { use, useEffect, useRef, useState } from "react";
 import { ApiError, apiRequest } from "@/lib/api";
@@ -135,7 +137,7 @@ function RequestDetails({ requestId, role }: { requestId: string; role: string }
           <div className="space-y-1 text-xs text-muted-foreground">
             <p>Requested by {request.requester.display_name} · {equipmentTimestamp(request.requested_at)} SGT</p>
             {request.updated_at && <p>Last status update: {equipmentTimestamp(request.updated_at)} SGT</p>}
-            <p className="break-all">Request reference: {request.id}</p>
+            <p className="break-all">Request reference: {recordReference(request, request.requested_at)}</p>
           </div>
         </section>
         {role === "Tech Support" && !closed ? <>

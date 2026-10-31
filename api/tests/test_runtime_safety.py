@@ -6,7 +6,7 @@ import runpy
 import pytest
 from flask import Flask
 
-from app import auth
+from app import auth, create_app
 from app.rbac import log_access_denied
 
 from .repository_doubles import database_result
@@ -50,6 +50,25 @@ def test_direct_api_entry_point_uses_the_documented_host_and_port(monkeypatch):
     monkeypatch.setattr(Flask, "run", lambda self, **kwargs: calls.append(kwargs))
     monkeypatch.setenv("APP_ENV", "production")
     monkeypatch.setenv("DEV_ROLE_SWITCHER_ENABLED", "false")
+    # Production refuses to boot without a signing key (SCRUM-142); supply one so the
+    # entry point reaches Flask.run.
+    monkeypatch.setenv("SECRET_KEY", "entrypoint-test-only")
     with pytest.warns(RuntimeWarning, match="app.main"):
         runpy.run_module("app.main", run_name="__main__")
     assert calls == [{"host": "0.0.0.0", "port": 5001}]
+
+
+def test_production_marks_the_session_cookie_secure():
+    # SCRUM-142: a real production run (TESTING unset) must mark the cookie Secure.
+    app = create_app({"APP_ENV": "production", "SECRET_KEY": "prod-config-test"})
+    assert app.config["SESSION_COOKIE_SECURE"] is True
+
+
+def test_development_leaves_the_session_cookie_insecure_for_http():
+    app = create_app({"APP_ENV": "development", "SECRET_KEY": "dev-config-test"})
+    assert app.config["SESSION_COOKIE_SECURE"] is False
+
+
+def test_production_without_a_secret_key_refuses_to_start():
+    with pytest.raises(ValueError, match="SECRET_KEY"):
+        create_app({"APP_ENV": "production", "SECRET_KEY": None})

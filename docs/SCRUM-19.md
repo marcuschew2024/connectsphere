@@ -1,5 +1,7 @@
 # SCRUM-19: view event status
 
+Current follow-ups: [SCRUM-135](SCRUM-135.md) supersedes the original generic mutation rules below; [Organiser requests](ORGANISER_REQUESTS.md) adds the submitted-request index. The original implementation notes below retain their historical context.
+
 A user related to an event can view its current status and status history. The API
 stores internal workflow states but exposes only the five canonical visible values:
 `Planning`, `Confirmed`, `Completed`, `Rejected` and `Cancelled`.
