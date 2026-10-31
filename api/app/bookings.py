@@ -65,10 +65,11 @@ def _validated_booking_fields(data, event: dict, existing: dict | None = None) -
         raise BadRequest("Enter valid start and end times including a time zone.") from None
     if end <= start:
         raise BadRequest("The booking end time must be after the start time.")
-    if start.astimezone(SINGAPORE).date() != end.astimezone(SINGAPORE).date():
-        raise BadRequest("A booking must start and end on the same day.")
     if start < datetime.now(UTC):
         raise BadRequest("The booking cannot start in the past.")
+    if start.astimezone(SINGAPORE).date() != end.astimezone(SINGAPORE).date():
+        raise BadRequest("A booking must start and end on the same day.")
+
     attendance = data.get(
         "expected_attendance",
         source.get("expected_attendance", event.get("expected_attendance")),
@@ -165,10 +166,11 @@ def submit_booking():
         raise BadRequest("Enter valid start and end times including a time zone.") from None
     if end <= start:
         raise BadRequest("The booking end time must be after the start time.")
-    if start.astimezone(SINGAPORE).date() != end.astimezone(SINGAPORE).date():
-        raise BadRequest("A booking must start and end on the same day.")
     if start < datetime.now(UTC):
         raise BadRequest("The booking cannot start in the past.")
+    if start.astimezone(SINGAPORE).date() != end.astimezone(SINGAPORE).date():
+        raise BadRequest("A booking must start and end on the same day.")
+
 
     attendance = data.get("expected_attendance", event.get("expected_attendance"))
     if type(attendance) is not int or not 1 <= attendance <= 2_147_483_647:
