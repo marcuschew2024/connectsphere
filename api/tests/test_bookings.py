@@ -18,7 +18,11 @@ def event_record():
 
 
 def payload(**overrides):
-    start = datetime.now(UTC) + timedelta(days=3)
+    # SCRUM-157: anchor to 09:00 SGT (01:00 UTC) so the 2-hour slot never crosses midnight
+    # in Singapore and trips the same-day rule (D40), whatever time the suite runs.
+    start = (datetime.now(UTC) + timedelta(days=3)).replace(
+        hour=1, minute=0, second=0, microsecond=0
+    )
     values = {
         "event_id": "event-1", "venue_id": "venue-1",
         "start_at": start.isoformat(),
