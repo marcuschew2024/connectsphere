@@ -40,7 +40,9 @@ test("coordinator approves a submitted request and the review controls close", a
   await expect(page.getByRole("heading", { name: "Review request" })).toBeVisible();
   await page.getByRole("button", { name: "Approve" }).click();
 
-  expect(state.decisions).toEqual([{ decision: "approve" }]);
+  // Poll: the decision POST is captured asynchronously, so wait for it to land
+  // rather than asserting the mock state the instant the click returns.
+  await expect.poll(() => state.decisions).toEqual([{ decision: "approve" }]);
   // Once approved the event is no longer Submitted, so the review form is gone.
   await expect(page.getByRole("heading", { name: "Review request" })).toHaveCount(0);
 });
@@ -61,7 +63,8 @@ test("coordinator rejects with a reason and the reason is sent", async ({ page }
   await page.getByLabel("Rejection reason").fill("Venue requirements cannot be met.");
   await page.getByRole("button", { name: "Reject" }).click();
 
-  expect(state.decisions).toEqual([{ decision: "reject", reason: "Venue requirements cannot be met." }]);
+  // Poll: wait for the reject POST to reach the mock before asserting (was flaky).
+  await expect.poll(() => state.decisions).toEqual([{ decision: "reject", reason: "Venue requirements cannot be met." }]);
   await expect(page.getByRole("heading", { name: "Review request" })).toHaveCount(0);
 });
 
