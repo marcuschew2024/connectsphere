@@ -219,7 +219,7 @@ def submit_booking():
     create_notification(
         None, event_id, "venue_booking_requested",
         f"Venue booking requested for {event.get('title') or 'an event'}.",
-        recipient_role="Venue Staff",
+        recipient_role="Venue Staff", subject_id=saved.get("id"),
     )
     return jsonify({"booking": saved}), 201
 

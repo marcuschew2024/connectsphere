@@ -652,7 +652,7 @@ def get_notifications_for_user(user_id: int, user_role: str) -> list[dict]:
             raise ServiceUnavailable("The database is not configured. Contact the team.")
         return client.table("notifications").select(
             "id,event_id,notification_type,message,recipient_id,recipient_role,"
-            "read_at,created_at,event:events(title)"
+            "subject_id,read_at,created_at,event:events(title)"
         ).or_(
             f'recipient_id.eq.{user_id},recipient_role.eq."{user_role}"'
         ).order("created_at", desc=True).order(
@@ -666,13 +666,14 @@ def get_notifications_for_user(user_id: int, user_role: str) -> list[dict]:
 
 def create_notification(
     recipient_id, event_id: str, notification_type: str, message: str,
-    *, recipient_role: str | None = None,
+    *, recipient_role: str | None = None, subject_id: str | None = None,
 ) -> None:
     """Create an in-app notification (SCRUM-49).
 
     Targets exactly one of a specific user (recipient_id, default) or an
     unassigned role pool (recipient_role, keyword-only). recipient_fields
     validates the choice before the insert so a bad target never reaches the DB.
+    subject_id (SCRUM-155) names the booking / equipment request the notice is about.
     """
     from .notification_visibility import recipient_fields
 
@@ -685,6 +686,7 @@ def create_notification(
             "notification_type": notification_type,
             "message": message,
             **recipient_fields(recipient_id=recipient_id, recipient_role=recipient_role),
+            **({"subject_id": subject_id} if subject_id is not None else {}),
         }).execute()
     except ServiceUnavailable:
         raise

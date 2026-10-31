@@ -82,7 +82,8 @@ def test_coordinator_submission_records_requested_actor_and_notifies_venue_staff
     assert notifications == [(
         (None, "event-1", "venue_booking_requested",
          "Venue booking requested for Campus workshop."),
-        {"recipient_role": "Venue Staff"},
+        # SCRUM-155: the notice names the booking, so its link opens that booking.
+        {"recipient_role": "Venue Staff", "subject_id": booking["id"]},
     )]
 
 

@@ -19,6 +19,15 @@ def _soon(hours):
     return (datetime.now(UTC) + timedelta(hours=hours)).isoformat()
 
 
+def _past(hours):
+    """SCRUM-157: yesterday 09:00 SGT (01:00 UTC) plus ``hours`` - always in the past and
+    never crossing midnight in Singapore (D40), whatever time the suite runs."""
+    base = (datetime.now(UTC) - timedelta(days=1)).replace(
+        hour=1, minute=0, second=0, microsecond=0
+    )
+    return (base + timedelta(hours=hours)).isoformat()
+
+
 def _anchored(hours):
     """SCRUM-157: 09:00 SGT (01:00 UTC) three days ahead, plus ``hours`` - never crosses
     midnight in Singapore (D40), whatever time the suite runs."""
@@ -56,7 +65,7 @@ def _conflict(status, venue_id="venue-1"):
     (payload(end_at=None), 400, "valid start and end times"),
     (payload(start_at=SAME_TIME, end_at=SAME_TIME), 400, "end time must be after"),
     (payload(start_at=_soon(73), end_at=_soon(72)), 400, "end time must be after"),
-    (payload(start_at=_soon(-2), end_at=_soon(1)), 400, "cannot start in the past"),
+    (payload(start_at=_past(0), end_at=_past(2)), 400, "cannot start in the past"),
     (payload(expected_attendance=0), 400, "positive whole-number"),
     (payload(expected_attendance=True), 400, "positive whole-number"),
     (payload(expected_attendance="80"), 400, "positive whole-number"),
@@ -180,7 +189,7 @@ def changing(app, monkeypatch):
     ({"venue_id": 9}, "valid venue"),
     ({"start_at": "soon"}, "valid start and end times"),
     ({"start_at": _soon(80), "end_at": _soon(79)}, "end time must be after"),
-    ({"start_at": _soon(-3), "end_at": _soon(1)}, "cannot start in the past"),
+    ({"start_at": _past(0), "end_at": _past(2)}, "cannot start in the past"),
     ({"expected_attendance": 0}, "positive whole-number"),
     ({"expected_attendance": 101}, "capacity of 100"),
     ({"layout": " "}, "layout of 1 to 100"),

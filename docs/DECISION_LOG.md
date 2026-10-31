@@ -1270,7 +1270,36 @@ auto-assign in D9) are recorded explicitly rather than left implicit.
   decides, per D36 / S1 Q32. Blocking would be a new gate rule and is deferred.
 - **Owner.** Ernest Wong.
 
-### D44 — A change awaiting re-review is shown as such, not as a plain approval (SCRUM-156)
+### D44 — Every notification opens a page its recipient can access (SCRUM-155)
+
+- **Context.** The Release v1 manual review found two problems with notifications that
+  D41 requires. Venue Staff and Tech Support pool notices linked to the event page,
+  which those roles cannot open ("no access"). Registered attendees' `event_cancelled`
+  notices (S1 Q20) were stored but never shown, because the Attendee Home only read
+  signup and withdrawal confirmations.
+- **Decision (owner, Ernest, 31 Oct 2026).**
+  - **Pool notices.** They open the exact record the notice is about: the booking's
+    approval page for Venue Staff, the equipment request for Tech Support. Revised
+    after the owner's manual test; the first version opened the queue. A nullable
+    `notifications.subject_id` (migration
+    `20261031200000_scrum_155_notification_subject.sql`) stores that record's ID when
+    the notice is created. Older notices without one fall back to the queue.
+  - **Attendees.** Their Home panel also shows "Event cancelled", linking to their
+    registrations.
+  - **Everything else.** Every other link is unchanged and still opens the event.
+- **Constraints.** One additive, nullable column, with no foreign key because the
+  subject may be a booking or an equipment request. The feed returns `subject_id`; no
+  access rule changes, since Venue Staff and Tech Support can already open those
+  pages. The Attendee read stays limited to notices addressed to that attendee.
+- **Verification.** `lib/notification-links.test.ts` covers the link rule;
+  `test_attendee_cancellation_notice_acceptance.py` and
+  `test_notification_subject_acceptance.py` run on the real database and fail without
+  the fix; `e2e/notification-links.spec.ts` covers the pages.
+- **Changed existing tests (reviewable).** `test_bookings.py` and
+  `test_equipment_requests.py` assert the exact pool-notification call; it now also
+  carries `subject_id`. No other assertion changed.
+
+### D45 — A change awaiting re-review is shown as such, not as a plain approval (SCRUM-156)
 
 - **Context.** During the Release v1 manual review of SCRUM-152, an approved significant
   change behaved as D36 intends but was presented as a finished approval. History said
@@ -1308,7 +1337,7 @@ auto-assign in D9) are recorded explicitly rather than left implicit.
     Implemented.
 - **Owner.** Ernest Wong.
 
-### D45 — Buffered venue availability is consistent across every write and read path (SCRUM-137)
+### D46 — Buffered venue availability is consistent across every write and read path (SCRUM-137)
 
 - **Context.** Week 7 Change #1 introduced per-venue setup and turnaround buffers, but
   search, calendar, booking checks, and the database exclusion constraints could use
