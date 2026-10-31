@@ -1,5 +1,7 @@
 "use client";
 
+import { recordReference } from "@/lib/record-reference";
+
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { apiRequest } from "@/lib/api";
@@ -55,6 +57,7 @@ function DraftList() {
             <li key={draft.id} className="group flex flex-col rounded-2xl border border-border bg-card p-6 shadow-sm transition-shadow hover:shadow-md motion-reduce:transition-none sm:p-7">
               <span className="mb-5 w-fit rounded-full border border-border px-3 py-1 text-xs text-muted-foreground">Draft</span>
               <h2 className="break-words text-xl font-medium tracking-tight">{draft.title || "Untitled request"}</h2>
+          {draft.reference && <p className="text-xs text-muted-foreground">{recordReference(draft, draft.event_datetime)}</p>}
               <p className="mt-3 line-clamp-2 break-words text-sm leading-relaxed text-muted-foreground">{draft.description || "An idea in progress. Pick up where you left off."}</p>
               <div className="mt-auto pt-8">
                 <p className="text-xs text-muted-foreground">Saved {new Date(draft.updated_at).toLocaleString([], { day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" })}</p>

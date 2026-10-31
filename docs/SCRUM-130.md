@@ -1,5 +1,7 @@
 # SCRUM-130: Unassigned queue + Event Coordinator Lead assigns/reassigns
 
+A later user-authorised [Lead overview follow-up](LEAD_EVENT_OVERVIEW.md) adds search, filters, pagination and separate past events. The assignment rules below remain unchanged.
+
 Week 7 Customer Change #5. It supersedes SCRUM-17's auto-assignment; SCRUM-17 stays
 Done. It depends on SCRUM-131 (Event Coordinator Lead role), which is Done. Design
 and trade-offs: Decision Log **D26**. Owner: Ernest Wong.

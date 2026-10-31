@@ -184,7 +184,8 @@ def test_switcher_disabled_outside_explicit_development(database, environment, e
 def test_default_config_disables_switcher(monkeypatch, database):
     monkeypatch.delenv("APP_ENV", raising=False)
     monkeypatch.delenv("DEV_ROLE_SWITCHER_ENABLED", raising=False)
-    app = create_app({"TESTING": True})
+    # APP_ENV defaults to production, which now requires a signing key (SCRUM-142).
+    app = create_app({"TESTING": True, "SECRET_KEY": "test-only-secret"})
     assert app.test_client().get("/dev/users").status_code == 404
     database[1].table.assert_not_called()
 

@@ -8,7 +8,7 @@ from .supabase_client import get_supabase_client
 PAGE_SIZE = 6
 HISTORY_PAGE_SIZE = 20
 READ_FIELDS = (
-    "*,event:events!inner(id,title,event_datetime,coordinator_id,status),"
+    "*,event:events!inner(id,reference,title,event_datetime,coordinator_id,status),"
     "requester:app_users!equipment_requests_requested_by_fkey(display_name),"
     "items:equipment_request_items(*),"
     "reservations:equipment_reservations!equipment_reservations_request_id_fkey(*)"
@@ -94,7 +94,7 @@ def list_request_events(actor_id: int, page: int) -> tuple[list[dict], bool]:
         rows = (
             _client()
             .table("events")
-            .select("id,title,event_datetime")
+            .select("id,reference,title,event_datetime")
             .eq("coordinator_id", actor_id)
             .eq("status", "Planning")
             .order("event_datetime")

@@ -1,0 +1,59 @@
+{
+  "recorded_at": "2026-10-31T04:40:22.252184+00:00",
+  "scope": "Lead overview: assigned-event visibility, search, filters, pagination and history grouping",
+  "branch": "feature/SCRUM-135-status-transitions",
+  "parent_commit": "1dbdba1",
+  "checks": {
+    "build": {
+      "result": "passed",
+      "command": "NEXT_PUBLIC_API_URL=http://localhost:5001 npm run build -- --webpack"
+    },
+    "lint": {
+      "result": "passed",
+      "command": "npm run lint"
+    },
+    "frontend_unit": {
+      "result": "passed",
+      "tests": 73,
+      "files": 11
+    },
+    "controlled_browser": {
+      "result": "passed",
+      "tests": 266,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "evidence": "JUnit report parsed after final full suite"
+    },
+    "integrated_browser": {
+      "result": "passed",
+      "tests": 4,
+      "duration_seconds": 12.5,
+      "evidence": "Captured Playwright execution log confirms INTEGRATED-01 through INTEGRATED-04 passed; later controlled tests cleared the default integrated report directory.",
+      "configuration": "Temporary wrapper reused existing local services and was removed after verification. Real Lead assignment, reload and rediscovery by reference passed."
+    },
+    "visual": {
+      "result": "passed",
+      "desktop": [
+        1440,
+        1050
+      ],
+      "mobile": [
+        390,
+        844
+      ],
+      "inspection": "Screenshots inspected; sidebar navigation and EVT-001 search work; existing manual event shows Coordinator Account A. No horizontal overflow."
+    }
+  },
+  "source_sha256": {
+    "frontend/src/app/events/supervised/page.tsx": "920071d094613256c7c8c13239162ab5c19e90cf2f69e9226f102bac1bd87b4c",
+    "frontend/src/components/app-shell.tsx": "bac92f78a1c006d356b52609ac935ad0b3e51ca0fd53db7f099bd44e72a30d60",
+    "frontend/src/lib/supervised-events.ts": "fce2896bd2a38654cf202b0cadf5c7e458d90f121dbb75ee4a6059a5fd67bcaf",
+    "frontend/src/lib/supervised-events.test.ts": "e61e7a1219bbcde9a0f8347bc0d63cb87fc311a568631bb486b2a1b8a4f4228f",
+    "frontend/e2e/lead-overview.spec.ts": "8ca27faac2b586c5e8c6a4624ab7e72386d8af20135edc53ed2c6c36c85d0c05",
+    "frontend/integration/event-lifecycle.spec.ts": "93ae5bd16164b85d1098ecc2f04b3a1f86eda7e711c38064374ec6a4164e8d32"
+  },
+  "backend": "No backend/schema changes. Previous 1953 backend tests recorded with 1dbdba1 in record-references-verification.json; not rerun for this frontend-only change.",
+  "test_changes": "Existing controlled tests untouched. Integrated lifecycle adds reference search for the paginated queue and a reload/rediscovery assertion; prior assertions retained.",
+  "review": "Local implementation complete; no push or merge. Human review and hosted CI pending. Existing manual data preserved; app left running."
+}

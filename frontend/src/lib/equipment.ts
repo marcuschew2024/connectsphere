@@ -3,6 +3,7 @@ export type EquipmentStatus = (typeof EQUIPMENT_STATUSES)[number];
 
 export type Equipment = {
   id: string;
+  reference?: string;
   equipment_type: string;
   description: string;
   total_quantity: number;

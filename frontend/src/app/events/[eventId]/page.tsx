@@ -1,5 +1,7 @@
 "use client";
 
+import { recordReference } from "@/lib/record-reference";
+
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useEffect, useState } from "react";
@@ -211,7 +213,7 @@ export default function EventStatusPage() {
                 <div><dt className="mb-1 text-xs text-muted-foreground">Purpose</dt><dd className="whitespace-pre-wrap break-words">{event.purpose || "Not provided"}</dd></div>
                 <div className="sm:col-span-2"><dt className="mb-1 text-xs text-muted-foreground">Description</dt><dd className="whitespace-pre-wrap break-words leading-relaxed">{event.description || "Not provided"}</dd></div>
                 {([['venue_requirements', 'Venue'], ['accessibility_requirements', 'Accessibility'], ['equipment_requirements', 'Equipment'], ['registration_requirements', 'Registration']] as const).map(([field, label]) => event[field] && <div key={field}><dt className="mb-1 text-xs text-muted-foreground">{label} requirements</dt><dd className="whitespace-pre-wrap break-words">{event[field]}</dd></div>)}
-                <div className="border-t border-border pt-4 sm:col-span-2"><dt className="mb-1 text-xs text-muted-foreground">Request reference</dt><dd className="break-all font-mono text-xs text-muted-foreground">{event.id}</dd></div>
+                <div className="border-t border-border pt-4 sm:col-span-2"><dt className="mb-1 text-xs text-muted-foreground">Request reference</dt><dd className="break-all font-mono text-xs text-muted-foreground">{recordReference(event, event.event_datetime)}</dd></div>
               </dl>
             </section>
 

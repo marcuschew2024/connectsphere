@@ -1,5 +1,7 @@
 "use client";
 
+import { recordReference } from "@/lib/record-reference";
+
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { apiRequest } from "@/lib/api";
@@ -84,6 +86,7 @@ function EventCard({ event }: { event: CoordinatorEventRecord }) {
       <h3 className="min-w-0 break-words text-lg font-semibold">{event.title || "Untitled event request"}</h3>
       <StatusBadge status={event.status} />
     </div>
+          {event.reference && <p className="text-xs text-muted-foreground">{recordReference(event, event.event_datetime)}</p>}
     <p className="text-sm text-muted-foreground">{event.category ?? "Category not provided"}{event.event_datetime
       ? ` · ${new Date(event.event_datetime).toLocaleString("en-SG", { timeZone: "Asia/Singapore" })} (Singapore)` : ""}</p>
   </>;

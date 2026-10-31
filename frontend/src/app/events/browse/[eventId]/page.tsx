@@ -1,5 +1,7 @@
 "use client";
 
+import { recordReference } from "@/lib/record-reference";
+
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useEffect, useRef, useState, type FormEvent } from "react";
@@ -85,6 +87,7 @@ export default function RegisterEventPage() {
             <header className="space-y-3">
               <p className="text-xs font-medium uppercase tracking-[0.18em] text-primary">{offer.event.category}</p>
               <h1 className="break-words text-3xl font-semibold tracking-tight">{offer.event.title}</h1>
+          {offer.event.reference && <p className="text-xs text-muted-foreground">{recordReference(offer.event, offer.event.event_datetime)}</p>}
               <p className="text-muted-foreground">{eventTime(offer.event.event_datetime)}</p>
               <p className="whitespace-pre-wrap break-words leading-relaxed">{offer.event.description}</p>
             </header>
@@ -92,7 +95,7 @@ export default function RegisterEventPage() {
               <h2 id="receipt-heading" className="text-xl font-semibold">{shown?.heading}</h2>
               <p role="status">{shown?.description}</p>
               <dl className="space-y-3 text-sm">
-                <div><dt className="text-muted-foreground">Registration reference</dt><dd className="break-all font-mono">{registration.id}</dd></div>
+                <div><dt className="text-muted-foreground">Registration reference</dt><dd className="break-all font-mono">{recordReference(registration, registration.registered_at)}</dd></div>
                 <div><dt className="text-muted-foreground">Registered at</dt><dd>{eventTime(registration.registered_at)}</dd></div>
                 {registration.status === "Withdrawn" && registration.withdrawn_at && <div><dt className="text-muted-foreground">Withdrawn at</dt><dd>{eventTime(registration.withdrawn_at)}</dd></div>}
               </dl>

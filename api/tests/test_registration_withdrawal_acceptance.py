@@ -41,7 +41,10 @@ def test_withdrawal_releases_a_full_place_and_updates_both_views_and_notificatio
     receipt = response.json["registration"]
     assert receipt["status"] == "Withdrawn" and receipt["withdrawn_at"]
     assert receipt["registered_at"] == first.json["registration"]["registered_at"]
-    assert set(receipt) == {"id", "event_id", "status", "registered_at", "withdrawn_at"}
+    assert receipt["reference"] == first.json["registration"]["reference"]
+    assert set(receipt) == {
+        "id", "reference", "event_id", "status", "registered_at", "withdrawn_at",
+    }
     assert count(db, event) == 0
     assert withdraw(clients[41001], event).json["registration"] == receipt
     notes = db.table("notifications").select("*").eq("event_id", event["id"]).eq(

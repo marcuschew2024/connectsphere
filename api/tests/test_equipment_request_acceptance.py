@@ -96,6 +96,8 @@ def live_requests(monkeypatch):
             yield db, users, event, items, make_event
         finally:
             for event_id in event_ids:
+                # SCRUM-135 records denied transitions against their event.
+                db.table("access_denied_log").delete().eq("event_id", event_id).execute()
                 db.table("equipment_requests").delete().eq("event_id", event_id).execute()
                 db.table("events").delete().eq("id", event_id).execute()
             for stock_id in stock_ids:

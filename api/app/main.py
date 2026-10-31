@@ -48,6 +48,16 @@ def create_app(config: dict | None = None) -> Flask:
     if config:
         app.config.update(config)
 
+    is_production = app.config["APP_ENV"] == "production"
+    # Secure cookies are only returned over HTTPS. Disable under TESTING so the HTTP
+    # test client can still round-trip the session (cookiejar drops Secure cookies
+    # over http://); a real production run (TESTING unset) gets Secure (SCRUM-142).
+    app.config["SESSION_COOKIE_SECURE"] = is_production and not app.config.get("TESTING", False)
+    # A production app with no signing key cannot issue trustworthy sessions — refuse
+    # to start rather than serve unsigned ones (SCRUM-142 / Codex R13).
+    if is_production and not app.config["SECRET_KEY"]:
+        raise ValueError("Set SECRET_KEY before starting ConnectSphere in production.")
+
     app.register_blueprint(events)
     app.register_blueprint(auth)
     app.register_blueprint(notifications)
