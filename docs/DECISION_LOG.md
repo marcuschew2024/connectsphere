@@ -1292,7 +1292,10 @@ auto-assign in D9) are recorded explicitly rather than left implicit.
   `approve_change_request()` (D43 version) and changes only the history action and the
   Organiser notice. The same transaction, grants and response are kept.
 - **Verification.** `test_re_review_presentation_acceptance.py` runs on the real database
-  (significant vs ordinary) and fails against the D43 function.
+  and fails against the D43 function. It covers four cases: significant attendance
+  (re-review plus the too-small venue), significant venue (re-review, no capacity
+  flag), ordinary approval (unchanged), and implementing a re-review (the re-review
+  entry stays in history before "implemented").
   `e2e/re-review-presentation.spec.ts` covers the Organiser view, confirm / cancel and
   the history label. `lib/history.test.ts` covers the label.
 - **Changed existing tests (reviewable).** These are the behaviour this ticket changes;

@@ -56,3 +56,40 @@ def test_ordinary_approval_stays_a_plain_approval(live):  # noqa: F811
     assert "change_request_approved" in actions(db, event)
     assert "change_request_approved_re_review" not in actions(db, event)
     assert organiser_notice(db, event).endswith("was approved and applied.")
+
+
+def test_significant_venue_change_reads_as_re_review_without_a_capacity_flag(live):  # noqa: F811
+    db, users, _, make_event, venue = live
+    event = make_event()
+    booking(db, event, venue)
+    request = users[1].post(f"/events/{event['id']}/change-requests", json={
+        "description": "Need a lecture theatre",
+        "changes": {"venue_requirements": "Lecture theatre"},
+    }, headers=ORIGIN).json["change_request"]
+
+    response = users[2].patch(f"/events/{event['id']}/change-requests/{request['id']}",
+                              json={"status": "Approved"}, headers=ORIGIN)
+
+    assert response.status_code == 200, response.json
+    assert "change_request_approved_re_review" in actions(db, event)
+    message = organiser_notice(db, event)
+    assert "Coordinator is re-reviewing" in message
+    assert "too small" not in message  # Attendance did not change, so no capacity flag.
+
+
+def test_marking_a_re_review_implemented_keeps_the_re_review_record(live):  # noqa: F811
+    db, users, _, make_event, venue = live
+    capacity = capacity_of(db, venue)
+    event = make_event()
+    booking(db, event, venue)
+    result = approve_attendance(users, event, capacity + 5)
+
+    done = users[2].patch(
+        f"/events/{event['id']}/change-requests/{result['change_request']['id']}",
+        json={"status": "Implemented"}, headers=ORIGIN)
+
+    assert done.status_code == 200, done.json
+    assert done.json["change_request"]["status"] == "Implemented"
+    history = actions(db, event)
+    assert history.index("change_request_approved_re_review") < history.index(
+        "change_request_implemented")
