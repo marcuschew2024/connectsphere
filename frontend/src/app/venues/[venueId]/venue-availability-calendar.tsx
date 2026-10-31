@@ -25,7 +25,7 @@ const CELL_LABEL: Record<CellState, string> = {
   available: "Available",
   tentative: "Tentative hold",
   confirmed: "Confirmed",
-  blocked: "Blocked",
+  blocked: "Blocked (maintenance)",
   unavailable: "Unavailable",
 };
 

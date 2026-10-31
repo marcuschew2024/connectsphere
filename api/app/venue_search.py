@@ -130,6 +130,8 @@ def availability(venue, filters):
         )
         if overlap.hard_conflict is not None:
             return "blocked" if overlap.hard_conflict.status == "Blocked" else "booked"
+        if overlap.tentative_conflict is not None:
+            return "booked"
         return "available"
 
     if any(row.get("status") == "Blocked" for row in conflicts):

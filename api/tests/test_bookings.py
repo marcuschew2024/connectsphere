@@ -259,5 +259,5 @@ def test_tc_129_02_integration_back_to_back_bookings_conflict_due_to_buffers(
     )
 
     assert response.status_code == 409
-    assert "already confirmed or blocked" in response.json["error"]
+    assert "conflicts with an approved booking and its setup/turnaround buffer" in response.json["error"]
     assert created == []
