@@ -251,7 +251,23 @@ function Catalogue({ canCreate }: { canCreate: boolean }) {
           <div className="mt-5 flex flex-wrap items-center justify-between gap-3 border-t border-border pt-4">
             <p className="text-xs text-muted-foreground">Added {new Date(venue.created_at).toLocaleDateString()}{venue.creator?.display_name ? ` by ${venue.creator.display_name}` : ""}</p>
             {canCreate && !venue.is_retired && <Link href={`/venues/${venue.id}/edit`} className="inline-flex min-h-10 items-center rounded-lg border border-border px-4 py-2 text-sm font-medium hover:bg-muted">Edit venue</Link>}
-            <Link href={`/venues/${venue.id}${selectedEventId ? `?eventId=${encodeURIComponent(selectedEventId)}` : ""}`} className="inline-flex min-h-10 shrink-0 items-center rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-opacity hover:opacity-90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring">View availability →</Link>
+            {(() => {
+              const query = new URLSearchParams();
+              if (selectedEventId) query.set("eventId", selectedEventId);
+              if (filters) {
+                const searchDate = new URLSearchParams(filters).get("date");
+                if (searchDate) query.set("date", searchDate);
+              }
+              const qs = query.toString();
+              return (
+                <Link
+                  href={`/venues/${venue.id}${qs ? `?${qs}` : ""}`}
+                  className="inline-flex min-h-10 shrink-0 items-center rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-opacity hover:opacity-90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+                >
+                  View availability →
+                </Link>
+              );
+            })()}
           </div>
           </div>
         </li>; })}

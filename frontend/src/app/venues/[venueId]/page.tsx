@@ -77,7 +77,18 @@ export default function VenueDetailPage() {
   const [keptBookings, setKeptBookings] = useState<number | null>(null);
   const [suitability, setSuitability] = useState<Suitability | null>(null);
 
-  const weekStart = weekStartMs(new Date());
+  const dateParam = searchParams.get("date");
+  const initialWeekStart = (() => {
+    if (dateParam && /^\d{4}-\d{2}-\d{2}$/.test(dateParam)) {
+      const parsed = new Date(`${dateParam}T00:00:00+08:00`);
+      if (!Number.isNaN(parsed.getTime())) {
+        return weekStartMs(parsed);
+      }
+    }
+    return weekStartMs(new Date());
+  })();
+
+  const [currentWeekStart, setCurrentWeekStart] = useState<number>(initialWeekStart);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -87,7 +98,7 @@ export default function VenueDetailPage() {
       controller.abort();
     }, 8000);
 
-    loadVenueData(params.venueId, weekStart, controller)
+    loadVenueData(params.venueId, currentWeekStart, controller)
       .then((loaded) => {
         setVenue(loaded.venue);
         setBookings(loaded.bookings);
@@ -112,7 +123,7 @@ export default function VenueDetailPage() {
       window.clearTimeout(timeout);
       controller.abort();
     };
-  }, [params.venueId, weekStart]);
+  }, [params.venueId, currentWeekStart]);
   useEffect(() => {
     if (!eventId) return;
     const controller = new AbortController();
@@ -133,7 +144,7 @@ export default function VenueDetailPage() {
         method: "POST",
         body: JSON.stringify({ start_at: start, end_at: end, reason, note }),
       });
-      const loaded = await loadVenueData(params.venueId, weekStart);
+      const loaded = await loadVenueData(params.venueId, currentWeekStart);
       setVenue(loaded.venue);
       setBookings(loaded.bookings);
       setBlocks(loaded.blocks);
@@ -151,7 +162,7 @@ export default function VenueDetailPage() {
     setError("");
     try {
       await apiRequest(`/venues/${params.venueId}/unavailability/${blockId}`, { method: "DELETE" });
-      const loaded = await loadVenueData(params.venueId, weekStart);
+      const loaded = await loadVenueData(params.venueId, currentWeekStart);
       setVenue(loaded.venue);
       setBookings(loaded.bookings);
       setBlocks(loaded.blocks);
@@ -206,7 +217,14 @@ export default function VenueDetailPage() {
             <VenueRetirePanel venue={venue} onRetired={(result) => { setVenue(result.venue); setKeptBookings(result.kept_confirmed_bookings); }} />
           )}
 
-          <VenueAvailabilityCalendar hours={venue.operating_hours} bookings={bookings} weekStart={weekStart} />
+          <VenueAvailabilityCalendar
+            hours={venue.operating_hours}
+            bookings={bookings}
+            weekStart={currentWeekStart}
+            onPrevWeek={() => setCurrentWeekStart((prev) => prev - 7 * DAY_MS)}
+            onNextWeek={() => setCurrentWeekStart((prev) => prev + 7 * DAY_MS)}
+            onToday={() => setCurrentWeekStart(weekStartMs(new Date()))}
+          />
 
           {actingRole === "Venue Staff" && (
             <section aria-labelledby="venue-block-heading" className="rounded-2xl border border-border bg-card p-5 shadow-sm">

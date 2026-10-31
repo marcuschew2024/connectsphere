@@ -9,6 +9,7 @@ import {
   type CellState,
 } from "@/lib/availability";
 import type { OpeningHours } from "@/lib/venues";
+import { ChevronLeft, ChevronRight } from "lucide-react";
 
 const SGT_MS = 8 * 60 * 60 * 1000;
 const DAY_MS = 24 * 60 * 60 * 1000;
@@ -29,27 +30,72 @@ const CELL_LABEL: Record<CellState, string> = {
 };
 
 // Read-only week availability grid (SCRUM-30). Free/busy come from the verified classifier;
-// this component only renders. Maintenance/blocked is a stubbed legend entry (no data yet).
+// this component only renders.
 export default function VenueAvailabilityCalendar({
   hours,
   bookings,
   weekStart,
+  onPrevWeek,
+  onNextWeek,
+  onToday,
 }: {
   hours: OpeningHours;
   bookings: CalendarBooking[];
   weekStart: number;
+  onPrevWeek?: () => void;
+  onNextWeek?: () => void;
+  onToday?: () => void;
 }) {
   const { startHour, endHour } = hourWindow(hours);
   const rows = Array.from({ length: Math.max(endHour - startHour, 1) }, (_, i) => startHour + i);
 
   // Read the SGT date parts for a day column by shifting into SGT wall-clock.
   const dayDate = (i: number) => new Date(weekStart + i * DAY_MS + SGT_MS);
-  const weekLabel = `${dayDate(0).getUTCDate()}/${dayDate(0).getUTCMonth() + 1} – ${dayDate(6).getUTCDate()}/${dayDate(6).getUTCMonth() + 1}`;
+  const startDay = dayDate(0);
+  const endDay = dayDate(6);
+  const weekLabel = `${startDay.getUTCDate()}/${startDay.getUTCMonth() + 1}/${startDay.getUTCFullYear()} – ${endDay.getUTCDate()}/${endDay.getUTCMonth() + 1}/${endDay.getUTCFullYear()}`;
 
   return (
     <section aria-label="Venue availability" className="space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <h2 className="font-semibold">Availability <span className="text-sm font-normal text-muted-foreground">· week of {weekLabel}</span></h2>
+        <div className="flex items-center gap-3">
+          <h2 className="font-semibold">
+            Availability <span className="text-sm font-normal text-muted-foreground">· week of {weekLabel}</span>
+          </h2>
+          {(onPrevWeek || onNextWeek) && (
+            <div className="flex items-center gap-1">
+              {onPrevWeek && (
+                <button
+                  type="button"
+                  onClick={onPrevWeek}
+                  aria-label="Previous week"
+                  className="inline-flex size-8 items-center justify-center rounded-lg border border-border bg-background text-muted-foreground transition hover:bg-muted hover:text-foreground"
+                >
+                  <ChevronLeft className="size-4" />
+                </button>
+              )}
+              {onToday && (
+                <button
+                  type="button"
+                  onClick={onToday}
+                  className="rounded-lg border border-border bg-background px-2.5 py-1 text-xs font-medium text-muted-foreground transition hover:bg-muted hover:text-foreground"
+                >
+                  This week
+                </button>
+              )}
+              {onNextWeek && (
+                <button
+                  type="button"
+                  onClick={onNextWeek}
+                  aria-label="Next week"
+                  className="inline-flex size-8 items-center justify-center rounded-lg border border-border bg-background text-muted-foreground transition hover:bg-muted hover:text-foreground"
+                >
+                  <ChevronRight className="size-4" />
+                </button>
+              )}
+            </div>
+          )}
+        </div>
         <ul className="flex flex-wrap gap-3 text-xs text-muted-foreground">
           {(["available", "tentative", "confirmed", "blocked", "unavailable"] as CellState[]).map((s) => (
             <li key={s} className="flex items-center gap-1.5">

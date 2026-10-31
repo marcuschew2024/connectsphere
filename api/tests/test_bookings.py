@@ -237,7 +237,7 @@ def test_tc_129_02_integration_back_to_back_bookings_conflict_due_to_buffers(
     # An existing Confirmed booking runs from T+1h to T+3h (with turnaround, occupied until T+3.5h)
     monkeypatch.setattr(
         "app.bookings.find_overlapping_bookings",
-        lambda venue_id, s, e, buffer_window_minutes=0: [{
+        lambda venue_id, s, e, **_buffers: [{
             "id": "existing-confirmed",
             "venue_id": venue_id,
             "start_at": existing_start,
@@ -259,5 +259,6 @@ def test_tc_129_02_integration_back_to_back_bookings_conflict_due_to_buffers(
     )
 
     assert response.status_code == 409
-    assert "already confirmed or blocked" in response.json["error"]
+    booking_error = response.json["error"]
+    assert "conflicts with an approved booking and its setup/turnaround buffer" in booking_error
     assert created == []

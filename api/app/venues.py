@@ -153,7 +153,14 @@ def venue_bookings(venue_id):
     start_at, end_at = request.args.get("from"), request.args.get("to")
     if not start_at or not end_at:
         raise BadRequest("Provide 'from' and 'to' timestamps.")
-    bookings = list_venue_bookings_in_range(venue_id, start_at, end_at)
+    venue = get_venue(venue_id)
+    bookings = list_venue_bookings_in_range(
+        venue_id,
+        start_at,
+        end_at,
+        setup_minutes=max(0, int((venue or {}).get("setup_time_minutes") or 0)),
+        turnaround_minutes=max(0, int((venue or {}).get("turnaround_time_minutes") or 0)),
+    )
     blocks = list_unavailability(venue_id, start_at, end_at)
     bookings.extend({
         **block,

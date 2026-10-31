@@ -105,8 +105,12 @@ def test_availability_uses_existing_booking_check_with_singapore_offset(
     monkeypatch.setattr("app.venue_search.find_overlapping_bookings", check)
     monkeypatch.setattr("app.venue_search.list_unavailability", MagicMock(return_value=[]))
     assert availability({**details(), "id": "venue-1"}, slot()) == expected
-    check.assert_called_once_with("venue-1", "2026-10-05T09:00:00+08:00",
-                                  "2026-10-05T18:00:00+08:00")
+    check.assert_called_once_with(
+        "venue-1", "2026-10-05T09:00:00+08:00",
+        "2026-10-05T18:00:00+08:00",
+        setup_minutes=0,
+        turnaround_minutes=0,
+    )
 
 
 def test_retired_closed_and_unchecked_do_not_query_bookings(monkeypatch):
@@ -149,13 +153,39 @@ def test_overlap_query_keeps_half_open_boundaries_and_includes_tentative_holds(m
     query.gt.assert_called_once_with("end_at", "start")
 
 
+def test_overlap_query_expands_with_separate_setup_and_turnaround(monkeypatch):
+    db = MagicMock()
+    query = MagicMock()
+    db.table.return_value = query
+    for method in ("select", "eq", "in_", "lt", "gt"):
+        getattr(query, method).return_value = query
+    query.execute.return_value = SimpleNamespace(data=[{"id": "booking-1"}])
+    monkeypatch.setattr("app.booking_repository.get_supabase_client", lambda: db)
+
+    result = find_overlapping_bookings(
+        "venue-1",
+        "2026-10-05T09:00:00+08:00",
+        "2026-10-05T10:00:00+08:00",
+        setup_minutes=30,
+        turnaround_minutes=45,
+    )
+
+    assert result == [{"id": "booking-1"}]
+    query.lt.assert_called_once_with(
+        "start_at", "2026-10-05T11:15:00+08:00"
+    )
+    query.gt.assert_called_once_with(
+        "end_at", "2026-10-05T07:45:00+08:00"
+    )
+
+
 @pytest.fixture
 def search_api(app, monkeypatch):
     monkeypatch.setattr("app.venues.get_authenticated_user", lambda: None)
     monkeypatch.setattr("app.rbac.get_supabase_client", lambda: None)
     monkeypatch.setattr("app.venue_search.list_venues",
                         lambda page: ([{**details(), "id": "venue-1"}], False))
-    monkeypatch.setattr("app.venue_search.list_unavailability", lambda *args: [])
+    monkeypatch.setattr("app.venue_search.list_unavailability", lambda *args, **kwargs: [])
     return app.test_client()
 
 
@@ -234,7 +264,7 @@ def test_suggestions_require_catalogue_permissions(search_api, user_id, status):
 
 
 def test_availability_returns_blocked_when_unavailability_blocks_exist(monkeypatch):
-    monkeypatch.setattr("app.venue_search.find_overlapping_bookings", lambda *args: [])
+    monkeypatch.setattr("app.venue_search.find_overlapping_bookings", lambda *args, **kwargs: [])
     monkeypatch.setattr("app.venue_search.list_unavailability", lambda *args: [{"id": "unavail-1"}])
     venue = {**details(), "id": "venue-1"}
     assert availability(venue, slot()) == "blocked"
