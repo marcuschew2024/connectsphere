@@ -1268,3 +1268,41 @@ auto-assign in D9) are recorded explicitly rather than left implicit.
 - **Trade-off.** Confirmation is not blocked by a too-small venue; the Coordinator
   decides, per D36 / S1 Q32. Blocking would be a new gate rule and is deferred.
 - **Owner.** Ernest Wong.
+
+### D45 — A change awaiting re-review is shown as such, not as a plain approval (SCRUM-156)
+
+- **Context.** During the Release v1 manual review of SCRUM-152, an approved significant
+  change behaved as D36 intends but was presented as a finished approval. History said
+  "Change Request Approved", the Organiser saw "Approved" with Coordinator-oriented text
+  and no mention of the too-small venue, and "Mark as implemented" was a single click
+  even while the re-review still showed a problem.
+- **Decision (owner, Ernest, 31 Oct 2026). Presentation only;** D36's status model is
+  unchanged (the stored status stays Approved until Implemented).
+  - **History.** A significant approval is recorded as
+    `change_request_approved_re_review`, shown as "Change Request Approved — Re-review
+    Required". Ordinary approvals are unchanged.
+  - **Badge.** Both roles see "Approved · Re-review in progress" until Implemented.
+  - **Organiser.** They get their own explanation. The page and notification name any
+    too-small venue and suggest a new change request. The capacity check is read from
+    the event's bookings (D43), so it is still shown after a reload.
+  - **Coordinator.** "Mark as implemented" on a re-review asks "Have you re-checked…?"
+    and lists anything still unresolved. It is not blocked; the Coordinator decides
+    (S1 Q32).
+- **How.** Migration `20261031190000_scrum_156_re_review_presentation.sql` replaces
+  `approve_change_request()` (D43 version) and changes only the history action and the
+  Organiser notice. The same transaction, grants and response are kept.
+- **Verification.** `test_re_review_presentation_acceptance.py` runs on the real database
+  and fails against the D43 function. It covers four cases: significant attendance
+  (re-review plus the too-small venue), significant venue (re-review, no capacity
+  flag), ordinary approval (unchanged), and implementing a re-review (the re-review
+  entry stays in history before "implemented").
+  `e2e/re-review-presentation.spec.ts` covers the Organiser view, confirm / cancel and
+  the history label. `lib/history.test.ts` covers the label.
+- **Changed existing tests (reviewable).** These are the behaviour this ticket changes;
+  no other assertion was removed.
+  - `test_change_request_apply_acceptance.py` (concurrent approvals): the "applied
+    once" history count also accepts the new action.
+  - `e2e/change-request-apply.spec.ts`: the significant change's badge reads
+    "Approved · Re-review in progress", and the test clicks the new confirmation before
+    Implemented.
+- **Owner.** Ernest Wong.

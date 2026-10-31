@@ -174,3 +174,9 @@ for pass in 1 2; do
   psql -v ON_ERROR_STOP=1 -f /sql/migrations/20261031180000_scrum_152_venue_too_small_flag.sql > /tmp/migration-output.txt
   echo "Venue too-small flag migration pass $pass: PASS"
 done
+
+# SCRUM-156: significant approvals are recorded and announced as under re-review.
+for pass in 1 2; do
+  psql -v ON_ERROR_STOP=1 -f /sql/migrations/20261031190000_scrum_156_re_review_presentation.sql > /tmp/migration-output.txt
+  echo "Re-review presentation migration pass $pass: PASS"
+done
