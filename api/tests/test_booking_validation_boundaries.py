@@ -72,7 +72,7 @@ def test_attendance_boundaries_are_accepted(booking_api, attendance):  # noqa: F
     assert created[0]["expected_attendance"] == attendance
 
 
-# --- Single-day rule (D38): a booking stays within one Singapore day, server-side ---
+# --- Single-day rule (D40): a booking stays within one Singapore day, server-side ---
 
 def test_a_cross_day_booking_is_refused(booking_api):  # noqa: F811
     client, created, notifications, _ = booking_api
@@ -86,7 +86,7 @@ def test_a_cross_day_booking_is_refused(booking_api):  # noqa: F811
 
 def test_an_evening_slot_within_one_singapore_day_is_accepted(booking_api):  # noqa: F811
     # 06:00-09:00 SGT crosses a UTC day (22:00-01:00Z) but stays within one Singapore day.
-    # A UTC-based check would wrongly reject it; the Singapore-day rule (D38) accepts it.
+    # A UTC-based check would wrongly reject it; the Singapore-day rule (D40) accepts it.
     client, created, _, _ = booking_api
     response = client.post("/venues/bookings", json=payload(
         start_at="2099-10-20T06:00:00+08:00", end_at="2099-10-20T09:00:00+08:00",

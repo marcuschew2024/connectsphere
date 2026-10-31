@@ -32,7 +32,7 @@ bookings = Blueprint("bookings", __name__, url_prefix="/venues/bookings")
 
 # The customer scoped out multi-day events (S2 Q1/Q6), so a venue booking stays within a
 # single calendar day. "Same day" is judged in Singapore time to match the booking form,
-# which compares the picker values in the user's (Singapore) local day (Decision Log D38).
+# which compares the picker values in the user's (Singapore) local day (Decision Log D40).
 SINGAPORE = timezone(timedelta(hours=8))
 
 BOOKING_TEXT_LIMITS = {
