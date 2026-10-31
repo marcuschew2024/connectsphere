@@ -103,7 +103,8 @@ test("approving a significant change applies it, flags re-review and can be mark
   await expect(page.getByText("Expected attendance → 150 (significant)")).toBeVisible();
   await page.getByRole("button", { name: "Approve and apply" }).click();
 
-  await expect(page.getByTestId("change-request-status-badge")).toHaveText("Approved");
+  // SCRUM-156: a significant approval reads as in re-review until implemented.
+  await expect(page.getByTestId("change-request-status-badge")).toHaveText("Approved · Re-review in progress");
   await expect(page.getByText("Applied to the event")).toBeVisible();
   await expect(page.getByText("Expected attendance: 50 → 150")).toBeVisible();
   await expect(page.getByRole("heading", { name: "Robotics showcase 2026" })).toBeVisible();
@@ -113,6 +114,8 @@ test("approving a significant change applies it, flags re-review and can be mark
   await page.screenshot({ path: testInfo.outputPath("change-applied.png"), fullPage: true });
 
   await page.getByRole("button", { name: "Mark as implemented" }).click();
+  // SCRUM-156: implementing a re-review asks the Coordinator to confirm it is done.
+  await page.getByRole("button", { name: "Yes, re-review complete" }).click();
   await expect(page.getByTestId("change-request-status-badge")).toHaveText("Implemented");
   await expect(page.getByText("Re-review needed")).toHaveCount(0);
   await expect(page.getByText("Expected attendance: 50 → 150")).toBeVisible();
