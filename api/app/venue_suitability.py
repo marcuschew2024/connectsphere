@@ -20,6 +20,7 @@ from typing import Any
 _SYNONYMS: dict[str, str] = {
     "theater": "theatre",
     "u shaped": "u shape",
+    "u-shaped": "u shape",
     "u-shape": "u shape",
     "u shaped seating": "u shape",
     "board room": "boardroom",
@@ -40,9 +41,9 @@ _SYNONYMS: dict[str, str] = {
 def _normalise(text: str) -> str:
     """Lower-case, collapse whitespace, strip hyphens, apply spelling synonyms."""
     normalised = " ".join((text or "").lower().split())
-    normalised = normalised.replace("-", " ")
     for variant, canonical in _SYNONYMS.items():
         normalised = normalised.replace(variant, canonical)
+    normalised = normalised.replace("-", " ")
     return " ".join(normalised.split())
 
 
@@ -378,4 +379,3 @@ class SuitabilityEngine:
             "flags": flags,
             "checked_rules_count": len(self.rules),
         }
-

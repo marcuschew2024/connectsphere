@@ -1,0 +1,41 @@
+import { describe, expect, it } from "vitest";
+import type { CoordinatorEventRecord } from "./events";
+import { eventVenueRequirements, singaporeDateTime } from "./event-venue-requirements";
+
+describe("eventVenueRequirements", () => {
+  it("derives all booking fields from an event", () => {
+    const event = {
+      expected_attendance: 150,
+      event_datetime: "2026-10-20T06:00:00Z",
+      venue_requirements: "Projector, Banquet, Wi-Fi",
+      accessibility_requirements: "Wheelchair",
+    } as CoordinatorEventRecord;
+
+    expect(eventVenueRequirements(event)).toEqual({
+      attendance: "150",
+      layout: "Banquet",
+      specialRequirements: "Projector, Wi-Fi, Wheelchair",
+      date: "2026-10-20",
+      startTime: "14:00",
+      endTime: "",
+    });
+  });
+
+  it("handles missing optional event requirements", () => {
+    expect(eventVenueRequirements(undefined)).toEqual({
+      attendance: "",
+      layout: "",
+      specialRequirements: "",
+      date: "",
+      startTime: "",
+      endTime: "",
+    });
+  });
+
+  it("handles invalid event timestamps and leaves end time empty", () => {
+    expect(singaporeDateTime("not-a-date")).toEqual({ date: "", time: "" });
+    expect(eventVenueRequirements({
+      event_datetime: "2026-10-20T15:30:00Z",
+    } as CoordinatorEventRecord).endTime).toBe("");
+  });
+});

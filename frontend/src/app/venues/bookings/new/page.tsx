@@ -8,10 +8,12 @@ import type { CoordinatorEventRecord } from "@/lib/events";
 import { VENUE_DAYS, type Venue } from "@/lib/venues";
 import { AppShell } from "@/components/app-shell";
 import { useActingRole } from "@/lib/use-acting-role";
+import { eventVenueRequirements } from "@/lib/event-venue-requirements";
 
 const INPUT =
   "w-full rounded-md border border-input bg-background px-3 py-2.5 text-sm text-foreground focus:border-ring focus:outline-none focus:ring-2 focus:ring-ring/30";
 const SELECT = `${INPUT} appearance-none cursor-pointer pr-9`;
+
 
 // A native <select> wrapped so it gets a consistent chevron across browsers.
 function SelectField({
@@ -42,10 +44,20 @@ export default function NewBookingPage() {
   const [selectedEventId, setSelectedEventId] = useState("");
   const [selectedVenueId, setSelectedVenueId] = useState("");
   const [attendance, setAttendance] = useState("");
+  const [layout, setLayout] = useState("");
+  const [specialRequirements, setSpecialRequirements] = useState("");
+  const [startAt, setStartAt] = useState("");
+  const [endAt, setEndAt] = useState("");
   const [error, setError] = useState("");
   const [fields, setFields] = useState<Record<string, string>>({});
   const [saved, setSaved] = useState(false);
   const [busy, setBusy] = useState(false);
+  const [suitability, setSuitability] = useState<{
+    is_suitable: boolean;
+    flags: string[];
+    checked_rules_count: number;
+  } | null>(null);
+  const [checkingSuitability, setCheckingSuitability] = useState(false);
 
   useEffect(() => {
     async function loadOptions() {
@@ -67,7 +79,12 @@ export default function NewBookingPage() {
       setVenues(allVenues);
       setSelectedEventId(planning[0]?.id ?? "");
       // Default the attendance to the chosen event's expected headcount.
-      setAttendance(planning[0]?.expected_attendance != null ? String(planning[0].expected_attendance) : "");
+      const requirements = eventVenueRequirements(planning[0]);
+      setAttendance(requirements.attendance);
+      setLayout(requirements.layout);
+      setSpecialRequirements(requirements.specialRequirements);
+      setStartAt(requirements.date && requirements.startTime ? `${requirements.date}T${requirements.startTime}` : "");
+      setEndAt(requirements.date && requirements.endTime ? `${requirements.date}T${requirements.endTime}` : "");
       setSelectedVenueId(allVenues[0]?.id ?? "");
     }
     loadOptions().catch((requestError) =>
@@ -75,10 +92,49 @@ export default function NewBookingPage() {
     );
   }, []);
 
+  useEffect(() => {
+    if (!selectedEventId || !selectedVenueId) {
+      return;
+    }
+
+    const controller = new AbortController();
+    void Promise.resolve().then(() => {
+      if (!controller.signal.aborted) setCheckingSuitability(true);
+    });
+    apiRequest<{ suitability: { is_suitable: boolean; flags: string[]; checked_rules_count: number } }>(
+      `/venues/${selectedVenueId}/suitability/${selectedEventId}`,
+      { signal: controller.signal },
+    )
+      .then((result) => {
+        if (!controller.signal.aborted) setSuitability(result.suitability);
+      })
+      .catch((requestError: unknown) => {
+        if (!controller.signal.aborted && !(requestError instanceof DOMException)) {
+          setSuitability(null);
+        }
+      })
+      .finally(() => {
+        if (!controller.signal.aborted) setCheckingSuitability(false);
+      });
+
+    return () => controller.abort();
+  }, [selectedEventId, selectedVenueId]);
+
   function onEventChange(eventId: string) {
     setSelectedEventId(eventId);
+    setSuitability(null);
     const chosen = events.find((event) => event.id === eventId);
-    if (chosen?.expected_attendance != null) setAttendance(String(chosen.expected_attendance));
+    const requirements = eventVenueRequirements(chosen);
+    setAttendance(requirements.attendance);
+    setLayout(requirements.layout);
+    setSpecialRequirements(requirements.specialRequirements);
+    setStartAt(requirements.date && requirements.startTime ? `${requirements.date}T${requirements.startTime}` : "");
+    setEndAt(requirements.date && requirements.endTime ? `${requirements.date}T${requirements.endTime}` : "");
+  }
+
+  function onVenueChange(venueId: string) {
+    setSelectedVenueId(venueId);
+    setSuitability(null);
   }
 
   async function submit(event: FormEvent<HTMLFormElement>) {
@@ -130,11 +186,6 @@ export default function NewBookingPage() {
     const attendanceValue = Number(data.get("expected_attendance"));
     if (!Number.isInteger(attendanceValue) || attendanceValue < 1) {
       setError("Enter a positive whole-number attendance.");
-      setBusy(false);
-      return;
-    }
-    if (attendanceValue > selectedVenue.capacity) {
-      setError(`Expected attendance cannot exceed this venue's capacity of ${selectedVenue.capacity}.`);
       setBusy(false);
       return;
     }
@@ -196,26 +247,45 @@ export default function NewBookingPage() {
             </SelectField>
             {fields.event_id && <p className="text-xs text-destructive">{fields.event_id}</p>}
 
-            <SelectField label="Venue" name="venue_id" required value={selectedVenueId} onChange={(e) => setSelectedVenueId(e.target.value)}>
+            <SelectField label="Venue" name="venue_id" required value={selectedVenueId} onChange={(e) => onVenueChange(e.target.value)}>
               {venues.length === 0 && <option value="">No venues available</option>}
               {venues.map((venue) => (
                 <option key={venue.id} value={venue.id}>{venue.name} · capacity {venue.capacity}</option>
               ))}
             </SelectField>
             <p className="text-xs text-muted-foreground">Selected venue capacity: {venues.find((venue) => venue.id === selectedVenueId)?.capacity ?? "—"}</p>
+            {checkingSuitability && (
+              <p role="status" className="text-sm text-muted-foreground">Checking venue suitability…</p>
+            )}
+            {suitability && !suitability.is_suitable && (
+              <section aria-label="Venue suitability advisory" className="rounded-lg border border-amber-500/30 bg-amber-500/5 p-4">
+                <h2 className="text-sm font-semibold text-amber-800 dark:text-amber-300">
+                  Suitability advisory — this venue may not meet all event requirements
+                </h2>
+                <ul className="mt-2 list-disc space-y-1 pl-5 text-sm text-amber-800 dark:text-amber-300">
+                  {suitability.flags.map((flag) => <li key={flag}>{flag}</li>)}
+                </ul>
+                <p className="mt-3 text-sm text-muted-foreground">You can still request this booking and decide whether another venue is needed.</p>
+              </section>
+            )}
+            {suitability?.is_suitable && (
+              <section role="status" aria-label="Venue suitability passed" className="rounded-lg border border-border bg-muted/40 p-4">
+                <p className="text-sm text-foreground">This venue is suitable for the selected event.</p>
+              </section>
+            )}
 
             <div className="grid gap-4 sm:grid-cols-2">
-              <label className="block text-sm font-medium">Start<input name="start_at" type="datetime-local" required className={`${INPUT} mt-2`} /></label>
-              <label className="block text-sm font-medium">End<input name="end_at" type="datetime-local" required className={`${INPUT} mt-2`} /></label>
+              <label className="block text-sm font-medium">Start<input name="start_at" type="datetime-local" required value={startAt} onChange={(event) => setStartAt(event.target.value)} className={`${INPUT} mt-2`} /></label>
+              <label className="block text-sm font-medium">End<input name="end_at" type="datetime-local" required value={endAt} onChange={(event) => setEndAt(event.target.value)} className={`${INPUT} mt-2`} /></label>
             </div>
             <div className="grid gap-4 sm:grid-cols-2">
               <label className="block text-sm font-medium">
                 Expected attendance <span className="font-normal text-muted-foreground">(from the event — editable)</span>
                 <input name="expected_attendance" type="number" min="1" required value={attendance} onChange={(e) => setAttendance(e.target.value)} className={`${INPUT} mt-2`} />
               </label>
-              <label className="block text-sm font-medium">Layout<input name="layout" required maxLength={100} placeholder="Theatre, Classroom..." className={`${INPUT} mt-2`} /></label>
+              <label className="block text-sm font-medium">Layout<input name="layout" required maxLength={100} placeholder="Theatre, Classroom..." value={layout} onChange={(event) => setLayout(event.target.value)} className={`${INPUT} mt-2`} /></label>
             </div>
-            <label className="block text-sm font-medium">Special requirements<textarea name="special_requirements" maxLength={2000} rows={5} className={`${INPUT} mt-2`} placeholder="Accessibility, equipment, setup, or other requirements" /></label>
+            <label className="block text-sm font-medium">Special requirements<textarea name="special_requirements" maxLength={2000} rows={5} value={specialRequirements} onChange={(event) => setSpecialRequirements(event.target.value)} className={`${INPUT} mt-2`} placeholder="Accessibility, equipment, setup, or other requirements" /></label>
 
             <div className="flex flex-wrap gap-3">
               <button type="submit" disabled={busy} className="rounded-md bg-primary px-5 py-3 text-sm font-semibold text-primary-foreground disabled:opacity-50">{busy ? "Submitting..." : "Submit booking request"}</button>

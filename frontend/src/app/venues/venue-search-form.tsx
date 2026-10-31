@@ -8,14 +8,41 @@ import { apiRequest } from "@/lib/api";
 import { VENUE_LAYOUTS } from "@/lib/venues";
 
 type Features = { facilities: string[]; accessibility: string[] };
+export type VenueSearchInitialValues = {
+  attendance: string;
+  layout: string;
+  facilities: string;
+  accessibility: string;
+  date: string;
+  start_time: string;
+  end_time: string;
+};
 
-export default function VenueSearchForm({ onSearch, busy }: { onSearch: (query: string) => void; busy: boolean }) {
+export default function VenueSearchForm({
+  onSearch,
+  busy,
+  initialValues,
+}: {
+  onSearch: (query: string) => void;
+  busy: boolean;
+  initialValues: VenueSearchInitialValues;
+}) {
   const [features, setFeatures] = useState<Features>({ facilities: [], accessibility: [] });
-  const [selected, setSelected] = useState({ facilities: "", accessibility: "" });
-  const [slot, setSlot] = useState({ date: "", start_time: "", end_time: "" });
+  const [selected, setSelected] = useState({
+    facilities: initialValues.facilities,
+    accessibility: initialValues.accessibility,
+  });
+  const [attendance, setAttendance] = useState(initialValues.attendance);
+  const [layout, setLayout] = useState(initialValues.layout);
+  const [slot, setSlot] = useState({
+    date: initialValues.date,
+    start_time: initialValues.start_time,
+    end_time: initialValues.end_time,
+  });
   const [availableOnly, setAvailableOnly] = useState(false);
   const [error, setError] = useState("");
   const errorRef = useRef<HTMLParagraphElement>(null);
+
   const slotStarted = Boolean(slot.date || slot.start_time || slot.end_time);
   const slotComplete = Boolean(slot.date && slot.start_time && slot.end_time);
 
@@ -57,6 +84,8 @@ export default function VenueSearchForm({ onSearch, busy }: { onSearch: (query: 
 
   return <form onSubmit={search} onReset={() => {
     setSelected({ facilities: "", accessibility: "" });
+    setAttendance("");
+    setLayout("");
     setSlot({ date: "", start_time: "", end_time: "" });
     setAvailableOnly(false); setError(""); onSearch("");
   }} id="venue-search" aria-label="Venue search" className="overflow-hidden rounded-xl border border-border bg-muted/60">
@@ -69,7 +98,7 @@ export default function VenueSearchForm({ onSearch, busy }: { onSearch: (query: 
       </div>
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <label className="grid content-start gap-2 text-sm font-medium"><span className="flex items-center gap-1.5"><Users className="size-4 text-muted-foreground" aria-hidden="true" />Expected attendance</span>
-          <Input className="h-10 bg-background" name="attendance" type="number" min={1} max={2147483647} step={1} placeholder="How many people?" />
+          <Input className="h-10 bg-background" name="attendance" type="number" min={1} max={2147483647} step={1} placeholder="How many people?" value={attendance} onChange={(event) => setAttendance(event.target.value)} />
         </label>
         <label className="grid content-start gap-2 text-sm font-medium"><span className="flex items-center gap-1.5"><CalendarDays className="size-4 text-muted-foreground" aria-hidden="true" />Date</span>
           <Input className="h-10 bg-background" name="date" type="date" value={slot.date} onChange={(event) => { setSlot({ ...slot, date: event.target.value }); setError(""); }} aria-describedby="time-help" />
@@ -101,7 +130,7 @@ export default function VenueSearchForm({ onSearch, busy }: { onSearch: (query: 
             </label>
             <div className="space-y-2 text-sm">
               <label htmlFor="search-layout">Layout</label>
-              <select id="search-layout" name="layout" className="h-10 w-full rounded-lg border border-input bg-background px-2 text-foreground">
+              <select id="search-layout" name="layout" className="h-10 w-full rounded-lg border border-input bg-background px-2 text-foreground" value={layout} onChange={(event) => setLayout(event.target.value)}>
                 <option value="">Any layout</option>
                 {VENUE_LAYOUTS.map((layout) => <option key={layout}>{layout}</option>)}
               </select>
