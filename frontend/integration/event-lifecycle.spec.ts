@@ -97,9 +97,13 @@ test("INTEGRATED-01 same event crosses seven password-authenticated roles and pe
     await expect(organiser.page.getByRole("heading", { name: "Event request received", exact: true })).toBeVisible();
 
     await lead.page.goto("/events/supervised");
+    await lead.page.getByLabel("Search events", { exact: true }).fill(event.reference);
     const intake = lead.page.getByRole("listitem").filter({ has: lead.page.locator(`a[href="/events/${event.id}"]`) });
     await intake.getByLabel(`Assign ${title} to`, { exact: true }).selectOption(String(coordinator.id));
     await intake.getByRole("button", { name: `Assign ${title}`, exact: true }).click();
+    await expect(lead.page.getByRole("region", { name: "Assigned events" }).locator(`a[href="/events/${event.id}"]`)).toHaveText(title);
+    await lead.page.reload();
+    await lead.page.getByLabel("Search events", { exact: true }).fill(event.reference);
     await expect(lead.page.getByRole("region", { name: "Assigned events" }).locator(`a[href="/events/${event.id}"]`)).toHaveText(title);
     await coordinator.page.goto(`/events/${event.id}`);
     await coordinator.page.getByRole("button", { name: "Approve", exact: true }).click();
