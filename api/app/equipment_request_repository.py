@@ -11,7 +11,9 @@ READ_FIELDS = (
     "*,event:events!inner(id,reference,title,event_datetime,coordinator_id,status),"
     "requester:app_users!equipment_requests_requested_by_fkey(display_name),"
     "items:equipment_request_items(*),"
-    "reservations:equipment_reservations!equipment_reservations_request_id_fkey(*)"
+    # SCRUM-153: each reservation carries its item's current condition.
+    "reservations:equipment_reservations!equipment_reservations_request_id_fkey("
+    "*,equipment:equipment_items(operational_status))"
 )
 
 
@@ -22,16 +24,22 @@ def _client():
     return client
 
 
+def _usable(reservation: dict) -> bool:
+    """SCRUM-153 (SCRUM-63): units held on Damaged / Under Maintenance stock are not ready."""
+    equipment = reservation.get("equipment") or {}
+    return equipment.get("operational_status", "Operational") == "Operational"
+
+
 def _summarize_reservations(row: dict) -> None:
     """Use real linked bookings, including releases from the event-cancel trigger."""
-    active = {
-        r["equipment_id"]: r["quantity"]
-        for r in row.get("reservations", [])
-        if r["status"] in {"Reserved", "Pending"}
-    }
+    held = [r for r in row.get("reservations", []) if r["status"] in {"Reserved", "Pending"}]
+    active = {r["equipment_id"]: r["quantity"] for r in held if _usable(r)}
+    unusable = {r["equipment_id"]: r["quantity"] for r in held if not _usable(r)}
     row["items"].sort(key=lambda item: item["position"])
     for item in row["items"]:
         item["reserved_quantity"] = active.get(item["equipment_id"], 0)
+        # Still booked, but on stock that is currently unusable: shown, never counted.
+        item["unusable_reserved_quantity"] = unusable.get(item["equipment_id"], 0)
     if row["items"] and all(i["reserved_quantity"] >= i["quantity"] for i in row["items"]):
         status = "Reserved"
     elif any(active.values()):
