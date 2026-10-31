@@ -1,6 +1,6 @@
 """Coordinator venue booking requests and Venue Staff review queue (SCRUM-31)."""
 
-from datetime import UTC, datetime, timedelta
+from datetime import UTC, datetime, timedelta, timezone
 
 from flask import Blueprint, current_app, jsonify, request
 from werkzeug.exceptions import BadRequest, Conflict, Forbidden, HTTPException, NotFound
@@ -30,6 +30,11 @@ from .venue_retirement import VenueRetirement
 
 bookings = Blueprint("bookings", __name__, url_prefix="/venues/bookings")
 
+# The customer scoped out multi-day events (S2 Q1/Q6), so a venue booking stays within a
+# single calendar day. "Same day" is judged in Singapore time to match the booking form,
+# which compares the picker values in the user's (Singapore) local day (Decision Log D38).
+SINGAPORE = timezone(timedelta(hours=8))
+
 BOOKING_TEXT_LIMITS = {
     "layout": 100,
     "special_requirements": 2000,
@@ -56,6 +61,8 @@ def _validated_booking_fields(data, event: dict, existing: dict | None = None) -
         raise BadRequest("Enter valid start and end times including a time zone.") from None
     if end <= start:
         raise BadRequest("The booking end time must be after the start time.")
+    if start.astimezone(SINGAPORE).date() != end.astimezone(SINGAPORE).date():
+        raise BadRequest("A booking must start and end on the same day.")
     if start < datetime.now(UTC):
         raise BadRequest("The booking cannot start in the past.")
     attendance = data.get(
@@ -155,6 +162,8 @@ def submit_booking():
         raise BadRequest("Enter valid start and end times including a time zone.") from None
     if end <= start:
         raise BadRequest("The booking end time must be after the start time.")
+    if start.astimezone(SINGAPORE).date() != end.astimezone(SINGAPORE).date():
+        raise BadRequest("A booking must start and end on the same day.")
     if start < datetime.now(UTC):
         raise BadRequest("The booking cannot start in the past.")
 

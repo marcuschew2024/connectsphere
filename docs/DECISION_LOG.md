@@ -1081,6 +1081,27 @@ Shared Supabase migration deployment is separate and is not implied by the Git m
   pushing and merging the combined changes behind green CI. This is merge authority,
   without a claim of independent teammate acceptance or a completed hosted run.
 
+### D38 — Venue bookings are single-day, enforced server-side in Singapore time (SCRUM-31)
+
+- **Context.** The booking form already blocked a booking whose start and end fall on
+  different days, but the API did not: a direct request could still create an overnight or
+  multi-day booking, so the UI rule was not a real guarantee (Sprint 4 walkthrough finding).
+- **Decision.** `_validated_booking_fields` and the `submit_booking` route reject a booking
+  whose start and end are not on the **same calendar day in Singapore time** (UTC+8), with
+  the same message the form uses. This is a derived rule, not a verbatim clarification: the
+  customer scoped **multi-day / multi-session events out of Release 1** (Customer S2 Q1/Q6),
+  and an event carries a single `event_datetime` with no duration field (D36), so a booking
+  spanning days has no place to belong.
+- **Constraints / guardrails.** "Same day" is judged in Singapore time to match the booking
+  form, which compares the date pickers in the user's local (Singapore) day; a UTC comparison
+  would disagree for evening slots. The check runs after the end-after-start check and before
+  the not-in-the-past check, on both the create and independent-change paths.
+- **Verification.** Backend tests reject a cross-day booking (including an evening slot that
+  stays within one Singapore day but crosses a UTC day) and accept a same-day booking.
+- **Trade-off.** A legitimate overnight event cannot be booked as one record — acceptable
+  because multi-day events are explicitly out of scope; revisit if that scope changes.
+- **Owner.** Marcus (Coordinator/venue-booking flow).
+
 ## AI usage summary
 
 Per-feature view of where AI assistance was applied, always under human specification and
