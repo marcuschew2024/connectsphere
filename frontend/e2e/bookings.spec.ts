@@ -23,7 +23,10 @@ const PENDING_BOOKING = {
   event: { title: "Campus workshop" },
 };
 
-const REQUEST_EVENT = { id: PENDING_BOOKING.event_id, title: "Campus workshop", status: "Planning", event_datetime: "2099-10-20T06:00:00Z" };
+const REQUEST_EVENT = { id: PENDING_BOOKING.event_id, title: "Campus workshop", status: "Planning", event_datetime: "2099-10-20T06:00:00Z", is_mine: true };
+// SCRUM-151: a Planning event assigned to another Coordinator. The API returns it (view-all,
+// S1 Q34) but with is_mine false; the booking picker must not offer it (act-only-on-own, S1 Q1).
+const OTHER_COORDINATOR_EVENT = { id: "44444444-4444-4444-8444-444444444444", title: "Other coordinator's summit", status: "Planning", event_datetime: "2099-11-01T06:00:00Z", is_mine: false };
 const REQUEST_VENUE = { id: PENDING_BOOKING.venue_id, name: "Auditorium A", location: "Level 3, SIS", capacity: 300, facilities: [], accessibility: [], supported_layouts: ["Theatre"], operating_hours: {}, timezone: "Asia/Singapore", created_by: 3, created_at: "2026-09-27T04:00:00Z" };
 
 test.beforeEach(async ({ page }) => {
@@ -134,6 +137,23 @@ test("coordinator submits a venue request with timing and requirements", async (
   await page.getByLabel("End", { exact: true }).fill("2099-10-20T16:00");
   await page.getByRole("button", { name: "Submit booking request" }).click();
   await expect(page.getByRole("heading", { name: "Booking request submitted" })).toBeVisible();
+});
+
+test("the event picker offers only the coordinator's own Planning events (SCRUM-151)", async ({ page }) => {
+  await page.unroute("**/session");
+  await page.route(`${API_ORIGIN}/session`, (route) => route.fulfill({ json: { user: { id: 2, role: "Coordinator" } } }));
+  // API returns both events (view-all), but only the owned one carries is_mine: true.
+  await page.route(`${API_ORIGIN}/events`, (route) =>
+    route.fulfill({ json: { events: [OTHER_COORDINATOR_EVENT, REQUEST_EVENT] } }));
+  await page.route(`${API_ORIGIN}/venues?*`, (route) => route.fulfill({ json: { venues: [REQUEST_VENUE], page: 1, has_more: false } }));
+  await page.goto("/venues/bookings/new");
+
+  await expect(page.getByRole("combobox", { name: "Venue", exact: true })).toHaveValue(REQUEST_VENUE.id);
+  const eventPicker = page.getByRole("combobox", { name: "Event", exact: true });
+  // Only the owned event is a selectable option; the other coordinator's event is absent.
+  await expect(eventPicker.getByRole("option")).toHaveCount(1);
+  await expect(eventPicker.getByRole("option", { name: /Campus workshop/ })).toHaveCount(1);
+  await expect(eventPicker.getByRole("option", { name: /Other coordinator's summit/ })).toHaveCount(0);
 });
 
 test("venue overlap rejection preserves the booking form", async ({ page }) => {
