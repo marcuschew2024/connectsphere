@@ -1221,15 +1221,24 @@ auto-assign in D9) are recorded explicitly rather than left implicit.
   notices (S1 Q20) were stored but never shown, because the Attendee Home only read
   signup and withdrawal confirmations.
 - **Decision (owner, Ernest, 31 Oct 2026).**
-  - **Pool notices.** They open the role's review queue: booking requests for Venue
-    Staff, equipment requests for Tech Support. The notification stores only the
-    event, so the queue is the target that always works.
+  - **Pool notices.** They open the exact record the notice is about: the booking's
+    approval page for Venue Staff, the equipment request for Tech Support. Revised
+    after the owner's manual test; the first version opened the queue. A nullable
+    `notifications.subject_id` (migration
+    `20261031200000_scrum_155_notification_subject.sql`) stores that record's ID when
+    the notice is created. Older notices without one fall back to the queue.
   - **Attendees.** Their Home panel also shows "Event cancelled", linking to their
     registrations.
   - **Everything else.** Every other link is unchanged and still opens the event.
-- **Constraints.** No schema, API contract or access-rule change. The Attendee read
-  stays limited to notices addressed to that attendee.
+- **Constraints.** One additive, nullable column, with no foreign key because the
+  subject may be a booking or an equipment request. The feed returns `subject_id`; no
+  access rule changes, since Venue Staff and Tech Support can already open those
+  pages. The Attendee read stays limited to notices addressed to that attendee.
 - **Verification.** `lib/notification-links.test.ts` covers the link rule;
-  `test_attendee_cancellation_notice_acceptance.py` runs on the real database and fails
-  without the fix; `e2e/notification-links.spec.ts` covers the pages.
+  `test_attendee_cancellation_notice_acceptance.py` and
+  `test_notification_subject_acceptance.py` run on the real database and fail without
+  the fix; `e2e/notification-links.spec.ts` covers the pages.
+- **Changed existing tests (reviewable).** `test_bookings.py` and
+  `test_equipment_requests.py` assert the exact pool-notification call; it now also
+  carries `subject_id`. No other assertion changed.
 - **Owner.** Ernest Wong.

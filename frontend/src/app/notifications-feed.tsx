@@ -11,6 +11,8 @@ type Notification = {
   id: number;
   event_id: string;
   notification_type: string;
+  // SCRUM-155: the booking / equipment request the notice is about, when it names one.
+  subject_id?: string | null;
   message: string;
   created_at: string;
   event?: { title: string | null } | null;
@@ -168,7 +170,7 @@ export default function NotificationsFeed({
                 // SCRUM-49 / R07: pool notifications for the Venue Staff / Tech Support queues.
                 const venueRequest = notification.notification_type === "venue_booking_requested";
                 const equipmentRequest = notification.notification_type === "equipment_request_submitted";
-                const link = notificationLink(notification.notification_type, notification.event_id);
+                const link = notificationLink(notification.notification_type, notification.event_id, notification.subject_id);
                 return (
                   <li key={notification.id} className="px-5 py-4 sm:px-6">
                     <div className="flex items-start gap-3">

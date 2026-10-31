@@ -3,13 +3,25 @@ import { attendeeNoticeLink, notificationLink } from "./notification-links";
 
 const EVENT = "11111111-1111-4111-8111-111111111111";
 
+const SUBJECT = "22222222-2222-4222-8222-222222222222";
+
 describe("notificationLink", () => {
-  it("sends the Venue Staff pool to the booking requests queue", () => {
+  it("opens the exact booking request a Venue Staff notice is about", () => {
+    expect(notificationLink("venue_booking_requested", EVENT, SUBJECT)).toEqual({
+      href: `/venues/bookings/${SUBJECT}`, label: "Review this booking request" });
+  });
+
+  it("opens the exact equipment request a Tech Support notice is about", () => {
+    expect(notificationLink("equipment_request_submitted", EVENT, SUBJECT)).toEqual({
+      href: `/equipment/requests/${SUBJECT}`, label: "Review this equipment request" });
+  });
+
+  it("sends an older Venue Staff notice without a subject to the queue", () => {
     expect(notificationLink("venue_booking_requested", EVENT)).toEqual({
       href: "/venues/bookings", label: "Review booking requests" });
   });
 
-  it("sends the Tech Support pool to the equipment requests queue", () => {
+  it("sends an older Tech Support notice without a subject to the queue", () => {
     expect(notificationLink("equipment_request_submitted", EVENT)).toEqual({
       href: "/equipment/requests", label: "Review equipment requests" });
   });

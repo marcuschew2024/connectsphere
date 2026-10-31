@@ -14,14 +14,16 @@ async function signIn(page: Page, id: number, role: string) {
   await page.route(`${API}/session`, (route) => route.fulfill({ json: { user: { id, role, display_name: `Demo ${role}` } } }));
 }
 
+const SUBJECT = "15500000-0000-4000-8000-000000000009";
+
 for (const [role, type, label, href] of [
-  ["Tech Support", "equipment_request_submitted", "Review equipment requests", "/equipment/requests"],
-  ["Venue Staff", "venue_booking_requested", "Review booking requests", "/venues/bookings"],
+  ["Tech Support", "equipment_request_submitted", "Review this equipment request", `/equipment/requests/${SUBJECT}`],
+  ["Venue Staff", "venue_booking_requested", "Review this booking request", `/venues/bookings/${SUBJECT}`],
 ] as const) {
-  test(`${role} opens the review queue from a request notification`, async ({ page }) => {
+  test(`${role} opens the exact request a notification is about`, async ({ page }) => {
     await signIn(page, role === "Tech Support" ? 4 : 3, role);
     await page.route(`${API}/notifications`, (route) => route.fulfill({ json: { notifications: [
-      notice(type, "A new request needs review."),
+      { ...notice(type, "A new request needs review."), subject_id: SUBJECT },
     ] } }));
     await page.goto("/");
 
@@ -34,6 +36,17 @@ for (const [role, type, label, href] of [
     await expect(page).toHaveURL(new RegExp(`${href}$`));
   });
 }
+
+test("an older pool notice without a subject still opens the review queue", async ({ page }) => {
+  await signIn(page, 3, "Venue Staff");
+  await page.route(`${API}/notifications`, (route) => route.fulfill({ json: { notifications: [
+    notice("venue_booking_requested", "Venue booking requested for Test Event 01."),
+  ] } }));
+  await page.goto("/");
+
+  await expect(page.getByRole("region", { name: "Notifications" }).getByRole("link", { name: /Review booking requests/ }))
+    .toHaveAttribute("href", "/venues/bookings");
+});
 
 test("a Coordinator's request notification still opens the event", async ({ page }) => {
   await signIn(page, 2, "Coordinator");
