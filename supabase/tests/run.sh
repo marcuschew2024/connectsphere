@@ -180,3 +180,9 @@ for pass in 1 2; do
   psql -v ON_ERROR_STOP=1 -f /sql/migrations/20261031190000_scrum_156_re_review_presentation.sql > /tmp/migration-output.txt
   echo "Re-review presentation migration pass $pass: PASS"
 done
+
+# SCRUM-155: notifications can name the booking / equipment request they are about.
+for pass in 1 2; do
+  psql -v ON_ERROR_STOP=1 -f /sql/migrations/20261031200000_scrum_155_notification_subject.sql > /tmp/migration-output.txt
+  echo "Notification subject migration pass $pass: PASS"
+done
