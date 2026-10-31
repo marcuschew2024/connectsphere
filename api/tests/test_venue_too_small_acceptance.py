@@ -104,3 +104,17 @@ def test_a_cancelled_booking_is_not_flagged(live):  # noqa: F811
     assert result["affected"]["over_capacity"] == []
     bookings = event_bookings(users, event)
     assert bookings[0]["capacity_warning"] is None
+
+
+@pytest.mark.parametrize("status", ["Requested", "Held"])
+def test_one_attendee_over_capacity_is_flagged_on_any_active_booking(live, status):  # noqa: F811
+    db, users, _, make_event, venue = live
+    capacity = capacity_of(db, venue)
+    event = make_event()
+    held = booking(db, event, venue, status=status)
+
+    result = approve_attendance(users, event, capacity + 1)
+
+    assert [venue["booking_id"] for venue in result["affected"]["over_capacity"]] == [held["id"]]
+    assert f"Venue too small for {capacity + 1} attendees" in re_review_notice(db, event)
+    assert event_bookings(users, event)[0]["capacity_warning"].endswith("by 1 pax.")

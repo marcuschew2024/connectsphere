@@ -1235,7 +1235,11 @@ auto-assign in D9) are recorded explicitly rather than left implicit.
   over capacity is flagged on the notice, the response and the bookings; within
   capacity and cancelled bookings are not flagged; the booking and event are
   unchanged. The tests fail against the previous function and API.
-  `e2e/venue-too-small.spec.ts` covers the event page.
+  `test_event_bookings_capacity_warning.py` (unit) covers the boundaries: at capacity
+  and one under are not flagged, one over is; every active status is flagged and
+  rejected / cancelled / released bookings are not; missing capacity or attendance is
+  never flagged. The integration test repeats "one over" on Requested and Held
+  bookings. `e2e/venue-too-small.spec.ts` covers the event page.
 - **Changed existing test (reviewable).** In `test_change_request_apply_acceptance.py`,
   the significant-change test compared `affected` exactly, and its own scenario
   (150 attendees on a 100-capacity venue) is the bug. Its count assertion is
