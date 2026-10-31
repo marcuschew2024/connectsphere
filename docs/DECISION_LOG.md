@@ -1212,3 +1212,24 @@ auto-assign in D9) are recorded explicitly rather than left implicit.
   attendee-registration insert in the change-request RPC. Not built now: it is unrequired
   by the clarifications and would be untested surface added at code freeze.
 - **Owner.** Marcus (notification scope).
+
+### D42 — Reservations on unusable stock do not count as ready (SCRUM-153, SCRUM-63)
+
+- **Context.** The Release v1 review reproduced this: a unit reserved while Operational
+  stayed "Reserved" after Tech Support marked the item Damaged. The confirmation gate
+  (D22) then confirmed the event with no usable stock. New reservations and
+  availability already exclude unusable stock.
+- **Decision (owner, Ernest, 31 Oct 2026).** When readiness is derived, a reservation on
+  an item that is not currently Operational is left out. The request reads as not fully
+  reserved and confirmation is refused until the item is repaired or other stock is
+  reserved. Nothing is auto-released. The request page lists such units as "no longer
+  operational" (`unusable_reserved_quantity`).
+- **Constraints.** No schema or grant change. The rule lives in the existing readiness
+  derivation used by the request views and the confirm gate. Rows without an embedded
+  condition keep the previous behaviour.
+- **Verification.** `test_unusable_equipment_readiness.py` covers the rule;
+  `test_unusable_equipment_readiness_acceptance.py` runs on the real database: reserve,
+  mark Damaged / Under Maintenance, confirm refused (409) with the event and reservation
+  unchanged, repair, confirm allowed. The new tests fail without the fix.
+  `e2e/unusable-equipment.spec.ts` covers the request page.
+- **Owner.** Ernest Wong.
