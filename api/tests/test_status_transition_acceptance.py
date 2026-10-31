@@ -99,11 +99,14 @@ def live_status(monkeypatch):
 
 def snapshot(db, event):
     return {
-        table: db.table(table)
-        .select("*")
-        .eq("id" if table == "events" else "event_id", event["id"])
-        .execute()
-        .data
+        table: sorted(
+            db.table(table)
+            .select("*")
+            .eq("id" if table == "events" else "event_id", event["id"])
+            .execute()
+            .data,
+            key=lambda row: row.get("id", 0),
+        )
         for table in ("events", "event_status_history", "notifications")
     }
 
