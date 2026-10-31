@@ -1,5 +1,7 @@
 "use client";
 
+import { recordReference } from "@/lib/record-reference";
+
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 import { apiRequest } from "@/lib/api";
@@ -97,7 +99,7 @@ export default function MyRegistrationsPage() {
                   {registration.event && <div><dt className="text-muted-foreground">Event status</dt><dd>{registration.event.status}</dd></div>}
                   <div><dt className="text-muted-foreground">Registered at</dt><dd>{eventTime(registration.registered_at)}</dd></div>
                   {registration.status === "Withdrawn" && registration.withdrawn_at && <div><dt className="text-muted-foreground">Withdrawn at</dt><dd>{eventTime(registration.withdrawn_at)}</dd></div>}
-                  <div><dt className="text-muted-foreground">Registration reference</dt><dd className="break-all font-mono">{registration.id}</dd></div>
+                  <div><dt className="text-muted-foreground">Registration reference</dt><dd className="break-all font-mono">{recordReference(registration, registration.registered_at)}</dd></div>
                 </dl>
                 <p className="text-sm text-muted-foreground">{shown.description}</p>
                 {registration.event && <Link href={`/events/browse/${registration.event_id}`} className="inline-flex text-sm text-primary hover:underline">View event →</Link>}

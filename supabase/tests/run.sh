@@ -161,3 +161,10 @@ for pass in 1 2; do
 done
 psql -v ON_ERROR_STOP=1 -f /sql/tests/status_transitions.sql
 echo "Status transition database checks: PASS"
+
+# Readable references preserve UUIDs and survive replay.
+for pass in 1 2; do
+  psql -v ON_ERROR_STOP=1 -f /sql/migrations/20261031040259_readable_record_references.sql > /tmp/migration-output.txt
+  echo "Readable references migration pass $pass: PASS"
+done
+psql -v ON_ERROR_STOP=1 -f /sql/tests/readable_references.sql

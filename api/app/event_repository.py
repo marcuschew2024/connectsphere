@@ -109,7 +109,7 @@ def list_safety_review_events(page: int = 1) -> tuple[list[dict], bool]:
             raise ServiceUnavailable("The database is not configured. Contact the team.")
         start = (page - 1) * 25
         rows = (client.table("events")
-                .select("id,title,category,event_datetime,status")
+                .select("id,reference,title,category,event_datetime,status")
                 .eq("status", "Confirmed").order("event_datetime").order("id")
                 .range(start, start + 25).execute().data or [])
         return rows[:25], len(rows) > 25

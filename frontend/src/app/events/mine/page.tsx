@@ -1,5 +1,7 @@
 "use client";
 
+import { recordReference } from "@/lib/record-reference";
+
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { apiRequest } from "@/lib/api";
@@ -91,6 +93,7 @@ function RequestSection({ title, events, empty }: {
             </h3>
             <StatusBadge status={event.status} />
           </div>
+          {event.reference && <p className="text-xs text-muted-foreground">{recordReference(event, event.event_datetime)}</p>}
           <p className="mt-3 text-sm text-muted-foreground">{event.event_datetime
             ? `${new Date(event.event_datetime).toLocaleString("en-SG", { timeZone: "Asia/Singapore" })} (Singapore)`
             : "Event date not provided"}</p>

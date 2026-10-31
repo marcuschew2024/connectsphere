@@ -1,5 +1,7 @@
 "use client";
 
+import { recordReference } from "@/lib/record-reference";
+
 import Link from "next/link";
 import { useEffect, useState, type FormEvent } from "react";
 import { ApiError, apiRequest } from "@/lib/api";
@@ -150,6 +152,7 @@ function EventCard({ event, children }: { event: EventRecord; children: React.Re
               {event.title || "Untitled event request"}
             </Link>
           </h3>
+          {event.reference && <p className="text-xs text-muted-foreground">{recordReference(event, event.event_datetime)}</p>}
           <p className="mt-1 text-sm text-muted-foreground">
             {event.category ?? "Category not provided"}
             {event.event_datetime ? ` · ${new Date(event.event_datetime).toLocaleString()}` : ""}

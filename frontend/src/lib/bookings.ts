@@ -8,6 +8,7 @@ export type BookingStatus = "Requested" | "Pending" | "Held" | "Confirmed" | "Re
 
 export type BookingRecord = {
   id: string;
+  reference?: string;
   event_id: string;
   venue_id: string;
   start_at: string;

@@ -1,4 +1,3 @@
-import { sampleEventTitle } from "./sample-event-title";
 import { expect, test, type Page } from "@playwright/test";
 
 const API = "http://localhost:5001";
@@ -20,8 +19,8 @@ test("INTEGRATED-03 Organiser rediscovers an unassigned submission after signing
     const other = await otherContext.newPage();
     await signIn(page, "organiser.a");
     await signIn(other, "organiser.b");
-    const title = sampleEventTitle("Student Leadership Workshop");
-    const otherTitle = sampleEventTitle("Sustainability Workshop");
+    const title = "Student Leadership Workshop";
+    const otherTitle = "Sustainability Workshop";
     const setup = await otherContext.request.post(`${API}/events`, {
       headers: { Origin: ORIGIN }, data: {
         action: "submit", title: otherTitle, description: "Other workshop", purpose: "Private",
@@ -46,22 +45,22 @@ test("INTEGRATED-03 Organiser rediscovers an unassigned submission after signing
     expect(event.coordinator_id).toBeNull();
     await expect(page.getByRole("heading", { name: "Event request received" })).toBeVisible();
     await page.getByRole("link", { name: "View my requests", exact: true }).click();
-    const card = page.getByRole("listitem").filter({ has: page.getByRole("link", { name: title, exact: true }) });
+    const card = page.getByRole("listitem").filter({ has: page.locator(`a[href="/events/${event.id}"]`) });
     await expect(card.getByText("Waiting for Coordinator assignment", { exact: true })).toBeVisible();
 
     await page.getByRole("button", { name: "Sign out", exact: true }).click();
     await expect(page).toHaveURL(`${ORIGIN}/login`);
     await signIn(page, "organiser.a");
     await page.getByRole("link", { name: "My submitted requests", exact: true }).click();
-    await expect(page.getByRole("link", { name: otherTitle, exact: true })).toHaveCount(0);
-    await page.getByRole("link", { name: title, exact: true }).click();
+    await expect(page.locator(`a[href="/events/${foreignId}"]`)).toHaveCount(0);
+    await page.locator(`a[href="/events/${event.id}"]`).click();
     await expect(page).toHaveURL(`${ORIGIN}/events/${event.id}`);
     await expect(page.getByRole("heading", { name: title, exact: true })).toBeVisible();
     const denied = await context.request.get(`${API}/events/${foreignId}`, { headers: { Origin: ORIGIN } });
     expect(denied.status()).toBe(403);
     await other.goto("/events/mine");
-    await expect(other.getByRole("link", { name: otherTitle, exact: true })).toBeVisible();
-    await expect(other.getByRole("link", { name: title, exact: true })).toHaveCount(0);
+    await expect(other.locator(`a[href="/events/${foreignId}"]`)).toBeVisible();
+    await expect(other.locator(`a[href="/events/${event.id}"]`)).toHaveCount(0);
   } finally {
     await context.close();
     await otherContext.close();

@@ -1,4 +1,3 @@
-import { sampleEventTitle } from "./sample-event-title";
 import { expect, test, type Browser, type BrowserContext, type Page } from "@playwright/test";
 
 const API = "http://localhost:5001";
@@ -78,13 +77,14 @@ test("INTEGRATED-01 same event crosses seven password-authenticated roles and pe
     const tech = await as("tech-support", "Tech Support");
     const safety = await as("safety-officer", "Safety Officer");
     const attendee = await as("attendee.a", "Attendee");
-    const title = sampleEventTitle("Campus Skills Workshop");
+    const title = "Campus Skills Workshop";
 
     await organiser.page.goto("/events/new");
     await organiser.page.getByLabel("Event name").fill(title);
     const draftResponse = organiser.page.waitForResponse((r) => r.url() === `${API}/events` && r.request().method() === "POST");
     await organiser.page.getByRole("button", { name: "Save as draft", exact: true }).click();
     const { event } = await (await draftResponse).json();
+    expect(event.reference).toMatch(/^EVT-\d{3,}$/);
     await expect(organiser.page.getByRole("heading", { name: "Draft saved", exact: true })).toBeVisible();
     await organiser.page.goto(`/events/drafts/${event.id}`);
     await expect(organiser.page.getByLabel("Event name")).toHaveValue(title);
@@ -97,9 +97,10 @@ test("INTEGRATED-01 same event crosses seven password-authenticated roles and pe
     await expect(organiser.page.getByRole("heading", { name: "Event request received", exact: true })).toBeVisible();
 
     await lead.page.goto("/events/supervised");
-    await lead.page.getByLabel(`Assign ${title} to`, { exact: true }).selectOption(String(coordinator.id));
-    await lead.page.getByRole("button", { name: `Assign ${title}`, exact: true }).click();
-    await expect(lead.page.getByRole("region", { name: "Assigned events" }).getByRole("link", { name: title, exact: true })).toBeVisible();
+    const intake = lead.page.getByRole("listitem").filter({ has: lead.page.locator(`a[href="/events/${event.id}"]`) });
+    await intake.getByLabel(`Assign ${title} to`, { exact: true }).selectOption(String(coordinator.id));
+    await intake.getByRole("button", { name: `Assign ${title}`, exact: true }).click();
+    await expect(lead.page.getByRole("region", { name: "Assigned events" }).locator(`a[href="/events/${event.id}"]`)).toHaveText(title);
     await coordinator.page.goto(`/events/${event.id}`);
     await coordinator.page.getByRole("button", { name: "Approve", exact: true }).click();
     await expect(coordinator.page.getByTestId("event-status-badge")).toHaveText("Planning");
@@ -108,17 +109,29 @@ test("INTEGRATED-01 same event crosses seven password-authenticated roles and pe
     // Real resource API calls share each actor's password cookie. These steps are
     // API integration evidence; this test does not claim catalogue/form UI coverage.
     for (let index = 0; index < 2; index++) {
-      const room = await venue(staff, `${title} room ${index}`);
+      const room = await venue(staff, `${title} room ${index + 1} (${event.reference})`);
+      expect(room.reference).toMatch(/^VNU-\d{3,}$/);
       const booking = await book(coordinator, event.id, room.id);
+      expect(booking.reference).toMatch(/^BKG-\d{3,}$/);
+      await staff.page.goto(`/venues/bookings/${booking.id}`);
+      await expect(staff.page.getByText(new RegExp(`^${booking.reference} ·`))).toBeVisible();
+      await staff.page.goto(`/venues/${room.id}`);
+      await expect(staff.page.getByText(new RegExp(`^${room.reference} ·`))).toBeVisible();
       await call(staff, "POST", `/venues/bookings/${booking.id}/decision`, { decision: "approve" });
     }
     const { equipment } = await call(tech, "POST", "/equipment", {
-      equipment_type: `${title} projector`, description: "Test projector", total_quantity: 1,
+      equipment_type: `${title} projector (${event.reference})`, description: "Test projector", total_quantity: 1,
       location: "QA store", operational_status: "Operational",
     }, 201);
+    expect(equipment.reference).toMatch(/^EQP-\d{3,}$/);
+    await tech.page.goto("/equipment");
+    await expect(tech.page.getByText(new RegExp(`^${equipment.reference} ·`))).toBeVisible();
     const { request } = await call(coordinator, "POST", "/equipment/requests", {
       event_id: event.id, items: [{ equipment_id: equipment.id, quantity: 1, technical_notes: "HDMI" }],
     }, 201);
+    expect(request.reference).toMatch(/^EQR-\d{3,}$/);
+    await tech.page.goto(`/equipment/requests/${request.id}`);
+    await expect(tech.page.getByText(new RegExp(`Request reference: ${request.reference} ·`))).toBeVisible();
     await coordinator.page.reload();
     await coordinator.page.getByRole("button", { name: "Confirm event", exact: true }).click();
     await expect(coordinator.page.getByTestId("confirm-blocked-message")).toContainText(/equipment|technical/i);
@@ -133,12 +146,16 @@ test("INTEGRATED-01 same event crosses seven password-authenticated roles and pe
     await attendee.page.goto(`/events/browse/${event.id}`);
     await attendee.page.getByRole("button", { name: "Register for event", exact: true }).click();
     await expect(attendee.page.getByRole("heading", { name: "Registration confirmed", exact: true })).toBeVisible();
+    const receipt = (await call(attendee, "GET", `/events/${event.id}/registration-offer`)).registration;
+    expect(receipt.reference).toMatch(/^REG-\d{3,}$/);
+    await expect(attendee.page.getByText(new RegExp(`^${receipt.reference} ·`))).toBeVisible();
     await attendee.page.reload();
     await expect(attendee.page.getByRole("heading", { name: "Registration confirmed", exact: true })).toBeVisible();
     await call(attendee, "PATCH", `/events/${event.id}/status`, { status: "Cancelled" }, 403);
     await attendee.page.getByRole("button", { name: "Withdraw registration", exact: true }).click();
     await attendee.page.getByRole("button", { name: "Confirm withdrawal", exact: true }).click();
     await expect(attendee.page.getByRole("heading", { name: "Registration withdrawn", exact: true })).toBeVisible();
+    await expect(attendee.page.getByText(new RegExp(`^${receipt.reference} ·`))).toBeVisible();
     await attendee.page.reload();
     await expect(attendee.page.getByRole("heading", { name: "Registration withdrawn", exact: true })).toBeVisible();
     const offer = await call(attendee, "GET", `/events/${event.id}/registration-offer`);
@@ -171,10 +188,10 @@ test("INTEGRATED-02 real conflict and cross-owner refusals preserve the event an
     const lead = await as("coordinator-lead", "Event Coordinator Lead");
     const coordinator = await as("coordinator.a", "Coordinator");
     const staff = await as("venue-staff", "Venue Staff");
-    const title = sampleEventTitle("Campus Photography Workshop");
+    const title = "Campus Photography Workshop";
     const first = await planningEvent(organiser, lead, coordinator, title);
     const second = await planningEvent(organiser, lead, coordinator, `${title} - Second Session`);
-    const room = await venue(staff, title);
+    const room = await venue(staff, `${title} (${first.reference})`);
     const booking = await book(coordinator, first.id, room.id);
     await call(staff, "POST", `/venues/bookings/${booking.id}/decision`, { decision: "approve" });
     const before = await call(coordinator, "GET", `/events/${second.id}`);

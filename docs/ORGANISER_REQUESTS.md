@@ -1,5 +1,7 @@
 # Organiser submitted requests
 
+The latest branch also adds [readable record references](RECORD_REFERENCES.md); that separate schema/API follow-up is recorded under Decision D39.
+
 The user requested this flow-audit F06 fix alongside the SCRUM-135 branch. It extends the submission/status journey (SCRUM-16/19); it does not expand the status-transition authority introduced by SCRUM-135.
 
 An Organiser can now find submitted requests at /events/mine through:
@@ -36,6 +38,8 @@ Delegated scope is the Organiser rediscovery journey and acceptance criteria abo
 The requesting project owner is accountable for accepting this navigation follow-up. Before merge, a human should review placement of the three entry points, active/past grouping and the distinction between customer status and assignment state. SCRUM-135's separate status-transition design and named review owners remain documented in its story and Decision Log. Hosted CI and human review are pending; local checks do not replace either.
 
 ## Readable local sample names
+
+Superseded by [stable record references](RECORD_REFERENCES.md): sample titles now have no timestamp suffix; records are distinguished by their persistent reference. The notes below describe the preceding naming-only increment.
 
 At the project owner's request, generated sample titles now use Campus Skills Workshop, Campus Photography Workshop, Student Leadership Workshop and Sustainability Workshop, with a readable Singapore date/time suffix to distinguish future test runs. The second conflict-test event is labelled Second Session. Internal IDs remain unchanged.
 

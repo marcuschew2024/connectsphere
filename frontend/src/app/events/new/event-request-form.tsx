@@ -1,5 +1,7 @@
 "use client";
 
+import { recordReference } from "@/lib/record-reference";
+
 import Link from "next/link";
 import { useState, type FormEvent } from "react";
 import { ApiError, apiRequest } from "@/lib/api";
@@ -113,7 +115,7 @@ export default function EventRequestForm({ canCreate, initialEvent, onSaved }: {
           : "Your request has been submitted and is now under Planning."}</p>
         {saved.status !== "Draft" && <p className="text-sm text-muted-foreground">Direct editing is now locked. You can make changes when your coordinator requests clarification.</p>}
         <dl className="space-y-2 text-sm">
-          <div><dt className="text-muted-foreground">Reference</dt><dd className="break-all font-mono">{saved.id}</dd></div>
+          <div><dt className="text-muted-foreground">Reference</dt><dd className="break-all font-mono">{recordReference(saved, saved.event_datetime)}</dd></div>
           <div><dt className="text-muted-foreground">Saved at</dt><dd>{new Date(saved.updated_at ?? saved.created_at).toLocaleString()}</dd></div>
         </dl>
         <div className="flex flex-wrap items-center gap-3">
