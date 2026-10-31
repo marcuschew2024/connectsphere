@@ -34,3 +34,11 @@ Manual test: sign in as Organiser, submit a request, open View my requests, sign
 Delegated scope is the Organiser rediscovery journey and acceptance criteria above, constrained by the existing GET /events contract, server ownership policy, customer status mapping and frontend design system. Existing tests were preserved; the new tests exercise user-visible outcomes and cross-account isolation.
 
 The requesting project owner is accountable for accepting this navigation follow-up. Before merge, a human should review placement of the three entry points, active/past grouping and the distinction between customer status and assignment state. SCRUM-135's separate status-transition design and named review owners remain documented in its story and Decision Log. Hosted CI and human review are pending; local checks do not replace either.
+
+## Readable local sample names
+
+At the project owner's request, generated sample titles now use Campus Skills Workshop, Campus Photography Workshop, Student Leadership Workshop and Sustainability Workshop, with a readable Singapore date/time suffix to distinguish future test runs. The second conflict-test event is labelled Second Session. Internal IDs remain unchanged.
+
+The existing UUID-labelled fixtures in the local manual-test database were renamed, including their related venue/equipment display labels and notification messages. The user-created scrum 135 test event was preserved. This is a local fixture cleanup, not a production migration.
+
+Reviewable test change: the two existing integration test files use the shared readable-title helper instead of UUIDs in visible names; the second-session heading expectation follows its new label. No test was removed or renamed and all behavioural, ownership, conflict and persistence assertions remain intact. All three integrated journeys passed again (12.6 seconds), with lint and TypeScript checking also passing. The preceding verification JSON records the earlier navigation implementation; this follow-up changes fixture naming only.

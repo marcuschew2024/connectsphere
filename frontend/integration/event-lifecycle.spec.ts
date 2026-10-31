@@ -1,4 +1,4 @@
-import { randomUUID } from "node:crypto";
+import { sampleEventTitle } from "./sample-event-title";
 import { expect, test, type Browser, type BrowserContext, type Page } from "@playwright/test";
 
 const API = "http://localhost:5001";
@@ -78,7 +78,7 @@ test("INTEGRATED-01 same event crosses seven password-authenticated roles and pe
     const tech = await as("tech-support", "Tech Support");
     const safety = await as("safety-officer", "Safety Officer");
     const attendee = await as("attendee.a", "Attendee");
-    const title = `Integrated workshop ${randomUUID()}`;
+    const title = sampleEventTitle("Campus Skills Workshop");
 
     await organiser.page.goto("/events/new");
     await organiser.page.getByLabel("Event name").fill(title);
@@ -171,9 +171,9 @@ test("INTEGRATED-02 real conflict and cross-owner refusals preserve the event an
     const lead = await as("coordinator-lead", "Event Coordinator Lead");
     const coordinator = await as("coordinator.a", "Coordinator");
     const staff = await as("venue-staff", "Venue Staff");
-    const title = `Conflict workshop ${randomUUID()}`;
+    const title = sampleEventTitle("Campus Photography Workshop");
     const first = await planningEvent(organiser, lead, coordinator, title);
-    const second = await planningEvent(organiser, lead, coordinator, `${title} second`);
+    const second = await planningEvent(organiser, lead, coordinator, `${title} - Second Session`);
     const room = await venue(staff, title);
     const booking = await book(coordinator, first.id, room.id);
     await call(staff, "POST", `/venues/bookings/${booking.id}/decision`, { decision: "approve" });
@@ -188,7 +188,7 @@ test("INTEGRATED-02 real conflict and cross-owner refusals preserve the event an
     expect(saved.bookings).toHaveLength(1);
     expect(saved.bookings[0].status).toBe("Confirmed");
     await coordinator.page.goto(`/events/${second.id}`);
-    await expect(coordinator.page.getByRole("heading", { name: `${title} second`, exact: true })).toBeVisible();
+    await expect(coordinator.page.getByRole("heading", { name: `${title} - Second Session`, exact: true })).toBeVisible();
     await coordinator.page.getByRole("button", { name: "Confirm event", exact: true }).click();
     await expect(coordinator.page.getByTestId("confirm-blocked-message")).toContainText(/No venue/i);
     await expect(coordinator.page.getByTestId("event-status-badge")).toHaveText("Planning");

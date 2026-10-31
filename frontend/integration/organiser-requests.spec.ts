@@ -1,4 +1,4 @@
-import { randomUUID } from "node:crypto";
+import { sampleEventTitle } from "./sample-event-title";
 import { expect, test, type Page } from "@playwright/test";
 
 const API = "http://localhost:5001";
@@ -20,8 +20,8 @@ test("INTEGRATED-03 Organiser rediscovers an unassigned submission after signing
     const other = await otherContext.newPage();
     await signIn(page, "organiser.a");
     await signIn(other, "organiser.b");
-    const title = `My submitted workshop ${randomUUID()}`;
-    const otherTitle = `Another organiser's workshop ${randomUUID()}`;
+    const title = sampleEventTitle("Student Leadership Workshop");
+    const otherTitle = sampleEventTitle("Sustainability Workshop");
     const setup = await otherContext.request.post(`${API}/events`, {
       headers: { Origin: ORIGIN }, data: {
         action: "submit", title: otherTitle, description: "Other workshop", purpose: "Private",
