@@ -101,6 +101,24 @@ def get_events_for_user(user_id: int, *, drafts_only: bool = False) -> list[dict
         ) from error
 
 
+def list_planning_events() -> list[dict]:
+    """Return operational Planning events to venue-facing users."""
+    try:
+        client = get_supabase_client()
+        if client is None:
+            raise ServiceUnavailable("The database is not configured. Contact the team.")
+        return (client.table("events").select("*")
+                .eq("status", "Planning")
+                .order("updated_at", desc=True)
+                .execute().data or [])
+    except ServiceUnavailable:
+        raise
+    except Exception as error:
+        raise ServiceUnavailable(
+            "Could not load Planning events. Contact the team."
+        ) from error
+
+
 def list_safety_review_events(page: int = 1) -> tuple[list[dict], bool]:
     """Bounded queue; no draft or planning details are returned to Safety Officers."""
     try:

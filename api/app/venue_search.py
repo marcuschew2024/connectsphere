@@ -75,7 +75,7 @@ def parse_filters(args):
 
 
 def matches_filters(venue, filters):
-    """Every chosen feature is required; capacity and attendance are minimums."""
+    """Apply explicit catalogue filters without filtering out suitability advisories."""
     minimum = max(filters.get("attendance", 0), filters.get("capacity", 0))
     if venue["capacity"] < minimum:
         return False
