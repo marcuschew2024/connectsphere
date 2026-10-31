@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { notificationLink } from "@/lib/notification-links";
 import { useEffect, useState } from "react";
 import { apiRequest } from "@/lib/api";
 import { Button } from "@/components/ui/button";
@@ -167,6 +168,7 @@ export default function NotificationsFeed({
                 // SCRUM-49 / R07: pool notifications for the Venue Staff / Tech Support queues.
                 const venueRequest = notification.notification_type === "venue_booking_requested";
                 const equipmentRequest = notification.notification_type === "equipment_request_submitted";
+                const link = notificationLink(notification.notification_type, notification.event_id);
                 return (
                   <li key={notification.id} className="px-5 py-4 sm:px-6">
                     <div className="flex items-start gap-3">
@@ -233,13 +235,13 @@ export default function NotificationsFeed({
                         <p className="mt-1 line-clamp-2 whitespace-pre-wrap break-words text-sm leading-relaxed text-muted-foreground">
                           {notification.message}
                         </p>
-                        {/* A Coordinator moved off an event can no longer open it. */}
-                        {!movedAway && (
+                        {/* SCRUM-155: each recipient's link opens a page they can access. */}
+                        {link && (
                           <Link
-                            href={`/events/${notification.event_id}`}
+                            href={link.href}
                             className="mt-2 inline-flex items-center gap-2 text-xs font-medium text-primary hover:underline"
                           >
-                            View request <span aria-hidden="true">→</span>
+                            {link.label} <span aria-hidden="true">→</span>
                           </Link>
                         )}
                       </div>

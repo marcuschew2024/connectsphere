@@ -1212,3 +1212,24 @@ auto-assign in D9) are recorded explicitly rather than left implicit.
   attendee-registration insert in the change-request RPC. Not built now: it is unrequired
   by the clarifications and would be untested surface added at code freeze.
 - **Owner.** Marcus (notification scope).
+
+### D44 — Every notification opens a page its recipient can access (SCRUM-155)
+
+- **Context.** The Release v1 manual review found two problems with notifications that
+  D41 requires. Venue Staff and Tech Support pool notices linked to the event page,
+  which those roles cannot open ("no access"). Registered attendees' `event_cancelled`
+  notices (S1 Q20) were stored but never shown, because the Attendee Home only read
+  signup and withdrawal confirmations.
+- **Decision (owner, Ernest, 31 Oct 2026).**
+  - **Pool notices.** They open the role's review queue: booking requests for Venue
+    Staff, equipment requests for Tech Support. The notification stores only the
+    event, so the queue is the target that always works.
+  - **Attendees.** Their Home panel also shows "Event cancelled", linking to their
+    registrations.
+  - **Everything else.** Every other link is unchanged and still opens the event.
+- **Constraints.** No schema, API contract or access-rule change. The Attendee read
+  stays limited to notices addressed to that attendee.
+- **Verification.** `lib/notification-links.test.ts` covers the link rule;
+  `test_attendee_cancellation_notice_acceptance.py` runs on the real database and fails
+  without the fix; `e2e/notification-links.spec.ts` covers the pages.
+- **Owner.** Ernest Wong.
