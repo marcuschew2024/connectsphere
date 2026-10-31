@@ -1335,3 +1335,52 @@ auto-assign in D9) are recorded explicitly rather than left implicit.
     "Approved · Re-review in progress", and the test clicks the new confirmation before
     Implemented.
 - **Owner.** Ernest Wong.
+
+
+### D46 — Scheduled reminders (SCRUM-50) deferred; not a Release 1 core feature
+
+- **Context.** The Week-1 customer brief mentioned "reminders for time-sensitive
+  matters", so SCRUM-50 (scheduled reminders) was carried in the backlog. At the
+  Release 1 freeze the PO reconciled the backlog against the customer's **20 named core
+  features** (`docs/` project instructions) and the Section-G6 clarifications.
+- **Decision (owner, Marcus — PO, 1 Nov 2026). Deferred, no code.** Scheduled/time-based
+  reminders are **not** among the 20 core features. The required user-facing notices are
+  delivered by core feature **#20 Notification System** — event-triggered notices on
+  submission, clarification, approval/rejection, assignment, booking decisions, changes,
+  registration, confirmation and cancellation — which is built and verified (SCRUM-51,
+  and the D41/D44 notification-coverage reviews). The customer also set **no SLA / no
+  time limit on any step** (Section-G6 Session 1 Q29), so there is no deadline a reminder
+  would enforce.
+- **Trade-off.** Release 1 ships event-triggered notifications but no proactive
+  scheduled nudges (e.g. "event in 24h"). Accepted: out of the graded core scope; the
+  story stays in the backlog for a future release.
+
+### D47 — "Reschedule an event" (SCRUM-48) deferred as a standalone feature; subsumed by #7/#19/#20
+
+- **Context.** SCRUM-48 (reschedule) was carried as a Must story. At the Release 1
+  freeze the PO reconciled it against the 20 core features and the Section-G6
+  clarifications, and traced the date-change behaviour in code.
+- **Decision (owner, Marcus — PO, 1 Nov 2026). Deferred as a dedicated feature, no new
+  code.** There is no standalone "reschedule" core feature; a date change is already
+  covered by the features that exist:
+  - **Planning stage** — a Coordinator may edit `event_datetime` directly only while the
+    event is in **Planning** (`events.py` `edit_event`, TC-US4.6-03). The field is in
+    `IMPORTANT_FIELDS`, so the edit is classified **important** and audit-logged — core
+    feature **#7** (distinguish normal edits from important changes affecting existing
+    arrangements).
+  - **Post-confirmation** — a Confirmed event cannot be edited directly; the Organiser
+    must raise a **change request** (Section-G6 Session 1 Q28), which the Coordinator
+    processes with the significant-change re-review of venue/equipment arrangements
+    (core feature **#19**; SCRUM-138/152/156), and attendees are notified of changes and
+    cancellations (core feature **#20**; S1 Q20).
+- **Known limitation (recorded for honest release notes).** The confirm gate
+  (`EventConfirmation.from_arrangements`) checks that every venue booking is *approved*
+  but does not re-validate an approved booking's slot against a date that was edited
+  *later* in Planning. This is a narrow #7/#14 interaction edge (a Coordinator would
+  have to change the date after a booking was approved, within Planning, without
+  re-requesting), not the reschedule feature. Left as a known limitation for Release 1
+  rather than a freeze-eve change; a follow-up story can have the confirm gate reject an
+  approved booking whose slot no longer matches the event.
+- **Trade-off.** Release 1 handles date changes through ordinary-vs-important edits and
+  the change-request path rather than a bespoke reschedule flow. Accepted: no standalone
+  feature in the graded core scope; the story stays in the backlog.
