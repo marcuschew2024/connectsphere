@@ -113,7 +113,12 @@ def test_a_significant_change_flags_re_review_and_keeps_every_arrangement(live, 
 
     assert response.status_code == 200, response.json
     assert response.json["change_request"]["significant"] is True
-    assert response.json["affected"] == {"venue_bookings": 1, "equipment_reservations": 1}
+    affected = response.json["affected"]
+    # SCRUM-152 adds over_capacity: 150 attendees exceed this venue's capacity (100).
+    too_small = affected.pop("over_capacity")
+    assert affected == {"venue_bookings": 1, "equipment_reservations": 1}
+    assert [venue["booking_id"] for venue in too_small] == (
+        [booking["id"]] if "expected_attendance" in changes else [])
     field = next(iter(changes))
     assert row(db, "events", event["id"])[field] == changes[field]
     assert (row(db, "venue_bookings", booking["id"]),

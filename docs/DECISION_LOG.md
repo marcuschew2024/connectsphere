@@ -1236,6 +1236,11 @@ auto-assign in D9) are recorded explicitly rather than left implicit.
   capacity and cancelled bookings are not flagged; the booking and event are
   unchanged. The tests fail against the previous function and API.
   `e2e/venue-too-small.spec.ts` covers the event page.
+- **Changed existing test (reviewable).** In `test_change_request_apply_acceptance.py`,
+  the significant-change test compared `affected` exactly, and its own scenario
+  (150 attendees on a 100-capacity venue) is the bug. Its count assertion is
+  unchanged; it now also asserts `over_capacity`: the venue is listed for the
+  attendance change and nothing for the venue-requirements change.
 - **Trade-off.** Confirmation is not blocked by a too-small venue; the Coordinator
   decides, per D36 / S1 Q32. Blocking would be a new gate rule and is deferred.
 - **Owner.** Ernest Wong.
