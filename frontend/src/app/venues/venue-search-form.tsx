@@ -34,10 +34,15 @@ export default function VenueSearchForm({
   });
   const [attendance, setAttendance] = useState(initialValues.attendance);
   const [layout, setLayout] = useState(initialValues.layout);
-  const [slot, setSlot] = useState({ date: "", start_time: "", end_time: "" });
+  const [slot, setSlot] = useState({
+    date: initialValues.date,
+    start_time: initialValues.start_time,
+    end_time: initialValues.end_time,
+  });
   const [availableOnly, setAvailableOnly] = useState(false);
   const [error, setError] = useState("");
   const errorRef = useRef<HTMLParagraphElement>(null);
+
   const slotStarted = Boolean(slot.date || slot.start_time || slot.end_time);
   const slotComplete = Boolean(slot.date && slot.start_time && slot.end_time);
 
@@ -50,19 +55,6 @@ export default function VenueSearchForm({
     return () => controller.abort();
   }, []);
   useEffect(() => { if (error) errorRef.current?.focus(); }, [error]);
-  useEffect(() => {
-    setAttendance(initialValues.attendance);
-    setLayout(initialValues.layout);
-    setSelected({
-      facilities: initialValues.facilities,
-      accessibility: initialValues.accessibility,
-    });
-    setSlot({
-      date: initialValues.date,
-      start_time: initialValues.start_time,
-      end_time: initialValues.end_time,
-    });
-  }, [initialValues]);
 
   function search(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
