@@ -6,6 +6,9 @@ Implemented on `feature/SCRUM-45-event-registration-roster`. No schema migration
 required. This branch has not been pushed or merged; hosted CI and human review remain
 merge gates. The application uses the existing registration and readable-reference schema.
 
+After manual verification, the user requested broader event-request UI improvements.
+See [Event request usability follow-up](EVENT_REQUEST_UX.md) for that additional scope.
+
 ## User journey
 
 1. Sign in as the event's Organiser, open **My requests → event → View registrations**.

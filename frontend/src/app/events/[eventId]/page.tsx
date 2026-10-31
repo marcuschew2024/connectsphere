@@ -32,6 +32,7 @@ import EventCancelForm from "./event-cancel-form";
 import EventCapacityPanel from "./event-capacity-panel";
 import EventWithdrawalPolicy from "./event-withdrawal-policy";
 import { historyActionLabel } from "@/lib/history";
+import EventNextStep from "./event-next-step";
 
 export default function EventStatusPage() {
   const params = useParams<{ eventId: string }>();
@@ -148,6 +149,7 @@ export default function EventStatusPage() {
     <AppShell actingRole={actingRole}>
       {actingRole === "Safety Officer" && <div className="mx-auto max-w-6xl px-5 pt-6 sm:px-8"><Link href="/events/safety" className="text-sm text-primary hover:underline">Back to safety reviews</Link></div>}
       <div className="mx-auto max-w-6xl space-y-6 px-5 py-8 sm:px-8 sm:py-10">
+        {actingRole === "Organiser" && <Link href="/events/mine" className="inline-flex text-sm text-primary hover:underline">← Back to my requests</Link>}
         {actingRole === "Coordinator" && (
           <Link href="/events/review" className="inline-flex items-center gap-2 text-sm text-muted-foreground transition-colors hover:text-foreground">
             <span aria-hidden="true">←</span> Back to review queue
@@ -156,10 +158,11 @@ export default function EventStatusPage() {
         {error && <p role="alert" className="rounded-xl border border-destructive/30 bg-destructive/5 p-4 text-sm text-destructive">{error}</p>}
         {loading && <p className="text-muted-foreground">Loading event status...</p>}
         {event && <>
-          <header className="flex flex-wrap items-start justify-between gap-4">
+          <header className="flex flex-wrap items-start justify-between gap-4 rounded-2xl border border-border bg-card p-5 sm:p-6">
             <div className="min-w-0 flex-1">
               <p className="text-xs font-medium uppercase tracking-[0.16em] text-primary">Event request</p>
               <h1 className="mt-2 break-words text-2xl font-semibold tracking-tight sm:text-3xl">{event.title || "Untitled request"}</h1>
+              {event.reference && <p className="mt-2 text-sm font-medium text-muted-foreground">Event {event.reference}</p>}
               <p className="mt-2 text-xs text-muted-foreground">Last updated {new Date(event.last_status_changed_at ?? event.updated_at).toLocaleString()}</p>
             </div>
             <div className="space-y-2 text-right">
@@ -168,11 +171,25 @@ export default function EventStatusPage() {
             </div>
           </header>
 
+          {(actingRole === "Organiser" || actingRole === "Coordinator" || actingRole === "Event Coordinator Lead") && (
+            <EventNextStep event={event} role={actingRole} userId={userId} needsClarification={!!clarification} />
+          )}
+
+          <nav aria-label="Event sections" className="flex flex-wrap gap-2 rounded-xl border border-border bg-card p-2 text-sm">
+            <a href="#request-details-heading" className="rounded-lg px-3 py-2 text-muted-foreground hover:bg-muted hover:text-foreground">Overview</a>
+            {(actingRole === "Organiser" || actingRole === "Coordinator") && event.registration_capacity !== undefined && <a href="#registration-capacity-heading" className="rounded-lg px-3 py-2 text-muted-foreground hover:bg-muted hover:text-foreground">Capacity &amp; signups</a>}
+            {(actingRole === "Organiser" || actingRole === "Coordinator" || actingRole === "Venue Staff") && <a href="#venue-bookings-heading" className="rounded-lg px-3 py-2 text-muted-foreground hover:bg-muted hover:text-foreground">Venue arrangements</a>}
+            <a href="#event-history" className="rounded-lg px-3 py-2 text-muted-foreground hover:bg-muted hover:text-foreground">Activity</a>
+          </nav>
+
           {((actingRole === "Organiser" && userId === event.organiser_id)
             || (actingRole === "Coordinator" && userId === event.coordinator_id)) && (
-            <Link href={`/events/${event.id}/registrations`} className="inline-flex text-sm font-medium text-primary hover:underline">
+            <div className="flex flex-wrap items-center justify-between gap-4 rounded-xl border border-border bg-card p-4">
+              <div><p className="text-sm font-semibold">Attendee registrations</p><p className="mt-1 text-xs text-muted-foreground">See who has signed up, check totals and track withdrawals.</p></div>
+            <Link href={`/events/${event.id}/registrations`} className="inline-flex rounded-lg bg-primary px-4 py-2.5 text-sm font-medium text-primary-foreground hover:bg-primary/90">
               View registrations →
             </Link>
+            </div>
           )}
 
           {completed && <section aria-labelledby="completed-heading" className="rounded-2xl border border-border bg-muted/40 p-5">
@@ -194,10 +211,6 @@ export default function EventStatusPage() {
             <h2 id="acceptance-heading" className="font-semibold text-emerald-700 dark:text-emerald-400">Request accepted</h2>
             <p role="status" className="mt-1 text-sm text-muted-foreground">The Coordinator accepted this request on {new Date(event.decision_at!).toLocaleString()}.{event.status === "Planning" ? " Your event is now in Planning." : ""}</p>
           </section>}
-          {/* SCRUM-130: a new request waits with the Event Coordinator Lead until assigned. */}
-          {!accepted && event.request_status === "Submitted" && actingRole === "Organiser" && !clarification && <p className="rounded-xl border border-primary/20 bg-primary/5 p-4 text-sm text-foreground">{event.coordinator_id === null
-            ? "Your request is with the Event Coordinator Lead, who will assign a Coordinator to review it. You will be notified when a Coordinator is assigned."
-            : "Your request is with the Coordinator. The decision will appear in your notifications."}</p>}
           {event.status === "Rejected" && (actingRole === "Organiser" || actingRole === "Coordinator") && <section aria-labelledby="rejection-heading" className="rounded-2xl border border-destructive/30 bg-destructive/5 p-5">
             <h2 id="rejection-heading" className="font-semibold text-destructive">Rejection reason</h2>
             <p className="mt-2 whitespace-pre-wrap break-words text-sm text-foreground">{event.decision_reason || "No rejection reason was recorded."}</p>
@@ -276,7 +289,7 @@ export default function EventStatusPage() {
           </details>}
           {canCancel && <EventCancelForm event={event} onCancelled={(result) => void handleCancelled(result)} />}
 
-          <details className="rounded-2xl border border-border bg-card shadow-sm">
+          <details id="event-history" className="scroll-mt-6 rounded-2xl border border-border bg-card shadow-sm">
             <summary className="cursor-pointer px-5 py-4 text-sm font-medium text-foreground">Status history <span className="ml-2 text-xs text-muted-foreground">({history.length})</span></summary>
             <div className="border-t border-border px-5 py-4">
               {history.length === 0 ? <p className="text-sm text-muted-foreground">No status history is available yet.</p> : <ol className="space-y-4">

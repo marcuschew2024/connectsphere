@@ -10,9 +10,9 @@ import type { EventRecord } from "@/lib/events";
 // A small list keeps labels, limits and repeated form markup together.
 const TEXT_FIELDS = [
   { name: "title", label: "Event name", limit: 200, required: true, multiline: false },
+  { name: "category", label: "Category", limit: 100, required: true, multiline: false },
   { name: "description", label: "Description", limit: 5000, required: true, multiline: true },
   { name: "purpose", label: "Purpose", limit: 2000, required: true, multiline: true },
-  { name: "category", label: "Category", limit: 100, required: true, multiline: false },
 ];
 const REQUIREMENT_FIELDS = [
   { name: "venue_requirements", label: "Venue requirements" },
@@ -106,13 +106,17 @@ export default function EventRequestForm({ canCreate, initialEvent, onSaved }: {
 
   if (saved) {
     return (
-      <section role="status" className="space-y-4 rounded-2xl border border-emerald-500/30 bg-card p-6 shadow-sm">
-        <h2 className="text-xl font-semibold text-emerald-700 dark:text-emerald-400">
+      <section role="status" className="space-y-4 rounded-2xl border border-primary/30 bg-card p-6 shadow-sm sm:p-8">
+        <h2 className="text-xl font-semibold text-primary">
           {saved.status === "Draft" ? "Draft saved" : "Event request received"}
         </h2>
         <p>{saved.status === "Draft"
           ? "Your draft has been saved. It has not been submitted for review."
           : "Your request has been submitted and is now under Planning."}</p>
+        {saved.status !== "Draft" && <div className="rounded-xl bg-primary/5 p-4 text-sm">
+          <p className="font-semibold">Next: assignment and review</p>
+          <p className="mt-1 text-muted-foreground">The Lead assigns a Coordinator to review your request. The event is not confirmed yet; follow its progress in My requests.</p>
+        </div>}
         {saved.status !== "Draft" && <p className="text-sm text-muted-foreground">Direct editing is now locked. You can make changes when your coordinator requests clarification.</p>}
         <dl className="space-y-2 text-sm">
           <div><dt className="text-muted-foreground">Reference</dt><dd className="break-all font-mono">{recordReference(saved, saved.event_datetime)}</dd></div>
@@ -141,8 +145,9 @@ export default function EventRequestForm({ canCreate, initialEvent, onSaved }: {
       <p className="text-sm text-muted-foreground">Fields marked * are required to submit. You can save a draft with these fields blank.</p>
       {editing && <p className="text-xs leading-relaxed text-muted-foreground">Only you can access this draft. Save your changes before leaving this page.</p>}
       {error && <p role="alert" className="rounded-md border border-destructive/30 bg-destructive/5 p-3 text-sm text-destructive">{error}</p>}
-      <fieldset disabled={busy || !canCreate} className="space-y-5 disabled:opacity-40">
-        <legend className="sr-only">Event details</legend>
+      <fieldset disabled={busy || !canCreate} className="space-y-6 disabled:opacity-40">
+        <legend className="mb-4 text-lg font-semibold"><span aria-hidden="true" className="mr-2 text-primary">01</span> Event details</legend>
+        <div className="grid gap-5 sm:grid-cols-2">
         {TEXT_FIELDS.map((field) => (
           <div key={field.name}>
             <label htmlFor={field.name} className="mb-2 block font-medium">{field.label} *</label>
@@ -160,8 +165,13 @@ export default function EventRequestForm({ canCreate, initialEvent, onSaved }: {
                 className={INPUT_STYLE} />
             )}
             {fieldError(field.name)}
+            {field.name === "description" && <p className="mt-1 text-xs text-muted-foreground">What will happen during the event?</p>}
+            {field.name === "purpose" && <p className="mt-1 text-xs text-muted-foreground">Why are you organising it, and who will benefit?</p>}
           </div>
         ))}
+        </div>
+        <section className="space-y-5 border-t border-border pt-6" aria-labelledby="schedule-heading">
+        <h2 id="schedule-heading" className="text-lg font-semibold"><span aria-hidden="true" className="mr-2 text-primary">02</span> Date and attendance</h2>
         <div className="grid gap-5 sm:grid-cols-2">
           <div>
             <label htmlFor="event_datetime" className="mb-2 block font-medium">Preferred date and time *</label>
@@ -181,10 +191,14 @@ export default function EventRequestForm({ canCreate, initialEvent, onSaved }: {
               aria-describedby={fieldErrors.expected_attendance ? "expected_attendance-error" : undefined}
               className={INPUT_STYLE} />
             {fieldError("expected_attendance")}
+            <p className="mt-1 text-xs text-muted-foreground">An estimate for planning. You set the signup capacity separately after saving.</p>
           </div>
         </div>
+        </section>
         <fieldset className="space-y-5 border-t border-border pt-4">
-          <legend className="px-2 font-semibold">Additional requirements (optional)</legend>
+          <legend className="pr-3 text-lg font-semibold"><span aria-hidden="true" className="mr-2 text-primary">03</span> Additional requirements (optional)</legend>
+          <p className="text-sm text-muted-foreground">Help the Coordinator plan the right space and support. Leave anything you do not need blank.</p>
+          <div className="grid gap-5 sm:grid-cols-2">
           {REQUIREMENT_FIELDS.map((field) => (
             <div key={field.name}>
               <label htmlFor={field.name} className="mb-2 block font-medium">{field.label}</label>
@@ -196,14 +210,18 @@ export default function EventRequestForm({ canCreate, initialEvent, onSaved }: {
               {fieldError(field.name)}
             </div>
           ))}
+          </div>
         </fieldset>
-        <div className="flex flex-wrap gap-3">
+        <div className="space-y-4 border-t border-border pt-6">
+          <p className="text-sm text-muted-foreground">Ready for review? Submit your request. Still working on it? Save a private draft and come back later.</p>
+        <div className="flex flex-col gap-3 sm:flex-row">
           <button type="submit" value="submit" className="rounded-full bg-primary px-6 py-3 text-sm font-semibold text-primary-foreground transition-colors hover:bg-primary/90 disabled:opacity-50 motion-reduce:transition-none">
             {busy ? "Saving…" : "Submit request"}
           </button>
           <button type="submit" value="draft" className="rounded-full border border-border px-6 py-3 text-sm font-medium transition-colors hover:bg-muted disabled:opacity-50 motion-reduce:transition-none">
             {editing ? "Save changes" : "Save as draft"}
           </button>
+        </div>
         </div>
       </fieldset>
       {lastSaved && <p role="status" className="rounded-xl border border-emerald-500/30 bg-emerald-500/5 px-4 py-3 text-sm text-emerald-700 dark:text-emerald-400">Changes saved · {new Date(lastSaved).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</p>}
