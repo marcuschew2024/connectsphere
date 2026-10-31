@@ -101,7 +101,9 @@ def _validated_booking_fields(data, event: dict, existing: dict | None = None) -
     )
     if not overlap.can_request:
         if overlap.hard_conflict is not None:
-            raise Conflict("That time conflicts with an approved booking and its setup/turnaround buffer.")
+            raise Conflict(
+                "That time conflicts with an approved booking and its setup/turnaround buffer."
+            )
         raise Conflict("The venue already has a tentative booking hold for that time slot.")
     return {
         "venue_id": venue_id,
@@ -201,7 +203,9 @@ def submit_booking():
     )
     if not overlap.can_request:
         if overlap.hard_conflict is not None:
-            raise Conflict("That time conflicts with an approved booking and its setup/turnaround buffer.")
+            raise Conflict(
+                "That time conflicts with an approved booking and its setup/turnaround buffer."
+            )
         raise Conflict("The venue already has a tentative booking hold for that time slot.")
 
     saved = create_booking({
@@ -370,7 +374,9 @@ def decide_booking(booking_id):
             turnaround_minutes=turnaround_m,
         )
         if not overlap.can_confirm:
-            raise Conflict("That time conflicts with an approved booking and its setup/turnaround buffer.")
+            raise Conflict(
+                "That time conflicts with an approved booking and its setup/turnaround buffer."
+            )
 
     updated = record_booking_decision(
         booking_id,
