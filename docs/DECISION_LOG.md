@@ -1212,3 +1212,97 @@ auto-assign in D9) are recorded explicitly rather than left implicit.
   attendee-registration insert in the change-request RPC. Not built now: it is unrequired
   by the clarifications and would be untested surface added at code freeze.
 - **Owner.** Marcus (notification scope).
+
+### D42 — Reservations on unusable stock do not count as ready (SCRUM-153, SCRUM-63)
+
+- **Context.** The Release v1 review reproduced this: a unit reserved while Operational
+  stayed "Reserved" after Tech Support marked the item Damaged. The confirmation gate
+  (D22) then confirmed the event with no usable stock. New reservations and
+  availability already exclude unusable stock.
+- **Decision (owner, Ernest, 31 Oct 2026).** When readiness is derived, a reservation on
+  an item that is not currently Operational is left out. The request reads as not fully
+  reserved and confirmation is refused until the item is repaired or other stock is
+  reserved. Nothing is auto-released. The request page lists such units as "no longer
+  operational" (`unusable_reserved_quantity`).
+- **Constraints.** No schema or grant change. The rule lives in the existing readiness
+  derivation used by the request views and the confirm gate. Rows without an embedded
+  condition keep the previous behaviour.
+- **Verification.** `test_unusable_equipment_readiness.py` covers the rule;
+  `test_unusable_equipment_readiness_acceptance.py` runs on the real database: reserve,
+  mark Damaged / Under Maintenance, confirm refused (409) with the event and reservation
+  unchanged, repair, confirm allowed. The new tests fail without the fix.
+  `e2e/unusable-equipment.spec.ts` covers the request page.
+
+### D43 — An attendance increase re-checks booked venue capacity (SCRUM-152, SCRUM-47/62)
+
+- **Context.** The Release v1 review reproduced this: approving a change from 20 to 150
+  attendees on a 100-capacity booked venue applied the change, but nothing compared
+  the new attendance with the venue's capacity. SCRUM-47 AC4 and SCRUM-62 require that
+  re-check and a flag.
+- **Decision (owner, Ernest, 31 Oct 2026). Flag only, consistent with D36:** nothing is
+  blocked, cancelled or un-booked.
+  - **Approval.** `approve_change_request()` (replaced by migration
+    `20261031180000_scrum_152_venue_too_small_flag.sql`) lists every active booking
+    (Requested / Pending / Held / Confirmed) whose venue capacity is below the newly
+    applied attendance. It names them in the Coordinator's re-review notice ("Venue
+    too small for N attendees: …") and returns them as `affected.over_capacity`.
+  - **Event page.** `GET /venues/bookings/event/<id>` re-checks each active booking with
+    the existing `CapacityRule` (SCRUM-29), so the bookings panel shows "Venue too
+    small" for as long as the mismatch exists.
+- **Constraints.** Same function signature, grants and transaction. The check runs only
+  when attendance was actually applied. No schema change.
+- **Verification.** `test_venue_too_small_acceptance.py` runs on the real database:
+  over capacity is flagged on the notice, the response and the bookings; within
+  capacity and cancelled bookings are not flagged; the booking and event are
+  unchanged. The tests fail against the previous function and API.
+  `test_event_bookings_capacity_warning.py` (unit) covers the boundaries: at capacity
+  and one under are not flagged, one over is; every active status is flagged and
+  rejected / cancelled / released bookings are not; missing capacity or attendance is
+  never flagged. The integration test repeats "one over" on Requested and Held
+  bookings. `e2e/venue-too-small.spec.ts` covers the event page.
+- **Changed existing test (reviewable).** In `test_change_request_apply_acceptance.py`,
+  the significant-change test compared `affected` exactly, and its own scenario
+  (150 attendees on a 100-capacity venue) is the bug. Its count assertion is
+  unchanged; it now also asserts `over_capacity`: the venue is listed for the
+  attendance change and nothing for the venue-requirements change.
+- **Trade-off.** Confirmation is not blocked by a too-small venue; the Coordinator
+  decides, per D36 / S1 Q32. Blocking would be a new gate rule and is deferred.
+- **Owner.** Ernest Wong.
+
+### D45 — A change awaiting re-review is shown as such, not as a plain approval (SCRUM-156)
+
+- **Context.** During the Release v1 manual review of SCRUM-152, an approved significant
+  change behaved as D36 intends but was presented as a finished approval. History said
+  "Change Request Approved", the Organiser saw "Approved" with Coordinator-oriented text
+  and no mention of the too-small venue, and "Mark as implemented" was a single click
+  even while the re-review still showed a problem.
+- **Decision (owner, Ernest, 31 Oct 2026). Presentation only;** D36's status model is
+  unchanged (the stored status stays Approved until Implemented).
+  - **History.** A significant approval is recorded as
+    `change_request_approved_re_review`, shown as "Change Request Approved — Re-review
+    Required". Ordinary approvals are unchanged.
+  - **Badge.** Both roles see "Approved · Re-review in progress" until Implemented.
+  - **Organiser.** They get their own explanation. The page and notification name any
+    too-small venue and suggest a new change request. The capacity check is read from
+    the event's bookings (D43), so it is still shown after a reload.
+  - **Coordinator.** "Mark as implemented" on a re-review asks "Have you re-checked…?"
+    and lists anything still unresolved. It is not blocked; the Coordinator decides
+    (S1 Q32).
+- **How.** Migration `20261031190000_scrum_156_re_review_presentation.sql` replaces
+  `approve_change_request()` (D43 version) and changes only the history action and the
+  Organiser notice. The same transaction, grants and response are kept.
+- **Verification.** `test_re_review_presentation_acceptance.py` runs on the real database
+  and fails against the D43 function. It covers four cases: significant attendance
+  (re-review plus the too-small venue), significant venue (re-review, no capacity
+  flag), ordinary approval (unchanged), and implementing a re-review (the re-review
+  entry stays in history before "implemented").
+  `e2e/re-review-presentation.spec.ts` covers the Organiser view, confirm / cancel and
+  the history label. `lib/history.test.ts` covers the label.
+- **Changed existing tests (reviewable).** These are the behaviour this ticket changes;
+  no other assertion was removed.
+  - `test_change_request_apply_acceptance.py` (concurrent approvals): the "applied
+    once" history count also accepts the new action.
+  - `e2e/change-request-apply.spec.ts`: the significant change's badge reads
+    "Approved · Re-review in progress", and the test clicks the new confirmation before
+    Implemented.
+- **Owner.** Ernest Wong.

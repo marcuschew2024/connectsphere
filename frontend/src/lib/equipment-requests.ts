@@ -45,6 +45,8 @@ export type EquipmentRequest = {
     location: string;
     quantity: number;
     reserved_quantity?: number;
+    // SCRUM-153: units still booked on Damaged / Under Maintenance stock (not counted).
+    unusable_reserved_quantity?: number;
     technical_notes: string;
   }[];
 };

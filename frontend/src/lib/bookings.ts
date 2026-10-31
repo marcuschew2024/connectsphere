@@ -8,6 +8,8 @@ export type BookingStatus = "Requested" | "Pending" | "Held" | "Confirmed" | "Re
 
 export type BookingRecord = {
   id: string;
+  // SCRUM-152: set on an active booking whose venue is now smaller than the attendance.
+  capacity_warning?: string | null;
   reference?: string;
   event_id: string;
   venue_id: string;

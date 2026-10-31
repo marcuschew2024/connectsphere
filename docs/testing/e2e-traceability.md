@@ -33,12 +33,12 @@ file) in the *same PR as the fix*. Owner does a final sweep at freeze — any ro
 | 13 | Venue booking approval | **Approve blocks the slot + notifies coordinator** (SCRUM-118/119) | `bookings.spec.ts` (extend) | 🔶 | Jessica / Marcus |
 | 14 | Booking conflict detection | **Overlapping / buffered double-book hard-blocked** (SCRUM-137) | `bookings.spec.ts` | ✅ | Jessica |
 | 15 | Equipment request mgmt | Record + review/update request | `equipment-requests.spec.ts`, `equipment-request-status.spec.ts` | ✅ | — |
-| 16 | Equipment availability | **Unavailable/damaged excluded from available** (SCRUM-63) | `equipment.spec.ts` (extend) | 🔶 | Ernest |
+| 16 | Equipment availability | **Unavailable/damaged excluded from available** (SCRUM-63); reserved units on stock later damaged stop counting (SCRUM-153) | `equipment.spec.ts`, `unusable-equipment.spec.ts` | ✅ | Ernest |
 | 17 | Equipment reservation | Reserve reduces availability; **confirm blocked while equipment pending** (SCRUM-136) | `event-confirm.spec.ts`, `event-confirm-equipment.spec.ts` | ✅ | Ernest |
 | 18 | Attendee registration | Register / withdraw / view own status | `attendee-registration.spec.ts` + 3 | ✅ | — |
 | 18 | Attendee registration | **Organiser/Coordinator view event registrations** (SCRUM-45) | NEW / extend | ❌ | Jerome |
 | 19 | Event change requests | Raise change post-submit/confirm | `change-requests.spec.ts` | ✅ | — |
-| 19 | Event change requests | **Significant change re-opens venue/equipment review + notifies** (SCRUM-47/62) | `change-requests.spec.ts` (extend) | 🔶 | Ernest |
+| 19 | Event change requests | **Significant change re-opens venue/equipment review + notifies** (SCRUM-47/62); attendance above a booked venue's capacity is flagged (SCRUM-152) | `change-request-apply.spec.ts`, `venue-too-small.spec.ts` | ✅ | Ernest |
 | 20 | Notifications | **Fires on submit/decision/assignment/booking/registration/change/cancel** (SCRUM-51) | `notifications.spec.ts` (decision + pool feeds), `change-request-apply.spec.ts` (change re-review), `event-cancel.spec.ts` (attendees notified) | ✅ | Marcus |
 | — | Safety check | Gates preparation until passed | `event-safety-check.spec.ts`, `safety-officer.spec.ts` | ✅ | — |
 | — | Confirm / complete | Confirm + complete/close event | `event-confirm.spec.ts`, `event-complete.spec.ts` | ✅ | — |

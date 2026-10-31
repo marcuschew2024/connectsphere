@@ -113,7 +113,12 @@ def test_a_significant_change_flags_re_review_and_keeps_every_arrangement(live, 
 
     assert response.status_code == 200, response.json
     assert response.json["change_request"]["significant"] is True
-    assert response.json["affected"] == {"venue_bookings": 1, "equipment_reservations": 1}
+    affected = response.json["affected"]
+    # SCRUM-152 adds over_capacity: 150 attendees exceed this venue's capacity (100).
+    too_small = affected.pop("over_capacity")
+    assert affected == {"venue_bookings": 1, "equipment_reservations": 1}
+    assert [venue["booking_id"] for venue in too_small] == (
+        [booking["id"]] if "expected_attendance" in changes else [])
     field = next(iter(changes))
     assert row(db, "events", event["id"])[field] == changes[field]
     assert (row(db, "venue_bookings", booking["id"]),
@@ -251,7 +256,9 @@ def test_two_simultaneous_approvals_apply_once(live):  # noqa: F811
         outcomes = sorted(pool.map(lambda _: approve(), range(2)))
 
     assert outcomes == ["already_reviewed", "applied"]
+    # SCRUM-156: a significant approval is recorded as approved-with-re-review.
     assert len([h for h in _history(db, event["id"])
-                if h["action"] == "change_request_approved"]) == 1
+                if h["action"] in ("change_request_approved",
+                                   "change_request_approved_re_review")]) == 1
     assert len([n for n in _notifications(db, event["id"])
                 if n["notification_type"] == "event_re_review_required"]) == 1
