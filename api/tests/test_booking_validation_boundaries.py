@@ -134,8 +134,8 @@ def test_blank_special_requirements_are_stored_as_none(booking_api):  # noqa: F8
 
 
 @pytest.mark.parametrize(("status", "message"), [
-    ("Confirmed", "already confirmed or blocked"),
-    ("Blocked", "already confirmed or blocked"),
+    ("Confirmed", "conflicts with an approved booking and its setup/turnaround buffer"),
+    ("Blocked", "conflicts with an approved booking and its setup/turnaround buffer"),
     ("Requested", "tentative booking hold"),
 ])
 def test_overlapping_slots_are_refused(booking_api, monkeypatch, status, message):  # noqa: F811
@@ -213,7 +213,8 @@ def test_unchanged_details_are_kept_when_only_some_fields_change(changing):
 
 
 @pytest.mark.parametrize(("status", "message"), [
-    ("Confirmed", "already confirmed or blocked"), ("Held", "tentative booking hold"),
+    ("Confirmed", "conflicts with an approved booking and its setup/turnaround buffer"),
+    ("Held", "tentative booking hold"),
 ])
 def test_a_change_into_an_occupied_slot_is_refused(changing, monkeypatch, status, message):
     client, saved = changing

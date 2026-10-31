@@ -278,4 +278,4 @@ def test_tc_120_route_blocked_maintenance_prevents_approval(venue_staff, booking
 
     r = decide(venue_staff, target["id"], "approve")
     assert r.status_code == 409
-    assert "already confirmed or blocked" in r.json["error"]
+    assert "conflicts with an approved booking and its setup/turnaround buffer" in r.json["error"]
