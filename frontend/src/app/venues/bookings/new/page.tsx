@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useEffect, useState, type FormEvent } from "react";
 import { ChevronDown } from "lucide-react";
 import { ApiError, apiRequest } from "@/lib/api";
-import type { EventRecord } from "@/lib/events";
+import type { CoordinatorEventRecord } from "@/lib/events";
 import { VENUE_DAYS, type Venue } from "@/lib/venues";
 import { AppShell } from "@/components/app-shell";
 import { useActingRole } from "@/lib/use-acting-role";
@@ -37,7 +37,7 @@ function SelectField({
 
 export default function NewBookingPage() {
   const [role] = useActingRole();
-  const [events, setEvents] = useState<EventRecord[]>([]);
+  const [events, setEvents] = useState<CoordinatorEventRecord[]>([]);
   const [venues, setVenues] = useState<Venue[]>([]);
   const [selectedEventId, setSelectedEventId] = useState("");
   const [selectedVenueId, setSelectedVenueId] = useState("");
@@ -49,7 +49,7 @@ export default function NewBookingPage() {
 
   useEffect(() => {
     async function loadOptions() {
-      const eventResult = await apiRequest<{ events: EventRecord[] }>("/events");
+      const eventResult = await apiRequest<{ events: CoordinatorEventRecord[] }>("/events");
       const allVenues: Venue[] = [];
       let page = 1;
       let hasMore = true;
@@ -59,7 +59,10 @@ export default function NewBookingPage() {
         hasMore = venueResult.has_more;
         page += 1;
       }
-      const planning = eventResult.events.filter((event) => event.status === "Planning");
+      // SCRUM-151: a Coordinator can VIEW all events (S1 Q34) but may only ACT on their own
+      // (S1 Q1, no overrides). This picker is an action form, so offer only own Planning events;
+      // the backend require_related_user check on submit stays as defense in depth.
+      const planning = eventResult.events.filter((event) => event.status === "Planning" && event.is_mine);
       setEvents(planning);
       setVenues(allVenues);
       setSelectedEventId(planning[0]?.id ?? "");
