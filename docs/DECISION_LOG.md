@@ -1212,3 +1212,30 @@ auto-assign in D9) are recorded explicitly rather than left implicit.
   attendee-registration insert in the change-request RPC. Not built now: it is unrequired
   by the clarifications and would be untested surface added at code freeze.
 - **Owner.** Marcus (notification scope).
+
+### D43 — An attendance increase re-checks booked venue capacity (SCRUM-152, SCRUM-47/62)
+
+- **Context.** The Release v1 review reproduced this: approving a change from 20 to 150
+  attendees on a 100-capacity booked venue applied the change, but nothing compared
+  the new attendance with the venue's capacity. SCRUM-47 AC4 and SCRUM-62 require that
+  re-check and a flag.
+- **Decision (owner, Ernest, 31 Oct 2026). Flag only, consistent with D36:** nothing is
+  blocked, cancelled or un-booked.
+  - **Approval.** `approve_change_request()` (replaced by migration
+    `20261031180000_scrum_152_venue_too_small_flag.sql`) lists every active booking
+    (Requested / Pending / Held / Confirmed) whose venue capacity is below the newly
+    applied attendance. It names them in the Coordinator's re-review notice ("Venue
+    too small for N attendees: …") and returns them as `affected.over_capacity`.
+  - **Event page.** `GET /venues/bookings/event/<id>` re-checks each active booking with
+    the existing `CapacityRule` (SCRUM-29), so the bookings panel shows "Venue too
+    small" for as long as the mismatch exists.
+- **Constraints.** Same function signature, grants and transaction. The check runs only
+  when attendance was actually applied. No schema change.
+- **Verification.** `test_venue_too_small_acceptance.py` runs on the real database:
+  over capacity is flagged on the notice, the response and the bookings; within
+  capacity and cancelled bookings are not flagged; the booking and event are
+  unchanged. The tests fail against the previous function and API.
+  `e2e/venue-too-small.spec.ts` covers the event page.
+- **Trade-off.** Confirmation is not blocked by a too-small venue; the Coordinator
+  decides, per D36 / S1 Q32. Blocking would be a new gate rule and is deferred.
+- **Owner.** Ernest Wong.
