@@ -41,6 +41,7 @@ const ROLE_ACTIONS: Record<string, Action[]> = {
   ],
   Organiser: [
     { title: "Create an event request", description: "Start a new request for approval.", href: "/events/new", icon: Plus, primary: true },
+    { title: "My event requests", description: "Track the status of requests you have submitted.", href: "/events/mine", icon: ClipboardCheck },
     { title: "My drafts", description: "Pick up a private draft where you left off.", href: "/events/drafts", icon: FileText },
   ],
   Coordinator: [
