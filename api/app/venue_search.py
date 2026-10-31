@@ -76,7 +76,7 @@ def parse_filters(args):
 
 def matches_filters(venue, filters):
     """Apply explicit catalogue filters without filtering out suitability advisories."""
-    minimum = filters.get("capacity", 0)
+    minimum = max(filters.get("attendance", 0), filters.get("capacity", 0))
     if venue["capacity"] < minimum:
         return False
     if filters.get("location", "") not in _normalise(venue["location"]):
