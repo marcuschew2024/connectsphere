@@ -123,6 +123,7 @@ export default function EventRequestForm({ canCreate, initialEvent, onSaved }: {
           {saved.status === "Draft" && saved.registration_capacity !== undefined && (
             <Link href={`/events/drafts/${saved.id}`} className="inline-flex px-4 py-2 text-sm text-primary hover:underline">Set registration capacity</Link>
           )}
+          {saved.status !== "Draft" && <Link href="/events/mine" className="inline-flex px-4 py-2 text-sm text-primary hover:underline">View my requests</Link>}
           <Link href="/events/drafts" className="inline-flex px-4 py-2 text-sm text-muted-foreground hover:text-foreground">My drafts</Link>
           {!editing && <button type="button" disabled={!canCreate} onClick={() => setSaved(null)}
             className="rounded-full border border-border px-4 py-2 font-medium hover:bg-muted disabled:cursor-not-allowed disabled:opacity-40">

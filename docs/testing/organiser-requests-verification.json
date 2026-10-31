@@ -1,0 +1,62 @@
+{
+  "recorded_at": "2026-10-31T03:56:17.021317+00:00",
+  "scope": "Organiser submitted-request navigation follow-up (flow audit F06)",
+  "branch": "feature/SCRUM-135-status-transitions",
+  "parent_commit": "b081852",
+  "checks": {
+    "production_build": {
+      "command": "NEXT_PUBLIC_API_URL=http://localhost:5001 npm --prefix frontend run build -- --webpack",
+      "result": "passed"
+    },
+    "lint": {
+      "command": "npm run lint",
+      "result": "passed"
+    },
+    "frontend_unit": {
+      "command": "npm run test:unit -- --run",
+      "result": "passed",
+      "tests": 67,
+      "files": 9
+    },
+    "controlled_browser": {
+      "command": "PLAYWRIGHT_PORT=3108 npm run test:e2e -- --workers=4 --reporter=line,junit",
+      "result": "passed",
+      "tests": 261,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "integrated_browser": {
+      "command": "npx playwright test --config=playwright.organiser-local.config.ts",
+      "result": "passed",
+      "tests": 3,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "configuration": "Temporary configuration extends playwright.integrated.config.ts with reuseExistingServer=true for existing local manual-test servers; removed after verification."
+    },
+    "visual": {
+      "result": "passed",
+      "desktop_viewport": [
+        1440,
+        1000
+      ],
+      "mobile_viewport": [
+        390,
+        844
+      ],
+      "inspection": "Desktop and mobile screenshots inspected; no horizontal overflow."
+    }
+  },
+  "source_sha256": {
+    "frontend/src/app/events/mine/page.tsx": "68113c2d3a73b0ecb2398b848a725e48b4a31b29e629c8643a76ff17b96648cb",
+    "frontend/src/app/events/new/event-request-form.tsx": "8e018fec915fd7524636a5611364c20cd69790bdaf4c19d77e09df55160f6534",
+    "frontend/src/app/page.tsx": "1e47b0e3cb69024cafa3fbf9081c7c77c10b0ced342a80289a5f4f0cf976012a",
+    "frontend/src/components/app-shell.tsx": "fb8dbb8510c658d2c55c18e44b7092c380574faad1f2d91e9af0fb095c42df45",
+    "frontend/e2e/organiser-requests.spec.ts": "b12e0805b72669c338b7c9b2e69dbf790653aab4f21b1bcf4fe4b91727e14fe2",
+    "frontend/integration/organiser-requests.spec.ts": "e6d8c568618fee45f9bcc503d1eae0cec23489e1cea35ea0f03db546b09c4391"
+  },
+  "backend": "Unchanged from b081852; previous 1952-test evidence remains in docs/testing/scrum-135-verification.json. Not rerun for this frontend-only follow-up.",
+  "environment": "Existing local API, database and synthetic test accounts reused. Existing manual-test data preserved; integrated journeys add uniquely named fixture events. No shared database changed.",
+  "review_gate": "Local verification complete. Human review and hosted CI remain required before merge; branch has not been pushed or merged."
+}

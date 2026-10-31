@@ -36,6 +36,7 @@ const NAV_BY_ROLE: Record<string, NavItem[]> = {
   Organiser: [
     { label: "Home", href: "/", icon: Home },
     { label: "New request", href: "/events/new", icon: FilePlus2 },
+    { label: "My requests", href: "/events/mine", icon: ClipboardCheck },
     { label: "Drafts", href: "/events/drafts", icon: FileText },
     { label: "Venues", href: "/venues", icon: Building2 },
   ],
