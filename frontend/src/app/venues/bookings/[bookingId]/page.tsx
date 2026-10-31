@@ -1,5 +1,7 @@
 "use client";
 
+import { recordReference } from "@/lib/record-reference";
+
 import { useParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import { ApiError, apiRequest } from "@/lib/api";
@@ -143,7 +145,7 @@ export default function BookingDecisionPage() {
                 <div><dt className="mb-1 text-xs text-muted-foreground">Location</dt><dd className="break-words">{booking.venue?.location ?? "Not provided"}</dd></div>
                 <div><dt className="mb-1 text-xs text-muted-foreground">Event</dt><dd className="break-words">{booking.event?.title ?? "Not provided"}</dd></div>
                 <div><dt className="mb-1 text-xs text-muted-foreground">Time slot</dt><dd>{formatSlot(booking.start_at, booking.end_at)}</dd></div>
-                <div className="border-t border-border pt-4 sm:col-span-2"><dt className="mb-1 text-xs text-muted-foreground">Booking reference</dt><dd className="break-all font-mono text-xs text-muted-foreground">{booking.id}</dd></div>
+                <div className="border-t border-border pt-4 sm:col-span-2"><dt className="mb-1 text-xs text-muted-foreground">Booking reference</dt><dd className="break-all font-mono text-xs text-muted-foreground">{recordReference(booking, booking.start_at)}</dd></div>
               </dl>
             </section>
 

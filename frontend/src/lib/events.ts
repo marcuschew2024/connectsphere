@@ -4,6 +4,7 @@ import { createElement } from "react";
 
 export type EventRecord = {
   id: string;
+  reference?: string;
   title: string | null;
   description: string | null;
   purpose: string | null;

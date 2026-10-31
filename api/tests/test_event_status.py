@@ -242,10 +242,10 @@ def test_event_draft_is_private_from_coordinator(app, event_database):
     assert response.status_code == 404
 
 
-# A related user update records the latest actor and timestamp.
+# SCRUM-135: the assigned Coordinator (not the Organiser) records the latest actor and timestamp.
 def test_related_user_can_update_status_and_actor_metadata(app, event_database):
     client = app.test_client()
-    select_user(client, 1)
+    select_user(client, 2)
     event = _seed_planning_event(event_database, status="Submitted")
 
     response = client.patch(
@@ -254,14 +254,14 @@ def test_related_user_can_update_status_and_actor_metadata(app, event_database):
 
     assert response.status_code == 200
     assert response.json["event"]["status"] == "Planning"
-    assert response.json["event"]["last_status_changed_by"] == 1
+    assert response.json["event"]["last_status_changed_by"] == 2
     assert response.json["event"]["last_status_changed_at"]
 
 
 # A status change appends a history entry with the old/new states, actor, and timestamp.
 def test_related_user_status_change_is_added_to_history(app, event_database):
     client = app.test_client()
-    select_user(client, 1)
+    select_user(client, 2)
     event = _seed_planning_event(event_database, status="Submitted")
 
     update = client.patch(
@@ -275,7 +275,7 @@ def test_related_user_status_change_is_added_to_history(app, event_database):
     assert history.json["history"][0]["event_id"] == event["id"]
     assert history.json["history"][0]["old_status"] == "Submitted"
     assert history.json["history"][0]["new_status"] == "Planning"
-    assert history.json["history"][0]["changed_by"] == 1
+    assert history.json["history"][0]["changed_by"] == 2
     assert history.json["history"][0]["changed_at"]
 
 

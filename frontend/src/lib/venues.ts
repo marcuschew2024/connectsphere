@@ -5,6 +5,7 @@ export type OpeningHours = Record<VenueDay, { opens: string; closes: string } | 
 
 export type Venue = {
   id: string;
+  reference?: string;
   name: string;
   location: string;
   capacity: number;

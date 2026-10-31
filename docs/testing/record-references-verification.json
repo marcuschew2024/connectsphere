@@ -1,0 +1,138 @@
+{
+  "recorded_at": "2026-10-31T04:16:27.366717+00:00",
+  "scope": "User-approved stable display references and adjacent dates across six record types",
+  "branch": "feature/SCRUM-135-status-transitions",
+  "parent_commit": "d0923e4",
+  "prefixes": {
+    "events": "EVT",
+    "venue_bookings": "BKG",
+    "equipment_requests": "EQR",
+    "event_registrations": "REG",
+    "venues": "VNU",
+    "equipment_items": "EQP"
+  },
+  "checks": {
+    "database": {
+      "result": "passed",
+      "environment": "Separate disposable connectsphere-references PostgreSQL/PostgREST stack",
+      "intent": [
+        "Existing SQL harness and migration applied twice",
+        "Reference backfill and immutability",
+        "More than 999 unique references",
+        "New sequence and trigger privileges",
+        "Existing identifiers and relationships preserved"
+      ]
+    },
+    "backend": {
+      "result": "passed",
+      "tests": 1953,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "command": "pytest -q --junitxml=/evidence/backend.xml",
+      "environment": "Existing Python coverage-runner image, read-only source mount, private loopback proxy to isolated PostgREST; includes real database acceptance tests"
+    },
+    "backend_lint": {
+      "result": "passed",
+      "command": "ruff check api"
+    },
+    "frontend_unit": {
+      "result": "passed",
+      "tests": 70,
+      "files": 10,
+      "command": "npm run test:unit -- --run"
+    },
+    "frontend_lint": {
+      "result": "passed",
+      "command": "npm run lint; final changed integrated specs also checked with eslint"
+    },
+    "typecheck": {
+      "result": "passed",
+      "command": "npx tsc --noEmit"
+    },
+    "production_build": {
+      "result": "passed",
+      "command": "NEXT_PUBLIC_API_URL=http://localhost:5001 npm run build -- --webpack"
+    },
+    "controlled_browser": {
+      "result": "passed",
+      "tests": 261,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "command": "PLAYWRIGHT_PORT=3108 npm run test:e2e -- --workers=4 --reporter=line,junit"
+    },
+    "integrated_browser": {
+      "result": "passed",
+      "tests": 4,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "command": "npx playwright test --config=playwright.organiser-local.config.ts",
+      "configuration": "Temporary wrapper reuses the existing local API/frontend; wrapper removed after verification. All four real password-session journeys pass."
+    },
+    "visual": {
+      "result": "passed",
+      "desktop": [
+        1440,
+        1000
+      ],
+      "mobile": [
+        390,
+        844
+      ],
+      "inspection": "Reference/date visible beside ordinary titles; screenshots inspected; mobile horizontal-overflow assertion passed."
+    },
+    "supabase_advisor": {
+      "result": "unavailable",
+      "reason": "Host CLI could not resolve the isolated Docker database hostname. No hosted project was contacted. Direct SQL verified sequence restrictions, no security-definer trigger, empty search_path and denied direct anon/authenticated execution."
+    }
+  },
+  "source_sha256": {
+    "api/app/booking_repository.py": "5daadb18789291ea0ba2d332b2213cffbec2cd86a78e0c7dc62c1b425782af3c",
+    "api/app/equipment_request_repository.py": "d33adf2c4b1b8d6c60ca6ea425e76e40006edc8a1d343ff2c7ae441bdea6a60a",
+    "api/app/event_repository.py": "15406a7deeec72346086ccaaca2828bac668d8be642fa02d781d7fa4edeb4d1b",
+    "api/app/rbac.py": "deedd6d0ee26b435c3f30a36611b3b60238960878de7f6aebba9bf64b652df90",
+    "api/app/registration_repository.py": "bd80596cc3c6906733d9e4571d5fdae74101256cdc05621412406f84782ae971",
+    "api/tests/test_own_registration_status_acceptance.py": "f26c89f413938b024f546d0215e84aade3f5a68f72f9001269100ac3fbbab280",
+    "api/tests/test_rbac.py": "9b1025b4079a73a3464344e757fb057f3269242b2c4f82ca7bef92a72afc3464",
+    "api/tests/test_readable_references_acceptance.py": "0fca65864a965d878c1e63bfee9d216e0fd541566a82e7d061974d8e3b268744",
+    "api/tests/test_registration_withdrawal_acceptance.py": "9b3940d2913573e71b900c1be93ea9edae022bf5bee60924bb5cff97f0b343b3",
+    "frontend/integration/event-lifecycle.spec.ts": "8826eff9c3305ad9fdcbe255c731c5f7a9955bb68c6d617de06cdbb6b1acfb4d",
+    "frontend/integration/organiser-requests.spec.ts": "eb675601817188c56c6166091843f0721422cde49c1cf1478fc9967de765c51c",
+    "frontend/integration/record-references.spec.ts": "82dc736d379c0c7241f461866feb9db3f42ad8cfcc5c23e21819a3691e5e1e4f",
+    "frontend/src/app/equipment/page.tsx": "68db40f4f79faf8e8e89140469e4634325fbe8b09baf0919f7fb20b197537885",
+    "frontend/src/app/equipment/requests/[requestId]/page.tsx": "35549dfc6c9e5df41ee92d646229d520198866233e04f730764615fa288952f2",
+    "frontend/src/app/equipment/requests/new/page.tsx": "dd8e92cb73e47801a8af787d86bd3f53628d3e0378c6f4ba78194497bf2d8d29",
+    "frontend/src/app/equipment/requests/page.tsx": "d5ce9c42072c745d5a2251660169d72730256cbb624d89917218a200e5c26cba",
+    "frontend/src/app/events/[eventId]/event-bookings-panel.tsx": "60482425a5c0b4c11b11a61406524804afbe23e57d6193f24bef6d357b5a8162",
+    "frontend/src/app/events/[eventId]/page.tsx": "6efe8661101a03416209cc4d51413760ca1c1417be3b6842742af632a9654508",
+    "frontend/src/app/events/browse/[eventId]/page.tsx": "f0a9d279c5ae0ca983924e42ecaf2f025df89db9ee08220aee42de63b3a68bdd",
+    "frontend/src/app/events/browse/page.tsx": "97633be36e74c3c9e612921c8ac71b32eb35ce3207f704a095dc7a17986c4bc1",
+    "frontend/src/app/events/drafts/page.tsx": "d8a1911133365e807c23799c2b6845dc496b299c9f792e0337ef22a27f79e909",
+    "frontend/src/app/events/managed/page.tsx": "7d27f662fc07598d2e0705e052d5c9f61f4ca40600ecdecb2b2a349e405bc0e3",
+    "frontend/src/app/events/mine/page.tsx": "8b16afa8efebfe299af964783b6968479873cc42a050ff009a4d7c5d033ccad7",
+    "frontend/src/app/events/new/event-request-form.tsx": "865720bc324d7feb31a79c26504de381adb9c1b26d5b20589646955b2bee917e",
+    "frontend/src/app/events/review/page.tsx": "a76478d56a8848541f26d00346e170b5944c52015e17c486281d4810092e8f40",
+    "frontend/src/app/events/safety/page.tsx": "602c0575aa79090e33058993e9fde2fc1b63ef70f6210fa3afe0c11b647a08dc",
+    "frontend/src/app/events/supervised/page.tsx": "0388e91fb2438dac276e2d2c608704e2ff1bf521850fb9a7bd6a862399381e3b",
+    "frontend/src/app/registrations/page.tsx": "df47725e41ec2508e11953b60710f74666655655dff5afdb54a2b8bbdbe73327",
+    "frontend/src/app/venues/[venueId]/page.tsx": "eb8de5da8ea1d8760c867ae1f4fb596ebe01fb8fc89ebf54e5b1989d9f48c200",
+    "frontend/src/app/venues/bookings/[bookingId]/page.tsx": "cb81cbbb133e2c158558984b7a5b46090f10985a48dd68c3251a8fd53c86012c",
+    "frontend/src/app/venues/bookings/page.tsx": "9dca15b1b410acdfa6bbcaf1b1ba7c8695edb01752ec58d9e673c7179ec95ce7",
+    "frontend/src/app/venues/page.tsx": "1c892db85db19526744bdb18736bbc5558b6929012b95c2ef43d1e6b2c2103e3",
+    "frontend/src/lib/bookings.ts": "f17da5c9542ea924c2f4c270abfb69e21196fbc90812fb00aa162ded16825614",
+    "frontend/src/lib/equipment-requests.ts": "b23b106c5b679944c1a5a78dd9bed1bc726f43f5f5716319301044d13ef0d26d",
+    "frontend/src/lib/equipment.ts": "8db6ee6263711f4f73b13a741142889d1279f9cdfccf55a76ba3dea03d7b1947",
+    "frontend/src/lib/events.ts": "e6ba70c9b82a918cc221b3a031db1763f11aed0f89c47b6ec4cc5a08a68032e8",
+    "frontend/src/lib/record-reference.test.ts": "56d0558f55507a3b546ba11537b6bae7027553fae43108d9a65834c76c7f471b",
+    "frontend/src/lib/record-reference.ts": "33201c3435afd41fae09a51d4dba1e3eb51ff456d036b1906fe1ca950a16ebf7",
+    "frontend/src/lib/registrations.ts": "d59ff4c7cf444de9829259118b3a15f282bc05bf6ab388e74a943e48cc9adcf2",
+    "frontend/src/lib/venues.ts": "c8d2bb690d684ca49274858fe313a5031eaeef93ddeffa56addab1607e0aec49",
+    "supabase/migrations/20261031040259_readable_record_references.sql": "f4d02ddd85be27b5e57f197953556e31948cb43407bc3310ce7888a03c038dd8",
+    "supabase/tests/readable_references.sql": "712c40dcf6b2adc5790c96d3646915dc4478a7b32efebcae981670c52b2a1ae8",
+    "supabase/tests/run.sh": "fb9ce88c5d7e6a95bec5b4d8cba432d51a798ce6e69d625eb2296340efe667c5"
+  },
+  "manual_environment": "Local manual database backed up before additive migration. Existing records retained; only known generated title suffixes cleaned up. API and frontend restarted and left running at ports 5001 and 3107. No shared database migration applied.",
+  "review": "D39 records the schema/API contract and exact-field test updates. Human review and hosted CI remain pending. No push or merge performed."
+}

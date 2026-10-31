@@ -226,6 +226,26 @@ def event_database(monkeypatch):
 
     client.table.side_effect = table
     def rpc(name, params):
+        if name == "transition_event_intake":
+            # Persistence double only. Real DB tests cover the locked transition rules.
+            row = next(row for row in rows if row["id"] == params["p_event_id"])
+            old, target, actor = row["status"], params["p_status"], params["p_actor_id"]
+            now = datetime.now(UTC).isoformat()
+            row.update(status=target, last_status_changed_by=actor, last_status_changed_at=now)
+            history.append({"id": len(history) + 1, "event_id": row["id"],
+                            "old_status": old, "new_status": target,
+                            "changed_by": actor, "changed_at": now})
+            if target in {"Planning", "Rejected"}:
+                row.update(decision_by=actor, decision_at=now, decision_reason=params["p_reason"])
+                rejected = target == "Rejected"
+                notifications.append({
+                    "id": len(notifications) + 1, "recipient_id": row["organiser_id"],
+                    "event_id": row["id"], "created_at": now,
+                    "notification_type": "event_rejected" if rejected else "event_approved",
+                    "message": ("Your event request was rejected: " + params["p_reason"]
+                                if rejected else "Your event request was accepted."),
+                })
+            return SimpleNamespace(execute=lambda: SimpleNamespace(data={"event": dict(row)}))
         assert name == "save_event_draft"
         matching = [row for row in rows if row["id"] == params["p_event_id"]
                     and row["organiser_id"] == params["p_organiser_id"]

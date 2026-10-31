@@ -1,5 +1,7 @@
 "use client";
 
+import { recordReference } from "@/lib/record-reference";
+
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { apiRequest } from "@/lib/api";
@@ -59,6 +61,7 @@ export default function BrowseEventsPage() {
             >
               <p className="text-xs text-muted-foreground">{event.category}</p>
               <h2 className="break-words text-lg font-semibold">{event.title}</h2>
+          {event.reference && <p className="text-xs text-muted-foreground">{recordReference(event, event.event_datetime)}</p>}
               <p className="text-sm text-muted-foreground">{eventTime(event.event_datetime)}</p>
               <p className="text-sm">{unavailable_reason ?? `${capacity.remaining} ${capacity.remaining === 1 ? "place" : "places"} remaining`}</p>
               <p className="text-sm font-medium text-primary">View event →</p>

@@ -1,5 +1,7 @@
 "use client";
 
+import { recordReference } from "@/lib/record-reference";
+
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { apiRequest, ApiError } from "@/lib/api";
@@ -53,8 +55,8 @@ function RequestList({ role }: { role: string }) {
         </ul>
         <footer className="space-y-1 text-xs text-muted-foreground">
           <p>Requested by {request.requester.display_name} · {equipmentTimestamp(request.requested_at)} SGT</p>
-          <p className="break-all">Request reference: {request.id}</p>
-          <p className="break-all">Event reference: {request.event_id}</p>
+          <p className="break-all">Request reference: {recordReference(request, request.requested_at)}</p>
+          <p className="break-all">Event reference: {recordReference(request.event, request.event.event_datetime)}</p>
           {request.updated_at && <p>Last status update: {equipmentTimestamp(request.updated_at)} SGT</p>}
         </footer>
         <Link href={`/equipment/requests/${request.id}`} className="inline-flex rounded-md border border-border px-4 py-2 text-sm font-medium hover:bg-muted">
