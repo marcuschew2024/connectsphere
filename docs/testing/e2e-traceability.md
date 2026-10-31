@@ -18,13 +18,13 @@ file) in the *same PR as the fix*. Owner does a final sweep at freeze — any ro
 | 1 | Auth / RBAC | **Attendee/Venue/Tech CANNOT change status or see internal fields** (SCRUM-135) | `event-status.spec.ts` (extend) | ❌ | Jerome |
 | 2 | Event request creation | Organiser creates + submits | `events.spec.ts` | ✅ | — |
 | 3 | Draft requests | Save + resume + submit draft | `drafts.spec.ts` | ✅ | — |
-| 4 | Review & approval | Coordinator approve / reject | *(verify)* | 🔶 | Marcus |
-| 4 | Review & approval | Request clarification / amendment | `change-requests.spec.ts` *(verify)* | 🔶 | Marcus |
+| 4 | Review & approval | Coordinator approve / reject (+ reason required on reject) | `event-decision.spec.ts` | ✅ | Marcus |
+| 4 | Review & approval | Request clarification / amendment | `events.spec.ts` (return for clarification) | ✅ | Marcus |
 | 5 | Coordinator assignment | Auto-assign on submit | `coordinator-assignment.spec.ts` | ✅ | — |
 | 5 | Coordinator assignment | Lead reassign from queue | *(verify)* | 🔶 | Ernest |
 | 6 | Event status mgmt | Lifecycle Planning→Confirmed→Completed view | `event-status.spec.ts` | ✅ | — |
 | 7 | Event info mgmt | Edit during Planning | *(verify)* | 🔶 | Marcus |
-| 7 | Event info mgmt | **Impactful change flagged vs ordinary edit** (SCRUM-58) | — | ❌ | Marcus |
+| 7 | Event info mgmt | **Impactful change flagged vs ordinary edit** (SCRUM-58) | `change-request-apply.spec.ts` (significant vs ordinary) | ✅ | Marcus |
 | 8 | Venue catalogue | Add / update / retire + full record + layouts | `venues.spec.ts`, `venue-edit.spec.ts` | 🔶 | Jessica |
 | 9 | Venue availability calendar | Availability + blocked periods | `venue-calendar.spec.ts` | ✅ | — |
 | 10 | Venue search & filter | Filter by date/capacity/facility/etc | `venues.spec.ts` *(verify)* | 🔶 | Jessica |
@@ -39,7 +39,7 @@ file) in the *same PR as the fix*. Owner does a final sweep at freeze — any ro
 | 18 | Attendee registration | **Organiser/Coordinator view event registrations** (SCRUM-45) | NEW / extend | ❌ | Jerome |
 | 19 | Event change requests | Raise change post-submit/confirm | `change-requests.spec.ts` | ✅ | — |
 | 19 | Event change requests | **Significant change re-opens venue/equipment review + notifies** (SCRUM-47/62) | `change-requests.spec.ts` (extend) | 🔶 | Ernest |
-| 20 | Notifications | **Fires on submit/decision/assignment/booking/registration/change/cancel** (SCRUM-51) | `notifications.spec.ts` (extend) | 🔶 | Marcus |
+| 20 | Notifications | **Fires on submit/decision/assignment/booking/registration/change/cancel** (SCRUM-51) | `notifications.spec.ts` (decision + pool feeds), `change-request-apply.spec.ts` (change re-review), `event-cancel.spec.ts` (attendees notified) | ✅ | Marcus |
 | — | Safety check | Gates preparation until passed | `event-safety-check.spec.ts`, `safety-officer.spec.ts` | ✅ | — |
 | — | Confirm / complete | Confirm + complete/close event | `event-confirm.spec.ts`, `event-complete.spec.ts` | ✅ | — |
 
