@@ -152,6 +152,9 @@ export default function EventChangeRequests({
             {affected[request.id] && needsReReview(request) && <p className="mt-2 text-sm text-muted-foreground">
               Re-check {affected[request.id]!.venue_bookings} venue booking(s) and {affected[request.id]!.equipment_reservations} equipment reservation(s). Nothing was cancelled.
             </p>}
+            {needsReReview(request) && (affected[request.id]?.over_capacity?.length ?? 0) > 0 && <p role="alert" className="mt-2 rounded-lg border border-destructive/30 bg-destructive/5 p-2 text-sm text-destructive">
+              Venue too small for the new attendance: {affected[request.id]!.over_capacity!.map((venue) => `${venue.venue_name} (capacity ${venue.capacity})`).join(", ")}. Re-book a larger venue or adjust the attendance.
+            </p>}
             {request.review_note && <p className="mt-2 whitespace-pre-wrap text-sm text-muted-foreground">Coordinator note: {request.review_note}</p>}
             {isCoordinator && (request.status === "Pending" || request.status === "Under Review") && <div className="mt-3 flex flex-wrap gap-2">
               {request.status === "Pending" && <Button type="button" variant="outline" size="sm" onClick={() => void review(request, "Under Review")}>Start review</Button>}

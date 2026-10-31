@@ -1232,4 +1232,39 @@ auto-assign in D9) are recorded explicitly rather than left implicit.
   mark Damaged / Under Maintenance, confirm refused (409) with the event and reservation
   unchanged, repair, confirm allowed. The new tests fail without the fix.
   `e2e/unusable-equipment.spec.ts` covers the request page.
+
+### D43 — An attendance increase re-checks booked venue capacity (SCRUM-152, SCRUM-47/62)
+
+- **Context.** The Release v1 review reproduced this: approving a change from 20 to 150
+  attendees on a 100-capacity booked venue applied the change, but nothing compared
+  the new attendance with the venue's capacity. SCRUM-47 AC4 and SCRUM-62 require that
+  re-check and a flag.
+- **Decision (owner, Ernest, 31 Oct 2026). Flag only, consistent with D36:** nothing is
+  blocked, cancelled or un-booked.
+  - **Approval.** `approve_change_request()` (replaced by migration
+    `20261031180000_scrum_152_venue_too_small_flag.sql`) lists every active booking
+    (Requested / Pending / Held / Confirmed) whose venue capacity is below the newly
+    applied attendance. It names them in the Coordinator's re-review notice ("Venue
+    too small for N attendees: …") and returns them as `affected.over_capacity`.
+  - **Event page.** `GET /venues/bookings/event/<id>` re-checks each active booking with
+    the existing `CapacityRule` (SCRUM-29), so the bookings panel shows "Venue too
+    small" for as long as the mismatch exists.
+- **Constraints.** Same function signature, grants and transaction. The check runs only
+  when attendance was actually applied. No schema change.
+- **Verification.** `test_venue_too_small_acceptance.py` runs on the real database:
+  over capacity is flagged on the notice, the response and the bookings; within
+  capacity and cancelled bookings are not flagged; the booking and event are
+  unchanged. The tests fail against the previous function and API.
+  `test_event_bookings_capacity_warning.py` (unit) covers the boundaries: at capacity
+  and one under are not flagged, one over is; every active status is flagged and
+  rejected / cancelled / released bookings are not; missing capacity or attendance is
+  never flagged. The integration test repeats "one over" on Requested and Held
+  bookings. `e2e/venue-too-small.spec.ts` covers the event page.
+- **Changed existing test (reviewable).** In `test_change_request_apply_acceptance.py`,
+  the significant-change test compared `affected` exactly, and its own scenario
+  (150 attendees on a 100-capacity venue) is the bug. Its count assertion is
+  unchanged; it now also asserts `over_capacity`: the venue is listed for the
+  attendance change and nothing for the venue-requirements change.
+- **Trade-off.** Confirmation is not blocked by a too-small venue; the Coordinator
+  decides, per D36 / S1 Q32. Blocking would be a new gate rule and is deferred.
 - **Owner.** Ernest Wong.
