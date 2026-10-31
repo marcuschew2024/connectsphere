@@ -1081,6 +1081,36 @@ Shared Supabase migration deployment is separate and is not implied by the Git m
   pushing and merging the combined changes behind green CI. This is merge authority,
   without a claim of independent teammate acceptance or a completed hosted run.
 
+### D39 — Release 1 notification coverage; attendee-change notification deferred (SCRUM-51, SCRUM-49)
+
+- **Context.** Feature #20 requires notifications across the workflow. Every
+  `create_notification` site was audited against the Section-1/2 customer clarifications
+  to confirm the required triggers fire and to decide the edges explicitly.
+- **Decision.** Treat #20 as covered for Release 1. The triggers that fire: request
+  approved/rejected and clarification requested (→ Organiser); change request raised
+  (→ Coordinator) and decided (→ Organiser); a **post-confirmation significant change
+  auto-flags the Coordinator for re-review** (S1 Q4); venue booking requested (→ Venue
+  Staff pool) and decided (→ Coordinator); equipment request (→ Tech Support pool); and
+  **cancellation notifies every registered attendee** (S1 Q20). Three items are
+  **deliberately out of R1** because no clarification requires them: (1) a
+  coordinator-assignment notification — assignment is automatic (S1 Q10) and visible in
+  the coordinator's queue; (2) a confirmation notice to the Organiser — the Organiser
+  tracks status on their own requests list; (3) notifying **registered attendees** of a
+  significant (non-cancellation) change — **S1 Q4 requires only "a notification" (the
+  Coordinator auto-flag, satisfied); only S1 Q20 (cancellation) explicitly names
+  attendees.**
+- **Constraints / guardrails.** The hybrid user-or-role recipient model (D27) already
+  routes each notification to exactly one recipient or pool, so no delivery gaps remain
+  for the triggers above.
+- **Verification.** Notification feed/recipient tests; `cancel_event` inserts one
+  `event_cancelled` row per registered attendee; the change-request RPC inserts the
+  Organiser "approved" and, when significant, the Coordinator "re-review" rows.
+- **Trade-off.** If the PO later wants attendees told about an approved significant change
+  (handover open question G2), it is a small addition — mirror `cancel_event`'s
+  attendee-registration insert in the change-request RPC. Not built now: it is unrequired
+  by the clarifications and would be untested surface added at code freeze.
+- **Owner.** Marcus (notification scope).
+
 ## AI usage summary
 
 Per-feature view of where AI assistance was applied, always under human specification and
