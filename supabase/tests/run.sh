@@ -168,3 +168,9 @@ for pass in 1 2; do
   echo "Readable references migration pass $pass: PASS"
 done
 psql -v ON_ERROR_STOP=1 -f /sql/tests/readable_references.sql
+
+# SCRUM-152: approval re-checks booked venue capacity against new attendance.
+for pass in 1 2; do
+  psql -v ON_ERROR_STOP=1 -f /sql/migrations/20261031180000_scrum_152_venue_too_small_flag.sql > /tmp/migration-output.txt
+  echo "Venue too-small flag migration pass $pass: PASS"
+done

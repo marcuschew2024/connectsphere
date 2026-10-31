@@ -103,7 +103,8 @@ def list_bookings_for_event_detail(event_id: str) -> list[dict]:
     """Return every venue arrangement belonging to one event."""
     try:
         result = _client().table("venue_bookings").select(
-            "*,venue:venues(reference,name,location),event:events(reference,title,event_datetime,expected_attendance)"
+            "*,venue:venues(reference,name,location,capacity),"
+            "event:events(reference,title,event_datetime,expected_attendance)"
         ).eq("event_id", event_id).order("requested_at").execute()
         return result.data or []
     except ServiceUnavailable:

@@ -22,7 +22,12 @@ export const SIGNIFICANT_FIELDS: ReadonlySet<string> = new Set(["expected_attend
 export type ChangeApprovalResult = {
   change_request: EventChangeRequest;
   event?: EventRecord;
-  affected?: { venue_bookings: number; equipment_reservations: number };
+  affected?: {
+    venue_bookings: number;
+    equipment_reservations: number;
+    // SCRUM-152: active bookings whose venue is below the new expected attendance.
+    over_capacity?: { booking_id: string; venue_name: string; capacity: number }[];
+  };
 };
 
 export function changeFieldLabel(name: string) {
