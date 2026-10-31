@@ -231,3 +231,21 @@ def test_suggestions_require_catalogue_permissions(search_api, user_id, status):
     assert response.status_code == status
     if status == 200:
         assert response.json["facilities"] == ["Projector", "Wi-Fi"]
+
+
+def test_availability_returns_blocked_when_unavailability_blocks_exist(monkeypatch):
+    monkeypatch.setattr("app.venue_search.find_overlapping_bookings", lambda *args: [])
+    monkeypatch.setattr("app.venue_search.list_unavailability", lambda *args: [{"id": "unavail-1"}])
+    venue = {**details(), "id": "venue-1"}
+    assert availability(venue, slot()) == "blocked"
+
+
+def test_search_venues_excludes_retired_venues_when_include_retired_false(monkeypatch):
+    rows = [
+        {**details(), "id": "1", "is_retired": True},
+        {**details(), "id": "2", "is_retired": False},
+    ]
+    monkeypatch.setattr("app.venue_search.list_venues", lambda page: (rows, False))
+    results, more = search_venues(1, {}, include_retired=False)
+    assert [row["id"] for row in results] == ["2"]
+    assert more is False
