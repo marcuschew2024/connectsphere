@@ -123,7 +123,7 @@ def test_end_before_start_is_rejected(booking_api):
     assert created == []
 
 
-def test_attendance_over_venue_capacity_is_rejected(booking_api, monkeypatch):
+def test_attendance_over_venue_capacity_remains_advisory(booking_api, monkeypatch):
     client, created, _, _ = booking_api
     monkeypatch.setattr(
         "app.bookings.get_venue", lambda venue_id: {"id": venue_id, "capacity": 50}
@@ -133,9 +133,8 @@ def test_attendance_over_venue_capacity_is_rejected(booking_api, monkeypatch):
         "/venues/bookings", json=payload(expected_attendance=51), headers=ORIGIN
     )
 
-    assert response.status_code == 400
-    assert "capacity" in response.json["error"]
-    assert created == []
+    assert response.status_code == 201
+    assert len(created) == 1
 
 
 def test_confirmed_or_blocked_overlap_is_rejected(booking_api, monkeypatch):

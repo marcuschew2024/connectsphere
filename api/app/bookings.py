@@ -71,10 +71,6 @@ def _validated_booking_fields(data, event: dict, existing: dict | None = None) -
     )
     if type(attendance) is not int or not 1 <= attendance <= 2_147_483_647:
         raise BadRequest("Enter a positive whole-number attendance.")
-    if attendance > venue["capacity"]:
-        raise BadRequest(
-            f"Expected attendance cannot exceed this venue's capacity of {venue['capacity']}."
-        )
     layout = data.get("layout", source.get("layout"))
     if not isinstance(layout, str) or not layout.strip() or len(layout.strip()) > 100:
         raise BadRequest("Choose a layout of 1 to 100 characters.")
@@ -170,10 +166,6 @@ def submit_booking():
     attendance = data.get("expected_attendance", event.get("expected_attendance"))
     if type(attendance) is not int or not 1 <= attendance <= 2_147_483_647:
         raise BadRequest("Enter a positive whole-number attendance.")
-    if attendance > venue["capacity"]:
-        raise BadRequest(
-            f"Expected attendance cannot exceed this venue's capacity of {venue['capacity']}."
-        )
     layout = data.get("layout")
     if not isinstance(layout, str) or not layout.strip() or len(layout.strip()) > 100:
         raise BadRequest("Choose a layout of 1 to 100 characters.")
