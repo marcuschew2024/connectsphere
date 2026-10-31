@@ -1161,3 +1161,24 @@ auto-assign in D9) are recorded explicitly rather than left implicit.
 - **Trade-off.** Sequences can have gaps after failed/rolled-back operations or deletion; backfilled numbering is not a promise of creation order. Sequential references reveal approximate record volume and are display identifiers, not access tokens. The reference never changes when its adjacent schedule date changes. A missing reference from an older backend falls back to the existing ID during rollout; deploy the migration before the API queries.
 - **Review and owner.** The requesting project owner approved the visible naming design and cross-record scope on 31 October 2026. Jerome (current branch/story owner) and Marcus (product/access-policy owner) remain the named human review owners for this API/schema extension. Their independent review and hosted CI are required before merge; neither is claimed here. This follow-up is separate from SCRUM-135's original lifecycle scope and has no invented Jira ticket.
 - **Reviewable test updates.** Existing exact-field assertions add only the intentionally public reference field; all privacy and ownership checks remain. The RBAC fixture now includes a reference and explicitly proves the numeric storage column stays hidden. Existing integrated journeys gain reference assertions and identify their own event links by UUID, allowing realistic duplicate titles without random visible suffixes. No existing test is removed or renamed.
+
+### D40 — Venue bookings are single-day, enforced server-side in Singapore time (SCRUM-31)
+
+- **Context.** The booking form already blocked a booking whose start and end fall on
+  different days, but the API did not: a direct request could still create an overnight or
+  multi-day booking, so the UI rule was not a real guarantee (Sprint 4 walkthrough finding).
+- **Decision.** `_validated_booking_fields` and the `submit_booking` route reject a booking
+  whose start and end are not on the **same calendar day in Singapore time** (UTC+8), with
+  the same message the form uses. This is a derived rule, not a verbatim clarification: the
+  customer scoped **multi-day / multi-session events out of Release 1** (Customer S2 Q1/Q6),
+  and an event carries a single `event_datetime` with no duration field (D36), so a booking
+  spanning days has no place to belong.
+- **Constraints / guardrails.** "Same day" is judged in Singapore time to match the booking
+  form, which compares the date pickers in the user's local (Singapore) day; a UTC comparison
+  would disagree for evening slots. The check runs after the end-after-start check and before
+  the not-in-the-past check, on both the create and independent-change paths.
+- **Verification.** Backend tests reject a cross-day booking (including an evening slot that
+  stays within one Singapore day but crosses a UTC day) and accept a same-day booking.
+- **Trade-off.** A legitimate overnight event cannot be booked as one record — acceptable
+  because multi-day events are explicitly out of scope; revisit if that scope changes.
+- **Owner.** Marcus (Coordinator/venue-booking flow).
