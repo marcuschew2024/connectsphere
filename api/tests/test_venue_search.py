@@ -39,7 +39,7 @@ def test_combined_filters_match_case_whitespace_and_inclusive_capacity():
 
 
 @pytest.mark.parametrize("values", [
-    {"location": "Building C"}, {"attendance": "101"}, {"capacity": "101"},
+    {"location": "Building C"}, {"capacity": "101"},
     {"layout": "Theatre"}, {"facilities": "Projector, Stage"},
     {"accessibility": "Hearing loop"}, {"facilities": "Project"},
 ])
@@ -83,14 +83,14 @@ def test_search_filters_before_pagination_and_preserves_rows(monkeypatch):
         return rows[start:start + 6], start + 6 < len(rows)
 
     monkeypatch.setattr("app.venue_search.list_venues", read)
-    first, more = search_venues(1, filters(attendance="100"))
-    second, more2 = search_venues(2, filters(attendance="100"))
-    last, more3 = search_venues(3, filters(attendance="100"))
+    first, more = search_venues(1, filters(capacity="100"))
+    second, more2 = search_venues(2, filters(capacity="100"))
+    last, more3 = search_venues(3, filters(capacity="100"))
     assert [row["id"] for row in first + second + last] == [str(i) for i in range(6, 20)]
     assert more and more2 and not more3
     assert all(row["search_availability"] == "not_checked" for row in first)
-    assert search_venues(4, filters(attendance="100")) == ([], False)
-    assert search_venues(1, filters(attendance="101")) == ([], False)
+    assert search_venues(4, filters(capacity="100")) == ([], False)
+    assert search_venues(1, filters(capacity="101")) == ([], False)
     assert rows == original
 
 
@@ -183,7 +183,8 @@ def test_api_validation_and_empty_results(search_api):
     assert invalid.status_code == 400
     assert "positive whole number" in invalid.json["error"]
     response = search_api.get("/venues?attendance=101", headers=ORIGIN)
-    assert response.json == {"venues": [], "page": 1, "has_more": False}
+    assert response.json["venues"][0]["id"] == "venue-1"
+    assert response.json["page"] == 1
 
 
 @pytest.mark.parametrize("values", [{"available_only": "yes"}, {"available_only": "true"}])
@@ -194,6 +195,24 @@ def test_available_only_needs_a_valid_toggle_and_complete_slot(values):
 
 def test_available_only_false_can_browse_without_a_slot():
     assert filters(available_only="false") == {"available_only": False}
+
+
+def test_availability_returns_blocked_when_unavailability_blocks_exist(monkeypatch):
+    monkeypatch.setattr("app.venue_search.find_overlapping_bookings", lambda *args: [])
+    monkeypatch.setattr("app.venue_search.list_unavailability", lambda *args: [{"id": "unavail-1"}])
+    venue = {**details(), "id": "venue-1"}
+    assert availability(venue, slot()) == "blocked"
+
+
+def test_search_venues_excludes_retired_venues_when_include_retired_false(monkeypatch):
+    rows = [
+        {**details(), "id": "1", "is_retired": True},
+        {**details(), "id": "2", "is_retired": False},
+    ]
+    monkeypatch.setattr("app.venue_search.list_venues", lambda page: (rows, False))
+    results, more = search_venues(1, {}, include_retired=False)
+    assert [row["id"] for row in results] == ["2"]
+    assert more is False
 
 
 def test_available_only_filters_before_pagination_and_checks_each_venue_once(monkeypatch):

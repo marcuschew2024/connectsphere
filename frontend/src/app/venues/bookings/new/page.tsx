@@ -8,10 +8,12 @@ import type { CoordinatorEventRecord } from "@/lib/events";
 import { VENUE_DAYS, type Venue } from "@/lib/venues";
 import { AppShell } from "@/components/app-shell";
 import { useActingRole } from "@/lib/use-acting-role";
+import { eventVenueRequirements } from "@/lib/event-venue-requirements";
 
 const INPUT =
   "w-full rounded-md border border-input bg-background px-3 py-2.5 text-sm text-foreground focus:border-ring focus:outline-none focus:ring-2 focus:ring-ring/30";
 const SELECT = `${INPUT} appearance-none cursor-pointer pr-9`;
+
 
 // A native <select> wrapped so it gets a consistent chevron across browsers.
 function SelectField({
@@ -42,6 +44,10 @@ export default function NewBookingPage() {
   const [selectedEventId, setSelectedEventId] = useState("");
   const [selectedVenueId, setSelectedVenueId] = useState("");
   const [attendance, setAttendance] = useState("");
+  const [layout, setLayout] = useState("");
+  const [specialRequirements, setSpecialRequirements] = useState("");
+  const [startAt, setStartAt] = useState("");
+  const [endAt, setEndAt] = useState("");
   const [error, setError] = useState("");
   const [fields, setFields] = useState<Record<string, string>>({});
   const [saved, setSaved] = useState(false);
@@ -73,7 +79,12 @@ export default function NewBookingPage() {
       setVenues(allVenues);
       setSelectedEventId(planning[0]?.id ?? "");
       // Default the attendance to the chosen event's expected headcount.
-      setAttendance(planning[0]?.expected_attendance != null ? String(planning[0].expected_attendance) : "");
+      const requirements = eventVenueRequirements(planning[0]);
+      setAttendance(requirements.attendance);
+      setLayout(requirements.layout);
+      setSpecialRequirements(requirements.specialRequirements);
+      setStartAt(requirements.date && requirements.startTime ? `${requirements.date}T${requirements.startTime}` : "");
+      setEndAt(requirements.date && requirements.endTime ? `${requirements.date}T${requirements.endTime}` : "");
       setSelectedVenueId(allVenues[0]?.id ?? "");
     }
     loadOptions().catch((requestError) =>
@@ -113,7 +124,12 @@ export default function NewBookingPage() {
     setSelectedEventId(eventId);
     setSuitability(null);
     const chosen = events.find((event) => event.id === eventId);
-    if (chosen?.expected_attendance != null) setAttendance(String(chosen.expected_attendance));
+    const requirements = eventVenueRequirements(chosen);
+    setAttendance(requirements.attendance);
+    setLayout(requirements.layout);
+    setSpecialRequirements(requirements.specialRequirements);
+    setStartAt(requirements.date && requirements.startTime ? `${requirements.date}T${requirements.startTime}` : "");
+    setEndAt(requirements.date && requirements.endTime ? `${requirements.date}T${requirements.endTime}` : "");
   }
 
   function onVenueChange(venueId: string) {
@@ -259,17 +275,17 @@ export default function NewBookingPage() {
             )}
 
             <div className="grid gap-4 sm:grid-cols-2">
-              <label className="block text-sm font-medium">Start<input name="start_at" type="datetime-local" required className={`${INPUT} mt-2`} /></label>
-              <label className="block text-sm font-medium">End<input name="end_at" type="datetime-local" required className={`${INPUT} mt-2`} /></label>
+              <label className="block text-sm font-medium">Start<input name="start_at" type="datetime-local" required value={startAt} onChange={(event) => setStartAt(event.target.value)} className={`${INPUT} mt-2`} /></label>
+              <label className="block text-sm font-medium">End<input name="end_at" type="datetime-local" required value={endAt} onChange={(event) => setEndAt(event.target.value)} className={`${INPUT} mt-2`} /></label>
             </div>
             <div className="grid gap-4 sm:grid-cols-2">
               <label className="block text-sm font-medium">
                 Expected attendance <span className="font-normal text-muted-foreground">(from the event — editable)</span>
                 <input name="expected_attendance" type="number" min="1" required value={attendance} onChange={(e) => setAttendance(e.target.value)} className={`${INPUT} mt-2`} />
               </label>
-              <label className="block text-sm font-medium">Layout<input name="layout" required maxLength={100} placeholder="Theatre, Classroom..." className={`${INPUT} mt-2`} /></label>
+              <label className="block text-sm font-medium">Layout<input name="layout" required maxLength={100} placeholder="Theatre, Classroom..." value={layout} onChange={(event) => setLayout(event.target.value)} className={`${INPUT} mt-2`} /></label>
             </div>
-            <label className="block text-sm font-medium">Special requirements<textarea name="special_requirements" maxLength={2000} rows={5} className={`${INPUT} mt-2`} placeholder="Accessibility, equipment, setup, or other requirements" /></label>
+            <label className="block text-sm font-medium">Special requirements<textarea name="special_requirements" maxLength={2000} rows={5} value={specialRequirements} onChange={(event) => setSpecialRequirements(event.target.value)} className={`${INPUT} mt-2`} placeholder="Accessibility, equipment, setup, or other requirements" /></label>
 
             <div className="flex flex-wrap gap-3">
               <button type="submit" disabled={busy} className="rounded-md bg-primary px-5 py-3 text-sm font-semibold text-primary-foreground disabled:opacity-50">{busy ? "Submitting..." : "Submit booking request"}</button>

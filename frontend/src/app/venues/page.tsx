@@ -6,7 +6,7 @@ import Link from "next/link";
 import { Building2, CheckCircle2, CircleHelp, CircleX, MapPin, TriangleAlert, Users } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { apiRequest } from "@/lib/api";
-import { VENUE_DAYS, type Venue } from "@/lib/venues";
+import { VENUE_DAYS, VENUE_LAYOUTS, type Venue } from "@/lib/venues";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import VenueWorkspace from "./venue-workspace";
@@ -37,7 +37,60 @@ type PlanningEvent = {
   id: string;
   title: string;
   status: string;
+  expected_attendance: number | null;
+  event_datetime: string | null;
+  venue_requirements: string | null;
+  accessibility_requirements: string | null;
 };
+
+type SearchValues = {
+  attendance: string;
+  layout: string;
+  facilities: string;
+  accessibility: string;
+  date: string;
+  start_time: string;
+  end_time: string;
+};
+
+function requirementsForEvent(event: PlanningEvent | undefined): SearchValues {
+  const venueRequirements = (event?.venue_requirements ?? "")
+    .split(",")
+    .map((value) => value.trim())
+    .filter(Boolean);
+  const layouts = venueRequirements.filter((value) =>
+    VENUE_LAYOUTS.some((layout) => layout.toLowerCase() === value.toLowerCase()),
+  );
+  const facilities = venueRequirements.filter((value) => !layouts.includes(value));
+  const timing = eventTiming(event?.event_datetime);
+  return {
+    attendance: event?.expected_attendance != null ? String(event.expected_attendance) : "",
+    layout: layouts[0] ?? "",
+    facilities: facilities.join(", "),
+    accessibility: event?.accessibility_requirements ?? "",
+    date: timing.date,
+    start_time: timing.startTime,
+    end_time: timing.endTime,
+  };
+}
+
+function eventTiming(value: string | null | undefined) {
+  if (!value) return { date: "", startTime: "", endTime: "" };
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return { date: "", startTime: "", endTime: "" };
+  const parts = new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Asia/Singapore", year: "numeric", month: "2-digit", day: "2-digit",
+    hour: "2-digit", minute: "2-digit", hourCycle: "h23",
+  }).formatToParts(date);
+  const part = (type: Intl.DateTimeFormatPartTypes) =>
+    parts.find((item) => item.type === type)?.value ?? "";
+  const startTime = `${part("hour")}:${part("minute")}`;
+  return {
+    date: `${part("year")}-${part("month")}-${part("day")}`,
+    startTime,
+    endTime: "",
+  };
+}
 
 function Catalogue({ canCreate }: { canCreate: boolean }) {
   const [venues, setVenues] = useState<Venue[]>([]);
@@ -49,6 +102,7 @@ function Catalogue({ canCreate }: { canCreate: boolean }) {
   const [filters, setFilters] = useState("");
   const [planningEvents, setPlanningEvents] = useState<PlanningEvent[]>([]);
   const [selectedEventId, setSelectedEventId] = useState("");
+  const [searchValues, setSearchValues] = useState<SearchValues>(requirementsForEvent(undefined));
   const [suitabilityByVenue, setSuitabilityByVenue] = useState<Record<string, Suitability>>({});
   const [checkingSuitability, setCheckingSuitability] = useState(false);
   const top = useRef<HTMLDivElement>(null);
@@ -109,7 +163,7 @@ function Catalogue({ canCreate }: { canCreate: boolean }) {
       <p className="text-sm text-muted-foreground">Shared with Venue Staff and Coordinators</p>
       {canCreate && <Button asChild><Link href="/venues/new">Add a venue <span aria-hidden="true">＋</span></Link></Button>}
     </div>
-    <VenueSearchForm onSearch={search} busy={loading} />
+    <VenueSearchForm key={selectedEventId || "venue-search"} initialValues={searchValues} onSearch={search} busy={loading} />
     <div className="rounded-xl border border-border bg-card p-4">
       <label className="grid gap-2 text-sm font-medium" htmlFor="suitability-event">
         Check suitability for event
@@ -120,6 +174,8 @@ function Catalogue({ canCreate }: { canCreate: boolean }) {
           onChange={(event) => {
             setSelectedEventId(event.target.value);
             setSuitabilityByVenue({});
+            const chosen = planningEvents.find((item) => item.id === event.target.value);
+            setSearchValues(requirementsForEvent(chosen));
           }}
         >
           <option value="">Choose an event to see advisory flags</option>

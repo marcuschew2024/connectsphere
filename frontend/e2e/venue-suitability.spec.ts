@@ -18,7 +18,7 @@ async function configureSuitabilityScenario(
   flags: string[],
 ) {
   await page.route(`${API}/events`, (route) => route.fulfill({
-    json: { events: [event] },
+    json: { events: [{ ...event, is_mine: true }] },
   }));
   await page.route(`${API}/venues?*`, (route) => route.fulfill({
     json: { venues: [venue], page: 1, has_more: false },
@@ -52,6 +52,7 @@ test.beforeEach(async ({ page }) => {
         venue_requirements: "Banquet, Projector",
         accessibility_requirements: "Wheelchair",
         event_datetime: "2099-10-20T06:00:00Z",
+        is_mine: true,
       }],
     },
   }));
@@ -94,6 +95,9 @@ test.beforeEach(async ({ page }) => {
 test("Coordinator sees all advisory suitability flags and can still submit", async ({ page }) => {
   await page.goto("/venues/bookings/new");
 
+  await expect(page.getByLabel("Expected attendance")).toHaveValue("150");
+  await expect(page.getByLabel("Layout", { exact: true })).toHaveValue("Banquet");
+  await expect(page.getByLabel("Special requirements")).toHaveValue("Projector, Wheelchair");
   await expect(page.getByRole("region", { name: "Venue suitability advisory" })).toBeVisible();
   for (const flag of suitabilityFlags) {
     await expect(page.getByText(flag, { exact: true })).toBeVisible();
