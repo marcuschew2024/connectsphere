@@ -7,6 +7,7 @@ describe("eventVenueRequirements", () => {
     const event = {
       expected_attendance: 150,
       event_datetime: "2026-10-20T06:00:00Z",
+      event_end_datetime: "2026-10-20T09:00:00Z",
       venue_requirements: "Projector, Banquet, Wi-Fi, Blinds",
       facility_requirements: "Projector, Wi-Fi",
       accessibility_requirements: "Wheelchair",
@@ -23,7 +24,8 @@ describe("eventVenueRequirements", () => {
       customAccessibility: [],
       date: "2026-10-20",
       startTime: "14:00",
-      endTime: "",
+      // The Organiser's end time, pre-filled for the Coordinator's booking.
+      endTime: "17:00",
     });
   });
 

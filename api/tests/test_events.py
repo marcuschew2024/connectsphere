@@ -288,6 +288,7 @@ def details():
         "title": "  Campus workshop  ", "description": "Learn something together.",
         "purpose": "Share skills", "category": "Workshop",
         "event_datetime": (datetime.now(UTC) + timedelta(days=2)).isoformat(),
+        "event_end_datetime": (datetime.now(UTC) + timedelta(days=2, hours=2)).isoformat(),
         "expected_attendance": 50,
         "venue_requirements": "Room for 50", "accessibility_requirements": "Step-free access",
         "equipment_requirements": "Projector", "registration_requirements": "RSVP required",
@@ -356,7 +357,8 @@ def test_no_manual_reassignment_endpoint_exists(app):
 
 
 @pytest.mark.parametrize("field", [
-    "title", "description", "purpose", "category", "event_datetime", "expected_attendance",
+    "title", "description", "purpose", "category", "event_datetime",
+    "event_end_datetime", "expected_attendance",
 ])
 def test_each_required_field_blocks_submission(organiser, details, event_database, field):
     details.pop(field)
@@ -419,6 +421,36 @@ def test_today_future_time_accepted_and_offset_converted(organiser, details, mon
     assert response.json["event"]["event_datetime"] == "2026-09-20T05:00:00+00:00"
     details["event_datetime"] = "2026-09-20T11:59:00+08:00"
     assert organiser.post("/events", json=details, headers=ORIGIN).status_code == 400
+
+
+def test_end_time_is_persisted_and_offset_converted(organiser, details, event_database):
+    details["event_datetime"] = "2099-09-20T13:00:00+08:00"
+    details["event_end_datetime"] = "2099-09-20T15:00:00+08:00"
+    response = organiser.post("/events", json=details, headers=ORIGIN)
+    assert response.status_code == 201
+    assert response.json["event"]["event_end_datetime"] == "2099-09-20T07:00:00+00:00"
+
+
+@pytest.mark.parametrize("end", [
+    "2099-09-20T13:00:00+08:00",  # same instant as the start
+    "2099-09-20T12:00:00+08:00",  # before the start
+    "invalid", [], {},
+])
+def test_end_time_must_be_a_valid_time_after_the_start(organiser, details, event_database, end):
+    details["event_datetime"] = "2099-09-20T13:00:00+08:00"
+    details["event_end_datetime"] = end
+    response = organiser.post("/events", json=details, headers=ORIGIN)
+    assert response.status_code == 400
+    assert "event_end_datetime" in response.json["fields"]
+    assert event_database[0] == []
+
+
+def test_draft_may_omit_the_end_time(organiser, details, event_database):
+    details["action"] = "draft"
+    del details["event_end_datetime"]
+    response = organiser.post("/events", json=details, headers=ORIGIN)
+    assert response.status_code == 201
+    assert response.json["event"]["event_end_datetime"] is None
 
 
 @pytest.mark.parametrize("field", list(TEXT_LIMITS))
@@ -742,6 +774,7 @@ def _seed_planning_event(event_database, *, status="Planning", coordinator_id=2)
         "title": "Original title", "description": "Original description",
         "purpose": "Original purpose", "category": "Workshop",
         "event_datetime": (datetime.now(UTC) + timedelta(days=5)).isoformat(),
+        "event_end_datetime": (datetime.now(UTC) + timedelta(days=5, hours=3)).isoformat(),
         "expected_attendance": 40,
         "venue_requirements": "Main hall", "accessibility_requirements": "Ramp access",
         "equipment_requirements": "Microphone", "registration_requirements": "RSVP",
@@ -852,7 +885,8 @@ def _edit_payload(event, **overrides):
     payload = {
         name: event[name] for name in (
             "title", "description", "purpose", "category", "event_datetime",
-            "expected_attendance", "venue_requirements", "accessibility_requirements",
+            "event_end_datetime", "expected_attendance", "venue_requirements",
+            "accessibility_requirements",
             "equipment_requirements", "registration_requirements",
         )
     }

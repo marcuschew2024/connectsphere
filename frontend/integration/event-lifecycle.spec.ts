@@ -34,7 +34,7 @@ async function call(actor: Actor, method: string, path: string, data?: unknown, 
 async function submittedEvent(organiser: Actor, title: string) {
   return (await call(organiser, "POST", "/events", {
     action: "submit", title, description: "Campus workshop", purpose: "Private planning",
-    category: "Workshop", event_datetime: START, expected_attendance: 2,
+    category: "Workshop", event_datetime: START, event_end_datetime: END, expected_attendance: 2,
   }, 201)).event;
 }
 
@@ -91,7 +91,9 @@ test("INTEGRATED-01 same event crosses seven password-authenticated roles and pe
     await organiser.page.getByLabel("Description").fill("Learn together");
     await organiser.page.getByLabel("Purpose").fill("Private planning notes");
     await organiser.page.getByLabel("Category").fill("Workshop");
-    await organiser.page.getByLabel("Preferred date and time").fill("2099-10-20T14:00");
+    await organiser.page.getByLabel("Preferred date").fill("2099-10-20");
+    await organiser.page.getByLabel("Start time").fill("14:00");
+    await organiser.page.getByLabel("End time").fill("16:00");
     await organiser.page.getByLabel("Expected attendance").fill("2");
     await organiser.page.getByRole("button", { name: "Submit request", exact: true }).click();
     await expect(organiser.page.getByRole("heading", { name: "Event request received", exact: true })).toBeVisible();

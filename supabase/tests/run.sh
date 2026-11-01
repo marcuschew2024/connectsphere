@@ -197,3 +197,11 @@ for pass in 1 2; do
   psql -v ON_ERROR_STOP=1 -f /sql/migrations/20261101120000_scrum_48_reschedule_change_request.sql > /tmp/migration-output.txt
   echo "Reschedule change request migration pass $pass: PASS"
 done
+
+# Event end time: add event_end_datetime + end-after-start CHECK, and save_event_draft
+# persists it. Applied twice to prove the add-column/drop-recreate-constraint and
+# create-or-replace function are replay-safe.
+for pass in 1 2; do
+  psql -v ON_ERROR_STOP=1 -f /sql/migrations/20261101140000_event_end_time.sql > /tmp/migration-output.txt
+  echo "Event end time migration pass $pass: PASS"
+done

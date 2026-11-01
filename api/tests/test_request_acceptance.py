@@ -44,7 +44,8 @@ def details():
     return {
         "title": f"Acceptance workshop {uuid4()}", "description": "Learn together",
         "purpose": "Share skills", "category": "Workshop",
-        "event_datetime": "2099-10-20T06:00:00Z", "expected_attendance": 50,
+        "event_datetime": "2099-10-20T06:00:00Z",
+        "event_end_datetime": "2099-10-20T08:00:00Z", "expected_attendance": 50,
     }
 
 
