@@ -22,4 +22,4 @@ services:
       PGRST_DB_SCHEMAS: public
       PGRST_DB_ANON_ROLE: service_role
     ports:
-      - "127.0.0.1:55433:3000"
+      - "127.0.0.1:${ACCEPTANCE_REST_PORT:-55433}:3000"

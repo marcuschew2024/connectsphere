@@ -1,0 +1,186 @@
+{
+  "task": "SCRUM-163",
+  "verified_at_utc": "2026-11-01T14:09:58.143227+00:00",
+  "baseline_commit": "f2e2a75",
+  "branch": "feature/SCRUM-163-venue-e2e-flows",
+  "uncommitted_changes": true,
+  "verification_source_sha256": "fe1ab0c281e753d7da8ac235b39205c6619ff60c1238494312493ed27fb33b96",
+  "scope": "Release 1 venue rows 8, 10, 13; Chromium, production Next.js, real password sessions, Flask and disposable PostgreSQL/PostgREST.",
+  "integrated": {
+    "tests": 14,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0,
+    "seconds": 53.8101,
+    "artifact": {
+      "path": "/private/tmp/connectsphere-scrum163-audit/final-integrated.xml",
+      "sha256": "1326a4e7fdf300218183266e49498863888782b8a46ed17a10ca4a54d584ce60"
+    }
+  },
+  "repeatability": {
+    "tests": 9,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0,
+    "seconds": 30.273628,
+    "artifact": {
+      "path": "/private/tmp/connectsphere-scrum163-audit/repeated-venue-flows.xml",
+      "sha256": "db50b6ea7464a2c9f1f4e0f014024eaf0a1e724811e980730b5dd9afb0373976"
+    }
+  },
+  "mocked_browser_regression": {
+    "tests": 326,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0,
+    "seconds": 30.307879,
+    "artifact": {
+      "path": "/private/tmp/connectsphere-scrum163-audit-browser-fixed.xml",
+      "sha256": "43db7fbf6bdd8738adc9d05f9de7507b0bab0b6f226fc1da78499196079bfed5"
+    }
+  },
+  "frontend_units": {
+    "passed": 599,
+    "artifact": {
+      "path": "/private/tmp/connectsphere-scrum163-audit-unit.log",
+      "sha256": "2244680e2b24de33c872d80cb0507783e4a884e0b779e090b7566ddc5574fadc"
+    }
+  },
+  "focused_backend_regression": {
+    "passed": 201,
+    "artifact": {
+      "path": "/private/tmp/connectsphere-scrum163-audit-backend.log",
+      "sha256": "3fdb6b0c5d499b3736dcd06ec416925e4b73b0f916b970ed192b3452c873ef6b"
+    },
+    "scope": "Calendar routes, repository boundaries/failures/outcomes. Not a full backend acceptance run."
+  },
+  "sql": {
+    "exit_code": 0,
+    "artifact": {
+      "path": "/private/tmp/connectsphere-scrum163-audit-sql-final-verified.log",
+      "sha256": "73fddf65ea31484bad4e289f716bbcc29df9a417419dc2e2edd121ab79e41bce"
+    },
+    "includes": [
+      "Existing SQL harness",
+      "SCRUM-137 migration applied twice",
+      "Persisted buffer interval, true overlap refusal, touching boundary acceptance"
+    ]
+  },
+  "build": {
+    "exit_code": 0,
+    "artifact": {
+      "path": "/private/tmp/connectsphere-scrum163-audit-build-fixed.log",
+      "sha256": "5b459a18cf52e0e06e15f78dd95819a09503b9d0018a3b0308709eae65a94923"
+    }
+  },
+  "static_checks": [
+    "ESLint passed",
+    "TypeScript passed",
+    "Ruff api and scripts/qa passed",
+    "git diff --check passed",
+    "26 requirement mappings validated",
+    "8 evidence/isolation tooling tests passed"
+  ],
+  "combined_frontend_coverage": {
+    "lines": {
+      "total": 2326,
+      "covered": 2326,
+      "skipped": 0,
+      "pct": 100
+    },
+    "statements": {
+      "total": 2868,
+      "covered": 2868,
+      "skipped": 0,
+      "pct": 100
+    },
+    "functions": {
+      "total": 918,
+      "covered": 918,
+      "skipped": 0,
+      "pct": 100
+    },
+    "branches": {
+      "total": 2900,
+      "covered": 2900,
+      "skipped": 0,
+      "pct": 100
+    },
+    "branchesTrue": {
+      "total": 0,
+      "covered": 0,
+      "skipped": 0,
+      "pct": 100
+    }
+  },
+  "negative_controls": [
+    {
+      "fault": "missing-notification",
+      "result": "detected at intended assertion",
+      "assertion": "toHaveLength",
+      "expected_failure_run": {
+        "tests": 1,
+        "failures": 1,
+        "errors": 0,
+        "skipped": 0,
+        "seconds": 4.980844,
+        "artifact": {
+          "path": "/private/tmp/connectsphere-scrum163-audit/missing-notification.xml",
+          "sha256": "c71a5fb668c27216613faa074397600ea7e60c56a326314dda94e59f20c66372"
+        }
+      }
+    },
+    {
+      "fault": "lost-layout-update",
+      "result": "detected at intended assertion",
+      "assertion": "not.toBeChecked",
+      "expected_failure_run": {
+        "tests": 1,
+        "failures": 1,
+        "errors": 0,
+        "skipped": 0,
+        "seconds": 8.706539,
+        "artifact": {
+          "path": "/private/tmp/connectsphere-scrum163-audit/lost-layout-update.xml",
+          "sha256": "36c1d85998f26d1c4695e72431981bae9f0526908adae364547ac7e4d5b4042b"
+        }
+      }
+    },
+    {
+      "fault": "ignored-facility",
+      "result": "detected at intended assertion",
+      "assertion": "toHaveCount",
+      "expected_failure_run": {
+        "tests": 1,
+        "failures": 1,
+        "errors": 0,
+        "skipped": 0,
+        "seconds": 8.458093000000002,
+        "artifact": {
+          "path": "/private/tmp/connectsphere-scrum163-audit/ignored-facility.xml",
+          "sha256": "4ed1e6595b86a40230766463ff46dae87450799a7af969b51c67609af1305e4b"
+        }
+      }
+    }
+  ],
+  "limitations": [
+    "Hosted CI has not run for these unpushed changes.",
+    "Chromium only; no cross-browser or deployment rehearsal claim.",
+    "Prerequisite event/search fixtures use authenticated real API calls.",
+    "No full backend acceptance suite or concurrent-write stress run is claimed.",
+    "Human review required for additive calendar read fields and existing migration syntax correction."
+  ],
+  "changed_source_sha256": {
+    "api/app/booking_repository.py": "dc7351cd158884c82707c6cdd154ac066ac997dedacd14fc8d773a65255855cd",
+    "frontend/src/lib/availability.ts": "4f66e9c42ce6051842be86daea8218e95b23d583b37ebe4c44ae340f661e1b20",
+    "frontend/src/lib/availability-buffer.test.ts": "39a0842480a906048f21a993a6965d17ce298e1dbadde17ce45cc184d8cc0804",
+    "frontend/integration/venue-flows.spec.ts": "c7d081a2e7d33a0a434e7d0812fd555e17697deda366809f33d2d9bea20eae78",
+    "frontend/playwright.integrated.config.ts": "9d0d6bc94a36e2d801a8519855303d92d0c3d97e4f7655a187e253363015b1be",
+    "compose.acceptance.yml": "81953c25ef8ae085b7192204d71494f987303d1000db44b18aca69003927e7ed",
+    "scripts/qa/serve_api.py": "23a976d366b707aa99cbf5d5ecd0cb8f4b3911e3d0b0e24030ba1a6330879973",
+    "scripts/qa/test_parallel_database_isolation.py": "40a21eedc8e18a4bd301370d12364e72d4acc24cb0049e1d845e30dc43b2b23a",
+    "supabase/tests/run.sh": "04759590b3b5c9fd77719bdca959301ef0a8751fbaf1117c4eaf0d87f1e6c963",
+    "supabase/tests/venue_calendar_buffers.sql": "2019898bcc0fac7dc040df7ce1c95bcd0139ef973ddb21a0037cd834ce1e56bf",
+    "supabase/migrations/20261031163000_scrum_137_buffered_venue_overlap.sql": "0fffe8a1a1e2978a0c7a8a1c49230067ce63c320f2eaff2c9486128d4451f35a"
+  }
+}

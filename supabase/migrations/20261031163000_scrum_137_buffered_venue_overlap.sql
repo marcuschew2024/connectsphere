@@ -98,7 +98,7 @@ do $$
 begin
     if exists (select 1 from public.problematic_venue_bookings) then
         raise exception 'SCRUM-137: existing buffered venue booking conflicts were recorded in problematic_venue_bookings';
-    end;
+    end if;
 end;
 $$;
 

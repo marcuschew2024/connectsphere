@@ -239,7 +239,7 @@ def list_venue_bookings_in_range(
             start_at = (s_dt - timedelta(minutes=buffer_minutes)).isoformat()
             end_at = (e_dt + timedelta(minutes=buffer_minutes)).isoformat()
         result = _client().table("venue_bookings").select(
-            "id,venue_id,start_at,end_at,status"
+            "id,venue_id,start_at,end_at,status,occupied_start,occupied_end"
         ).eq("venue_id", venue_id).in_(
             "status", ["Confirmed", "Requested", "Blocked"]
         ).lt("start_at", end_at).gt("end_at", start_at).execute()
