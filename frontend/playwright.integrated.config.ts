@@ -26,7 +26,7 @@ export default defineConfig({
       command: `${process.env.QA_PYTHON ?? "../api/.venv/bin/python"} ../scripts/qa/serve_api.py`,
       url: "http://localhost:5001/health",
       reuseExistingServer: false,
-      env: { POSTGREST_TEST_URL: "http://127.0.0.1:55433" },
+      env: { POSTGREST_TEST_URL: process.env.POSTGREST_TEST_URL ?? "http://127.0.0.1:55433" },
     },
     {
       command: "npm run start -- --port 3107",

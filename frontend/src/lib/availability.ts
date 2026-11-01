@@ -13,7 +13,14 @@ const DAY_MS = 24 * 60 * 60 * 1000;
 export type CellState = "unavailable" | "available" | "tentative" | "confirmed" | "blocked";
 // "blocked" = maintenance/blocked periods from SCRUM-31 (booking status 'Blocked').
 
-export type CalendarBooking = { start_at: string; end_at: string; status: string };
+export type CalendarBooking = {
+  start_at: string;
+  end_at: string;
+  status: string;
+  // Persisted SCRUM-137 occupied window. Maintenance/legacy records use their raw slot.
+  occupied_start?: string | null;
+  occupied_end?: string | null;
+};
 
 export const DAY_LABELS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 
@@ -70,8 +77,8 @@ export function classifyCell(
   let tentative = false;
   let blocked = false;
   for (const b of bookings) {
-    const bStartMin = (Date.parse(b.start_at) - weekStart) / 60000;
-    const bEndMin = (Date.parse(b.end_at) - weekStart) / 60000;
+    const bStartMin = (Date.parse(b.occupied_start ?? b.start_at) - weekStart) / 60000;
+    const bEndMin = (Date.parse(b.occupied_end ?? b.end_at) - weekStart) / 60000;
     const overlaps = bStartMin < cellEndMin && cellStartMin < bEndMin; // half-open
     if (!overlaps) continue;
     if (b.status === "Confirmed") return "confirmed"; // confirmed wins outright

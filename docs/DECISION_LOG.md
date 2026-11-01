@@ -1552,3 +1552,42 @@ auto-assign in D9) are recorded explicitly rather than left implicit.
   the coverage result and release limitations. This record makes the compatibility
   changes reviewable; independent teammate review is not claimed. Green hosted CI
   remains the merge gate.
+
+### D55 — Display persisted venue occupancy in the calendar (SCRUM-163 / SCRUM-137)
+
+- **Context.** A deeper real Playwright audit of row 13 reproduced a mismatch on
+  `f2e2a75`: a confirmed 14:00–15:00 booking with 30-minute setup and turnaround was
+  correctly protected by booking checks, but the calendar showed the surrounding
+  13:30–14:00 and 15:00–15:30 periods as available. SCRUM-137 already defines the
+  occupied interval as `[start - setup, end + turnaround)`. The calendar repository
+  widened its fetch window but omitted the database's existing occupied timestamps.
+- **Decision.** Proposed implementation of that existing rule: include
+  `occupied_start` and `occupied_end` alongside unchanged event `start_at`/`end_at`
+  in the calendar read response, and use those persisted fields for cell occupancy.
+  Keep raw-slot fallback for maintenance rows and older records without the fields.
+  Do not recompute booking buffers independently in the browser.
+- **Constraints.** No database schema, writes, authorization, booking conflict logic,
+  status transition or actual event timing changes. This is an additive calendar
+  read contract. Existing tests remain intact; the new SCRUM-163 scenario is
+  strengthened to check the exact day, setup/turnaround cells and a free later cell.
+- **Verification setup correction.** The real-stack run then exposed that the disposable
+  SQL bootstrap never applied SCRUM-137's merged migration. Applying it revealed its
+  existing malformed `END` instead of `END IF` conflict guard. Correct that one line
+  (the same correction exists in unmerged commit `0400378`), apply the migration twice
+  in the harness, and add a rollback-only SQL check for occupied timestamps, a true
+  setup-only overlap and an allowed touching boundary. This introduces no new schema
+  design, removes no existing assertion and changes no shared database. The existing
+  inactive `venue_buffers_137.sql` is not represented as executed evidence.
+- **Verification.** The stronger integrated assertion failed before this fix at
+  `Tue 1pm: Confirmed`; the ordinary 2pm-only assertion had passed. New pure calendar
+  tests cover buffered occupancy, touching boundaries, tentative styling, legacy
+  nulls and maintenance fallback. The real journey also asserts raw versus occupied
+  timestamps. Final execution evidence is recorded in `docs/SCRUM-163.md`.
+- **Trade-off.** The hourly grid marks an hour busy if any portion is occupied;
+  it does not show minute-level subcells. API consumers can retain the original
+  event times. This fix does not establish every hold-expiry or concurrency case.
+- **Owner / review.** Jessica owns the existing venue-buffer rule; Ernest reviews
+  the additive read contract; Marcus owns SCRUM-163 and release acceptance. The user
+  requested accurate e2e verification and explicitly authorised fixing the discovered
+  display gap. This is not a claim of human design approval. Human review and green
+  hosted CI remain required before an explicitly authorised merge.

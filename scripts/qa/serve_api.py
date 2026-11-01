@@ -16,7 +16,12 @@ from pathlib import Path
 
 def create_test_app():
     url = os.environ.get("POSTGREST_TEST_URL")
-    if url not in {"http://127.0.0.1:55433", "http://localhost:55433"}:
+    # Two fixed local acceptance ports allow independent worktrees to verify without
+    # reusing or resetting another task's database. Hosted targets remain forbidden.
+    if url not in {
+        "http://127.0.0.1:55433", "http://localhost:55433",
+        "http://127.0.0.1:55434", "http://localhost:55434",
+    }:
         raise ValueError("POSTGREST_TEST_URL must name the disposable acceptance service.")
     # main.py loads .env at import time; empty values prevent local secrets loading.
     for key in ("SUPABASE_URL", "SUPABASE_KEY", "SUPABASE_SECRET_KEY"):

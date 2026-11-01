@@ -22,7 +22,7 @@ workflows and unresolved policy decisions even when related tests pass.
 | Frontend unit tests | `frontend/src/**/*.test.{ts,tsx}` | Vitest/V8 covers all `src` TS/TSX files, including unimported UI. Test files and declaration files are excluded. Browser execution is not added to this denominator. |
 | Combined frontend source coverage | `npm run test:coverage:combined` | Identical original-source Istanbul counters for units and the controlled browser suite; merged by source location with untouched files retained. Excludes server-render execution, not server-only files. |
 | Controlled browser tests | `frontend/e2e/` | Real browser and production Next.js with prepared HTTP responses. Useful UI evidence; not browser-to-database evidence. |
-| Integrated journeys | `frontend/integration/` | Real password sessions, Flask and disposable database. One event crosses all seven roles through Preparation. Real HTTP resource setup proves API behaviour, not every catalogue/booking form. Cancellation, completion, changes, rejection and venue replacement also have real journeys. Automatic hold expiry remains an explicit gap. |
+| Integrated journeys | `frontend/integration/` | Real password sessions, Flask and disposable database. One event crosses all seven roles through Preparation. Cancellation, completion, changes, rejection and venue replacement also have real journeys. SCRUM-163 adds venue create/edit/retire forms, combined search filters and booking submission/approval with a real Coordinator notification and slot conflicts. Prerequisite resource/event setup may use real HTTP calls; see each scenario's scope. Automatic hold expiry remains an explicit gap. |
 
 SCRUM-161 raises the backend regression gate to 100% with branches enabled. Run the
 complete suite against the disposable database: a unit-only run cannot satisfy this
@@ -69,7 +69,8 @@ If a local Turbopack worker-port restriction prevents a build, save that failure
 use `npm run build -- --webpack` for local verification. Record it as a fallback;
 CI's default production build still has to pass on the supported environment.
 `QA_PYTHON` can select another Python executable with the API dependencies installed;
-CI uses Python 3.12. The adapter allowlists only the disposable service at port 55433,
+CI uses Python 3.12. The adapter allowlists only the disposable localhost services at
+ports 55433 (default) and 55434 (alternate),
 clears Supabase credential environment variables before importing the application,
 and adds no fixture endpoints or session shortcuts.
 

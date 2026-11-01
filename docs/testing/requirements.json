@@ -391,6 +391,11 @@
           "lane": "backend",
           "path": "api/tests/test_release_venue_blocks_acceptance.py",
           "test": "test_venue_block_lists_only_overlaps_notifies_and_preserves_unblock_audit"
+        },
+        {
+          "lane": "integrated",
+          "path": "frontend/integration/venue-flows.spec.ts",
+          "test": "INTEGRATED-13"
         }
       ],
       "gaps": [],
@@ -453,6 +458,11 @@
           "lane": "backend",
           "path": "api/tests/test_venue_acceptance.py",
           "test": "test_search_availability_with_real_bookings"
+        },
+        {
+          "lane": "integrated",
+          "path": "frontend/integration/venue-flows.spec.ts",
+          "test": "INTEGRATED-14"
         }
       ],
       "gaps": [
@@ -563,6 +573,11 @@
           "lane": "integrated",
           "path": "frontend/integration/event-lifecycle.spec.ts",
           "test": "INTEGRATED-02"
+        },
+        {
+          "lane": "integrated",
+          "path": "frontend/integration/venue-flows.spec.ts",
+          "test": "INTEGRATED-12"
         }
       ],
       "gaps": [],

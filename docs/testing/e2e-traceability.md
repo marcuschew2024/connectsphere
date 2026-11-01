@@ -12,6 +12,14 @@ file) in the *same PR as the fix*. Owner does a final sweep at freeze — any ro
 **Status legend:** ✅ spec exists & asserts the behaviour · 🔶 spec exists, needs the scenario added / depth check · ❌ no spec yet
 **Freeze target:** Sat 31 Oct 23:59 · **Matrix owner:** Marcus
 
+**Evidence layers:** specs under `frontend/e2e/` exercise browser behaviour with
+controlled API responses. They do not prove database persistence, notification
+creation or server-side conflict enforcement. `INTEGRATED-*` scenarios under
+`frontend/integration/` use production UI, real password sessions, Flask and a
+disposable database. A ✅ records the named scenario's assertions, not complete
+product coverage. SCRUM-163 supplements PR #94's browser checks with real venue
+journeys; see [scope and verification](../SCRUM-163.md).
+
 | # | Feature | Key scenario (incl. conflict/failure) | e2e spec | Status | Owner |
 |---|---------|----------------------------------------|----------|--------|-------|
 | 1 | Auth / RBAC | Login + role switch | `login-entry.spec.ts` | ✅ | — |
@@ -25,13 +33,13 @@ file) in the *same PR as the fix*. Owner does a final sweep at freeze — any ro
 | 6 | Event status mgmt | Lifecycle Planning→Confirmed→Completed view | `event-status.spec.ts` | ✅ | — |
 | 7 | Event info mgmt | Edit during Planning | `event-decision.spec.ts` (coordinator Planning edit) | ✅ | Marcus |
 | 7 | Event info mgmt | **Impactful change flagged vs ordinary edit** (SCRUM-58) | `change-request-apply.spec.ts` (significant vs ordinary) | ✅ | Marcus |
-| 8 | Venue catalogue | Add / update / retire + full record + layouts | `venues.spec.ts`, `venue-edit.spec.ts`, `venue-retire.spec.ts` | ✅ | Jessica |
+| 8 | Venue catalogue | Add / update / retire + full record + layouts | `venues.spec.ts`, `venue-edit.spec.ts`, `venue-retire.spec.ts`; real `INTEGRATED-13` in `venue-flows.spec.ts` | ✅ | Jessica |
 | 9 | Venue availability calendar | Availability + blocked periods | `venue-calendar.spec.ts` | ✅ | — |
-| 10 | Venue search & filter | Filter by date/capacity/facility/etc | `venues.spec.ts` | ✅ | Jessica |
+| 10 | Venue search & filter | Filter by date/capacity/facility/etc | `venues.spec.ts`; real `INTEGRATED-14` in `venue-flows.spec.ts` | ✅ | Jessica |
 | 11 | **Venue suitability** | **Unsuitable on facility/accessibility/layout, not just capacity** (SCRUM-116/117) | `venue-suitability.spec.ts` | ✅ | Jessica |
 | 12 | Venue booking request | Coordinator requests venue from Planning event | `bookings.spec.ts` | ✅ | — |
-| 13 | Venue booking approval | **Approve blocks the slot + notifies coordinator** (SCRUM-118/119) | `bookings.spec.ts` | ✅ | Jessica / Marcus |
-| 14 | Booking conflict detection | **Overlapping / buffered double-book hard-blocked** (SCRUM-137) | `bookings.spec.ts` | ✅ | Jessica |
+| 13 | Venue booking approval | **Approve blocks the slot + notifies coordinator** (SCRUM-118/119) | `bookings.spec.ts`; real `INTEGRATED-12` in `venue-flows.spec.ts` | ✅ | Jessica / Marcus |
+| 14 | Booking conflict detection | **Overlapping / buffered double-book hard-blocked** (SCRUM-137) | `bookings.spec.ts`; real `INTEGRATED-12` plus `supabase/tests/venue_calendar_buffers.sql` (sequential overlap and touching boundaries) | ✅ | Jessica |
 | 15 | Equipment request mgmt | Record + review/update request | `equipment-requests.spec.ts`, `equipment-request-status.spec.ts` | ✅ | — |
 | 16 | Equipment availability | **Unavailable/damaged excluded from available** (SCRUM-63); reserved units on stock later damaged stop counting (SCRUM-153) | `equipment.spec.ts`, `unusable-equipment.spec.ts` | ✅ | Ernest |
 | 17 | Equipment reservation | Reserve reduces availability; **confirm blocked while equipment pending** (SCRUM-136) | `event-confirm.spec.ts`, `event-confirm-equipment.spec.ts` | ✅ | Ernest |

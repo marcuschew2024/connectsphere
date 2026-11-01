@@ -215,3 +215,12 @@ for pass in 1 2; do
   psql -v ON_ERROR_STOP=1 -f /sql/migrations/20261101160000_event_end_time_reschedule.sql > /tmp/migration-output.txt
   echo "Event end time reschedule migration pass $pass: PASS"
 done
+
+# SCRUM-137 was merged but absent from this bootstrap. Verify the actual occupied
+# interval columns/constraints before browser and API acceptance tests consume them.
+for pass in 1 2; do
+  psql -v ON_ERROR_STOP=1 -f /sql/migrations/20261031163000_scrum_137_buffered_venue_overlap.sql > /tmp/migration-output.txt
+  echo "Buffered venue occupancy migration pass $pass: PASS"
+done
+psql -v ON_ERROR_STOP=1 -f /sql/tests/venue_calendar_buffers.sql
+echo "Persisted calendar occupancy database checks: PASS"

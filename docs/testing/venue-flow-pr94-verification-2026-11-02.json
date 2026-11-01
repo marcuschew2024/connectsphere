@@ -1,0 +1,96 @@
+{
+  "task": "SCRUM-163",
+  "verified_at_utc": "2026-11-01T16:54:21.130351+00:00",
+  "baseline_commit": "572ef1e1c681d7b55af972077f1d89216fd6f99e",
+  "branch": "feature/SCRUM-163-venue-e2e-flows",
+  "uncommitted_changes": true,
+  "scope": "Complete PR #94 venue scenarios (rows 8, 10, 13 plus buffered overlap) with real Chromium/browser/API/database evidence; run both complete existing Playwright suites.",
+  "friend_tests_preserved": true,
+  "browser": {
+    "tests": 326,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0,
+    "seconds": 65.372,
+    "artifact": {
+      "path": "/private/tmp/connectsphere-scrum163-pr94-browser.xml",
+      "sha256": "b8ee00057ee3a121cb3848dc565ff513d285ff4fdaff978cf31173932c0062e8"
+    }
+  },
+  "integrated": {
+    "tests": 14,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0,
+    "seconds": 37.85,
+    "artifact": {
+      "path": "/private/tmp/connectsphere-scrum163-pr94-integrated.xml",
+      "sha256": "2f47ac6a857d9e965cdb787eed41440dc029d07df8609328d6f1f2c21a5e890a"
+    }
+  },
+  "frontend_units": {
+    "passed": 599,
+    "artifact": {
+      "path": "/private/tmp/connectsphere-scrum163-pr94-unit.log",
+      "sha256": "3da2a4f77b955ef5c6366bf31e519cb9d2a7b8f34e13c518fd5b38b5d62b8258"
+    }
+  },
+  "focused_backend": {
+    "passed": 201,
+    "artifact": {
+      "path": "/private/tmp/connectsphere-scrum163-pr94-backend.log",
+      "sha256": "fc265b17a411c1a3ef624e9b23769017e377a020dec27b21320f5cdac124fe54"
+    }
+  },
+  "build": {
+    "exit_code": 0,
+    "artifact": {
+      "path": "/private/tmp/connectsphere-scrum163-pr94-build.log",
+      "sha256": "efbbb9fac2525f4f5038dbfb656d7f22d1b653b5f2f87d8ea25b06845fcf78a6"
+    }
+  },
+  "fresh_database_sql": {
+    "exit_code": 0,
+    "artifact": {
+      "path": "/private/tmp/connectsphere-scrum163-pr94-sql.log",
+      "sha256": "73fddf65ea31484bad4e289f716bbcc29df9a417419dc2e2edd121ab79e41bce"
+    }
+  },
+  "static_checks": [
+    "ESLint",
+    "TypeScript noEmit",
+    "Ruff api and scripts/qa",
+    "26 requirement mappings",
+    "8 evidence/isolation unittest tests",
+    "git diff --check"
+  ],
+  "execution": {
+    "browser_workers": 1,
+    "integrated_workers": 1,
+    "retries": 0,
+    "database_project": "connectsphere-scrum163-pr94",
+    "database_port": 55434
+  },
+  "changed_source_sha256": {
+    "api/app/booking_repository.py": "dc7351cd158884c82707c6cdd154ac066ac997dedacd14fc8d773a65255855cd",
+    "frontend/src/lib/availability.ts": "4f66e9c42ce6051842be86daea8218e95b23d583b37ebe4c44ae340f661e1b20",
+    "frontend/src/lib/availability-buffer.test.ts": "39a0842480a906048f21a993a6965d17ce298e1dbadde17ce45cc184d8cc0804",
+    "frontend/integration/venue-flows.spec.ts": "c7d081a2e7d33a0a434e7d0812fd555e17697deda366809f33d2d9bea20eae78",
+    "frontend/playwright.integrated.config.ts": "9d0d6bc94a36e2d801a8519855303d92d0c3d97e4f7655a187e253363015b1be",
+    "compose.acceptance.yml": "81953c25ef8ae085b7192204d71494f987303d1000db44b18aca69003927e7ed",
+    "scripts/qa/serve_api.py": "23a976d366b707aa99cbf5d5ecd0cb8f4b3911e3d0b0e24030ba1a6330879973",
+    "scripts/qa/test_parallel_database_isolation.py": "40a21eedc8e18a4bd301370d12364e72d4acc24cb0049e1d845e30dc43b2b23a",
+    "supabase/tests/run.sh": "04759590b3b5c9fd77719bdca959301ef0a8751fbaf1117c4eaf0d87f1e6c963",
+    "supabase/tests/venue_calendar_buffers.sql": "2019898bcc0fac7dc040df7ce1c95bcd0139ef973ddb21a0037cd834ce1e56bf",
+    "supabase/migrations/20261031163000_scrum_137_buffered_venue_overlap.sql": "0fffe8a1a1e2978a0c7a8a1c49230067ce63c320f2eaff2c9486128d4451f35a",
+    "frontend/e2e/bookings.spec.ts": "4f9000fb4da2f24c04ed0c272a1ea18b115ddef55c0f8aaf2837f235a114824a",
+    ".github/workflows/ci.yml": "719f39abd57e96c9eed215f10c76e25a814bdeaa3da2a180c6f7521a6d7804b6"
+  },
+  "limitations": [
+    "Venue scope, not a claim of full real-stack coverage for every Release 1 requirement.",
+    "Chromium only; event/search setup uses authenticated real API calls.",
+    "Full backend acceptance, concurrent-write stress and hosted CI were not rerun.",
+    "Earlier mutation checks and combined coverage are historical evidence in the 1 November audit; not rerun for this follow-up.",
+    "No push, merge, shared database changes or deployment. Human review and green hosted CI remain required."
+  ]
+}
