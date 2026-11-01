@@ -73,7 +73,8 @@ test("reopen, edit, save twice and reload the same draft", async ({ page }) => {
     await route.fulfill({ json: { event: record } });
   });
   await page.goto(`/events/drafts/${ID}`);
-  await expect(page.getByLabel("Preferred date and time")).toHaveValue("2099-10-20T14:00");
+  await expect(page.getByLabel("Preferred date")).toHaveValue("2099-10-20");
+  await expect(page.getByLabel("Start time")).toHaveValue("14:00");
   await expect(page.getByRole("checkbox", { name: "Layouts Other", exact: true })).toBeChecked();
   await expect(page.getByText("A quiet room", { exact: false })).toBeVisible();
   await expect(page.getByRole("checkbox", { name: "Accessibility features Other", exact: true })).toBeChecked();

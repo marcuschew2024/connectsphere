@@ -141,7 +141,8 @@ def create_event():
     if not isinstance(data, dict):
         raise BadRequest("Send event details as a JSON object.")
 
-    allowed_fields = set(TEXT_LIMITS) | {"action", "event_datetime", "expected_attendance"}
+    allowed_fields = set(TEXT_LIMITS) | {
+        "action", "event_datetime", "event_end_datetime", "expected_attendance"}
     if set(data) - allowed_fields:
         # Identity, status, assignment and timestamps are controlled by the server.
         raise BadRequest("The request contains unsupported fields.")
@@ -325,7 +326,8 @@ def edit_draft(event, user, data):
 
     if not isinstance(data, dict):
         raise BadRequest("Send event details as a JSON object.")
-    editable_fields = set(TEXT_LIMITS) | {"event_datetime", "expected_attendance"}
+    editable_fields = set(TEXT_LIMITS) | {
+        "event_datetime", "event_end_datetime", "expected_attendance"}
     if set(data) - editable_fields - {"action"}:
         raise BadRequest("The request contains unsupported fields.")
     action = data.get("action", "draft")
@@ -1001,7 +1003,8 @@ def resubmit_event(event_id):
     data = request.get_json(silent=True)
     if not isinstance(data, dict):
         raise BadRequest("Send the revised event details as a JSON object.")
-    allowed_fields = set(TEXT_LIMITS) | {"event_datetime", "expected_attendance"}
+    allowed_fields = set(TEXT_LIMITS) | {
+        "event_datetime", "event_end_datetime", "expected_attendance"}
     if set(data) - allowed_fields:
         raise BadRequest("The request contains unsupported fields.")
     fields, errors = validate_event(data, submitting=True)
@@ -1027,6 +1030,7 @@ def resubmit_event(event_id):
 # rather than "ordinary" (TC-US4.6-05).
 IMPORTANT_FIELDS = {
     "event_datetime",
+    "event_end_datetime",
     "expected_attendance",
     "category",
     "venue_requirements",
@@ -1047,7 +1051,7 @@ def _normalise_datetime(value):
 
 
 def _field_changed(name, new_value, old_value):
-    if name == "event_datetime":
+    if name in ("event_datetime", "event_end_datetime"):
         return _normalise_datetime(new_value) != _normalise_datetime(old_value)
     return new_value != old_value
 
@@ -1081,7 +1085,8 @@ def edit_event(event_id):
     data = request.get_json(silent=True)
     if not isinstance(data, dict):
         raise BadRequest("Send the updated event details as a JSON object.")
-    allowed_fields = set(TEXT_LIMITS) | {"event_datetime", "expected_attendance"}
+    allowed_fields = set(TEXT_LIMITS) | {
+        "event_datetime", "event_end_datetime", "expected_attendance"}
     if set(data) - allowed_fields:
         raise BadRequest("The request contains unsupported fields.")
 

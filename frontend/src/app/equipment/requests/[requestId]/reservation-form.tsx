@@ -16,7 +16,7 @@ export default function ReservationForm({ request, onSaved, onReload }: {
   request: EquipmentRequest; onSaved: () => void; onReload: () => void;
 }) {
   const [start, setStart] = useState(singaporeInput(request.reservation_start_at || request.event.event_datetime));
-  const [end, setEnd] = useState(singaporeInput(request.reservation_end_at));
+  const [end, setEnd] = useState(singaporeInput(request.reservation_end_at || request.event.event_end_datetime));
   const [quantities, setQuantities] = useState(request.items.map(item => String(item.reserved_quantity ?? 0)));
   const [bookings, setBookings] = useState(request.items.map(() => ""));
   const [notes, setNotes] = useState("");

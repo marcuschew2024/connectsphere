@@ -8,7 +8,7 @@ from .supabase_client import get_supabase_client
 PAGE_SIZE = 6
 HISTORY_PAGE_SIZE = 20
 READ_FIELDS = (
-    "*,event:events!inner(id,reference,title,event_datetime,coordinator_id,status),"
+    "*,event:events!inner(id,reference,title,event_datetime,event_end_datetime,coordinator_id,status),"
     "requester:app_users!equipment_requests_requested_by_fkey(display_name),"
     "items:equipment_request_items(*),"
     # SCRUM-153: each reservation carries its item's current condition.

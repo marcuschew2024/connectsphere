@@ -27,6 +27,14 @@ function localDateTime(value: string | null | undefined) {
   return new Date(date.getTime() - date.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
 }
 
+// Split a stored time into the date and time parts the separate inputs expect.
+function localDatePart(value: string | null | undefined) {
+  return localDateTime(value).slice(0, 10);
+}
+function localTimePart(value: string | null | undefined) {
+  return localDateTime(value).slice(11, 16);
+}
+
 export default function EventRequestForm({ canCreate, initialEvent, onSaved }: {
   canCreate: boolean;
   initialEvent?: EventRecord;
@@ -55,15 +63,29 @@ export default function EventRequestForm({ canCreate, initialEvent, onSaved }: {
     const form = new FormData(event.currentTarget);
     const button = (event.nativeEvent as SubmitEvent).submitter as HTMLButtonElement | null;
     const action = button?.value === "draft" ? "draft" : "submit";
-    const localTime = String(form.get("event_datetime") ?? "");
-    const date = localTime ? new Date(localTime) : null;
-    if (date && Number.isNaN(date.getTime())) {
-      setFieldErrors({ event_datetime: "Choose a valid date and time." });
+    // The Organiser enters one date plus a start and end time; the event is same-day.
+    const eventDate = String(form.get("event_date") ?? "");
+    const startValue = String(form.get("event_start_time") ?? "");
+    const endValue = String(form.get("event_end_time") ?? "");
+    const start = eventDate && startValue ? new Date(`${eventDate}T${startValue}`) : null;
+    const end = eventDate && endValue ? new Date(`${eventDate}T${endValue}`) : null;
+    const timeErrors: Record<string, string> = {};
+    if (start && Number.isNaN(start.getTime())) timeErrors.event_datetime = "Choose a valid date and time.";
+    if (end && Number.isNaN(end.getTime())) timeErrors.event_end_datetime = "Choose a valid end time.";
+    if (start && end && !Number.isNaN(start.getTime()) && !Number.isNaN(end.getTime()) && end <= start) {
+      timeErrors.event_end_datetime = "Choose an end time after the start time.";
+    }
+    if (Object.keys(timeErrors).length > 0) {
+      setFieldErrors(timeErrors);
       return;
     }
 
     const attendance = String(form.get("expected_attendance") ?? "");
     const details = Object.fromEntries(form.entries());
+    // These helper inputs are combined into event_datetime / event_end_datetime below.
+    delete details.event_date;
+    delete details.event_start_time;
+    delete details.event_end_time;
     setBusy(true);
     try {
       const result = await apiRequest<{ event: EventRecord }>(initialEvent ? `/events/${initialEvent.id}` : "/events", {
@@ -71,8 +93,9 @@ export default function EventRequestForm({ canCreate, initialEvent, onSaved }: {
         body: JSON.stringify({
           ...details,
           action,
-          // Convert the user's local time to an explicit UTC time for Flask.
-          event_datetime: date ? date.toISOString() : null,
+          // Convert the user's local times to explicit UTC times for Flask.
+          event_datetime: start && !Number.isNaN(start.getTime()) ? start.toISOString() : null,
+          event_end_datetime: end && !Number.isNaN(end.getTime()) ? end.toISOString() : null,
           expected_attendance: attendance === "" ? null : Number(attendance),
         }),
       });
@@ -173,13 +196,13 @@ export default function EventRequestForm({ canCreate, initialEvent, onSaved }: {
         <h2 id="schedule-heading" className="text-lg font-semibold"><span aria-hidden="true" className="mr-2 text-primary">02</span> Date and attendance</h2>
         <div className="grid gap-5 sm:grid-cols-2">
           <div>
-            <label htmlFor="event_datetime" className="mb-2 block font-medium">Preferred date and time *</label>
-            <input id="event_datetime" name="event_datetime" type="datetime-local" aria-required="true"
-              defaultValue={localDateTime(initialEvent?.event_datetime)}
+            <label htmlFor="event_date" className="mb-2 block font-medium">Preferred date *</label>
+            <input id="event_date" name="event_date" type="date" aria-required="true"
+              defaultValue={localDatePart(initialEvent?.event_datetime)}
               aria-invalid={!!fieldErrors.event_datetime}
               aria-describedby={fieldErrors.event_datetime ? "event-time-help event_datetime-error" : "event-time-help"}
               className={INPUT_STYLE} />
-            <p id="event-time-help" className="mt-1 text-sm text-muted-foreground">Uses your device&apos;s time zone.</p>
+            <p id="event-time-help" className="mt-1 text-sm text-muted-foreground">Uses your device&apos;s time zone. The event starts and ends on this day.</p>
             {fieldError("event_datetime")}
           </div>
           <div>
@@ -191,6 +214,22 @@ export default function EventRequestForm({ canCreate, initialEvent, onSaved }: {
               className={INPUT_STYLE} />
             {fieldError("expected_attendance")}
             <p className="mt-1 text-xs text-muted-foreground">An estimate for planning. You set the signup capacity separately after saving.</p>
+          </div>
+          <div>
+            <label htmlFor="event_start_time" className="mb-2 block font-medium">Start time *</label>
+            <input id="event_start_time" name="event_start_time" type="time" aria-required="true"
+              defaultValue={localTimePart(initialEvent?.event_datetime)}
+              aria-invalid={!!fieldErrors.event_datetime}
+              className={INPUT_STYLE} />
+          </div>
+          <div>
+            <label htmlFor="event_end_time" className="mb-2 block font-medium">End time *</label>
+            <input id="event_end_time" name="event_end_time" type="time" aria-required="true"
+              defaultValue={localTimePart(initialEvent?.event_end_datetime)}
+              aria-invalid={!!fieldErrors.event_end_datetime}
+              aria-describedby={fieldErrors.event_end_datetime ? "event_end_datetime-error" : undefined}
+              className={INPUT_STYLE} />
+            {fieldError("event_end_datetime")}
           </div>
         </div>
         </section>

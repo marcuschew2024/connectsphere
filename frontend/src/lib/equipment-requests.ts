@@ -1,4 +1,4 @@
-export type RequestEvent = { id: string; reference?: string; title: string; event_datetime: string };
+export type RequestEvent = { id: string; reference?: string; title: string; event_datetime: string; event_end_datetime: string | null };
 
 export const REQUEST_STATUSES = ["Requested", "Reserved", "Partially fulfilled", "Unavailable"] as const;
 export type RequestStatus = typeof REQUEST_STATUSES[number];
