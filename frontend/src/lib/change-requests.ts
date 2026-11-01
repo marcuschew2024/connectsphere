@@ -1,10 +1,12 @@
 import type { EventChangeRequest, EventRecord } from "@/lib/events";
 
-// SCRUM-138: event details an Organiser can propose new values for. Date and time are
-// rescheduling (SCRUM-48), so they are described in the request text instead.
+// SCRUM-138/SCRUM-48: event details an Organiser can propose new values for, including
+// the date and time (rescheduling). "datetime" fields render as a datetime-local input
+// and are sent as ISO; everything else is plain text, attendance a number.
 export const CHANGE_FIELDS = [
   { name: "title", label: "Title" },
-  { name: "expected_attendance", label: "Expected attendance" },
+  { name: "event_datetime", label: "Date and time", kind: "datetime" },
+  { name: "expected_attendance", label: "Expected attendance", kind: "number" },
   { name: "venue_requirements", label: "Venue requirements" },
   { name: "facility_requirements", label: "Facility requirements" },
   { name: "category", label: "Category" },
@@ -17,8 +19,10 @@ export const CHANGE_FIELDS = [
 
 export type ChangeField = typeof CHANGE_FIELDS[number]["name"];
 
-// Number of pax or venue (S1 Q7, Q11): approving one of these flags a re-review.
-export const SIGNIFICANT_FIELDS: ReadonlySet<string> = new Set(["expected_attendance", "venue_requirements"]);
+// Number of pax, venue, or date/time (S1 Q7, Q11; SCRUM-48): approving one flags a re-review.
+export const SIGNIFICANT_FIELDS: ReadonlySet<string> = new Set([
+  "expected_attendance", "venue_requirements", "event_datetime",
+]);
 
 export type ChangeApprovalResult = {
   change_request: EventChangeRequest;
@@ -39,13 +43,21 @@ export function changeValue(value: string | number | null | undefined) {
   return value === null || value === undefined || value === "" ? "(none)" : String(value);
 }
 
-// The drafted values to send: blank inputs mean "no change"; attendance is a number.
+// The drafted values to send: blank inputs mean "no change"; attendance is a number;
+// a date/time (datetime-local, in the browser's zone) is sent as an ISO instant so the
+// server stores the same moment the Organiser picked (SCRUM-48).
 export function proposedChanges(drafts: Partial<Record<ChangeField, string>>) {
   const changes: Record<string, string | number> = {};
   for (const { name } of CHANGE_FIELDS) {
     const value = drafts[name]?.trim();
     if (!value) continue;
-    changes[name] = name === "expected_attendance" && /^\d+$/.test(value) ? Number(value) : value;
+    if (name === "expected_attendance") {
+      changes[name] = /^\d+$/.test(value) ? Number(value) : value;
+    } else if (name === "event_datetime") {
+      changes[name] = Number.isNaN(Date.parse(value)) ? value : new Date(value).toISOString();
+    } else {
+      changes[name] = value;
+    }
   }
   return Object.keys(changes).length ? changes : null;
 }

@@ -7,19 +7,22 @@ values atomically and records what actually changed.
 
 Team decision (PO, Decision Log D36):
   * approving a request applies its proposed values to the event in one transaction;
-  * a significant change - number of pax or venue (S1 Q7, Q11) - flags the event for
-    re-review and notifies the Coordinator; nothing is cancelled or un-booked;
-  * date and time are not requestable here: rescheduling is SCRUM-48. The event has
-    no duration field, so a duration change stays a described (free-text) request.
+  * a significant change - number of pax, venue, or date/time (S1 Q7, Q11) - flags the
+    event for re-review and notifies the Coordinator; nothing is cancelled or un-booked.
+  * SCRUM-48: date/time is now requestable here (rescheduling a submitted or confirmed
+    event). A date change is significant: approval re-flags the event for re-review and
+    notifies registered attendees, and the confirmation gate (SCRUM-159) then blocks
+    re-confirmation until the venue booking(s) match the new date.
 """
 
 from .event_validation import TEXT_LIMITS, validate_event
 
-CHANGEABLE_FIELDS = frozenset(TEXT_LIMITS) | {"expected_attendance"}
+CHANGEABLE_FIELDS = frozenset(TEXT_LIMITS) | {"expected_attendance", "event_datetime"}
 SIGNIFICANT_FIELDS = frozenset({
     "expected_attendance",
     "venue_requirements",
     "facility_requirements",
+    "event_datetime",
 })
 
 
