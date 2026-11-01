@@ -56,6 +56,7 @@ from .registration_repository import (
     get_own_registration,
     get_registration_confirmations,
     get_withdrawal_policy,
+    list_event_registrations,
     list_own_registrations,
     list_registration_events,
     register_attendee,
@@ -64,6 +65,7 @@ from .registration_repository import (
     withdraw_attendee,
 )
 from .registration_request import RegistrationRequest
+from .registration_roster import RegistrationRosterAccess
 from .registration_withdrawal import withdrawal_rules
 from .safety_decision import SafetyDecision
 from .venue_repository import get_venue
@@ -519,6 +521,33 @@ def get_registration_offer(event_id):
     if event["status"] != "Confirmed" and registration is None:
         raise NotFound("Event not found.")
     return jsonify({**registration_offer(event), "registration": registration})
+
+
+@events.get("/<uuid:event_id>/registrations")
+def event_registration_roster(event_id):
+    if request.headers.get("Origin") != current_app.config["FRONTEND_ORIGIN"]:
+        raise Forbidden("Request must come from the configured frontend origin.")
+    user = require_acting_user()
+    require_role(user, "Organiser", "Coordinator", action="view_event_registrations")
+    event = require_event_access(str(event_id), user)
+    access = RegistrationRosterAccess(event["organiser_id"], event.get("coordinator_id"))
+    if not access.allows(user["id"], user["role"]):
+        log_access_denied(user, action="view_event_registrations", event_id=str(event_id),
+                          reason="not the owning organiser or current assigned coordinator")
+        raise Forbidden(
+            "Only the event's Organiser and assigned Coordinator can view registrations.")
+    if (set(request.args) - {"page", "status"}
+            or any(len(request.args.getlist(key)) > 1 for key in request.args)):
+        raise BadRequest("Send only a page number and registration status.")
+    page = request.args.get("page", "1")
+    if not page.isascii() or not page.isdecimal() or len(page) > 5 or not 1 <= int(page) <= 10000:
+        raise BadRequest("Choose a registration page from 1 to 10000.")
+    status = request.args.get("status")
+    if status is not None and status not in {"Registered", "Waitlisted", "Withdrawn"}:
+        raise BadRequest("Choose Registered, Waitlisted or Withdrawn, or omit the status filter.")
+    result = list_event_registrations(str(event_id), int(page), status)
+    return jsonify({**result, "event": public_event_view(event),
+                    "capacity": event.get("registration_capacity")})
 
 
 def _apply_intake_transition(event, user, transition, *, decision=False, reason=None):

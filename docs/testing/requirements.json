@@ -652,7 +652,7 @@
         "SCRUM-44",
         "SCRUM-45"
       ],
-      "intent": "Attendees register once within capacity, retain their own receipt, and withdraw under the saved policy; competing final-place/withdrawal requests cannot duplicate capacity.",
+      "intent": "Attendees register once within capacity, retain their own receipt, and withdraw under the saved policy; competing final-place/withdrawal requests cannot duplicate capacity. Only the owning Organiser and current assigned Coordinator can read the event roster and event-wide registration totals.",
       "checks": [
         {
           "lane": "backend",
@@ -673,10 +673,30 @@
           "lane": "integrated",
           "path": "frontend/integration/event-lifecycle.spec.ts",
           "test": "INTEGRATED-01"
+        },
+        {
+          "lane": "backend",
+          "path": "api/tests/test_event_registration_roster_acceptance.py",
+          "test": "test_owner_and_current_coordinator_see_names_and_live_counts_without_private_data"
+        },
+        {
+          "lane": "backend",
+          "path": "api/tests/test_event_registration_roster_acceptance.py",
+          "test": "test_roster_denies_other_roles_foreign_owners_and_previous_coordinators"
+        },
+        {
+          "lane": "backend",
+          "path": "api/tests/test_event_registration_roster_acceptance.py",
+          "test": "test_roster_pagination_and_counts_are_complete_and_event_scoped"
+        },
+        {
+          "lane": "browser",
+          "path": "frontend/e2e/event-registration-roster.spec.ts",
+          "test": "sees names, references and event-wide totals across pages and filters"
         }
       ],
       "gaps": [
-        "SCRUM-45 organiser/coordinator registration roster remains unimplemented; aggregate counts do not establish appropriate individual registration visibility.",
+        "SCRUM-45 renders and counts Waitlisted, but real waiting-list records and promotion remain deferred SCRUM-80; the current schema only stores Registered and Withdrawn. Non-zero waitlisted presentation is controlled-browser evidence, not a live waitlist journey.",
         "TC-43-02 waiting-list promotion remains deferred SCRUM-80; do not mark it passed. Owner must reconcile that documented case with the agreed release slice.",
         "Registration closes when safety approval moves to Preparation; owner must verify the customer accepts that signup window."
       ],
