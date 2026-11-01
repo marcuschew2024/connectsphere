@@ -9,6 +9,7 @@ TEXT_LIMITS = {
     "purpose": 2000,
     "category": 100,
     "venue_requirements": 2000,
+    "facility_requirements": 2000,
     "accessibility_requirements": 2000,
     "equipment_requirements": 2000,
     "registration_requirements": 2000,

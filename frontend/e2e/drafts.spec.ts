@@ -44,15 +44,15 @@ test("empty list gives a clear starting point", async ({ page }) => {
 });
 
 test("load failure offers a working retry", async ({ page }) => {
-  let attempts = 0;
+  let retryRequested = false;
   await page.route("**/events?status=Draft", (route) => {
-    attempts++;
-    return route.fulfill(attempts === 1
+    return route.fulfill(!retryRequested
       ? { status: 503, json: { error: "Could not load event requests." } }
       : { json: { events: [draft] } });
   });
   await page.goto("/events/drafts");
   await expect(page.locator("main").getByRole("alert")).toHaveText("Could not load event requests.");
+  retryRequested = true;
   await page.getByRole("button", { name: "Try again" }).click();
   await expect(page.getByRole("heading", { name: draft.title })).toBeVisible();
 });
@@ -74,8 +74,10 @@ test("reopen, edit, save twice and reload the same draft", async ({ page }) => {
   });
   await page.goto(`/events/drafts/${ID}`);
   await expect(page.getByLabel("Preferred date and time")).toHaveValue("2099-10-20T14:00");
-  await expect(page.getByLabel("Venue requirements")).toHaveValue("A quiet room");
-  await expect(page.getByLabel("Accessibility requirements")).toHaveValue("Step-free access");
+  await expect(page.getByRole("checkbox", { name: "Layouts Other", exact: true })).toBeChecked();
+  await expect(page.getByText("A quiet room", { exact: false })).toBeVisible();
+  await expect(page.getByRole("checkbox", { name: "Accessibility features Other", exact: true })).toBeChecked();
+  await expect(page.getByText("Step-free access", { exact: false })).toBeVisible();
   await expect(page.getByLabel("Equipment requirements")).toHaveValue("Projector");
   await expect(page.getByLabel("Registration requirements")).toHaveValue("RSVP");
   await page.getByLabel("Event name").fill("Updated idea");

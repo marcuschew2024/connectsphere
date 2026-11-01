@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useState, type FormEvent } from "react";
 import { ApiError, apiRequest } from "@/lib/api";
 import type { EventRecord } from "@/lib/events";
+import EventVenueOptions from "@/components/event-venue-options";
 
 const TEXT_FIELDS = [
   { name: "title", label: "Event name", limit: 200, multiline: false },
@@ -12,8 +13,6 @@ const TEXT_FIELDS = [
   { name: "category", label: "Category", limit: 100, multiline: false },
 ] as const;
 const REQUIREMENT_FIELDS = [
-  { name: "venue_requirements", label: "Venue requirements" },
-  { name: "accessibility_requirements", label: "Accessibility requirements" },
   { name: "equipment_requirements", label: "Equipment requirements" },
   { name: "registration_requirements", label: "Registration requirements" },
 ] as const;
@@ -168,6 +167,7 @@ export default function EventEditForm({
         </div>
         <fieldset className="space-y-5 border-t border-border pt-4">
           <legend className="px-2 font-semibold">Additional requirements (optional)</legend>
+          <EventVenueOptions venueRequirements={event.venue_requirements} facilityRequirements={event.facility_requirements} accessibilityRequirements={event.accessibility_requirements} />
           {REQUIREMENT_FIELDS.map((field) => (
             <div key={field.name}>
               <label htmlFor={`edit-${field.name}`} className="mb-2 block font-medium">{field.label}</label>

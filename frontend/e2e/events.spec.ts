@@ -86,8 +86,12 @@ test("submission sends details and shows the saved reference", async ({ page }) 
   });
   await page.goto("/events/new");
   await fillRequiredFields(page);
-  await page.getByLabel("Venue requirements").fill("Room for 50");
-  await page.getByLabel("Accessibility requirements").fill("Step-free access");
+  await page.getByRole("checkbox", { name: "Layouts Other", exact: true }).check();
+  await page.getByRole("textbox", { name: "Other layouts", exact: true }).fill("Room for 50");
+  await page.getByRole("textbox", { name: "Other layouts", exact: true }).press("Enter");
+  await page.getByRole("checkbox", { name: "Accessibility features Other", exact: true }).check();
+  await page.getByRole("textbox", { name: "Other accessibility features", exact: true }).fill("Step-free access");
+  await page.getByRole("textbox", { name: "Other accessibility features", exact: true }).press("Enter");
   await page.getByLabel("Equipment requirements").fill("Projector");
   await page.getByLabel("Registration requirements").fill("RSVP");
   await page.getByRole("button", { name: "Submit request" }).click();
@@ -270,7 +274,10 @@ test("organiser can revise and resubmit a returned request", async ({ page }) =>
   });
   await page.goto(`/events/${EVENT_ID}`);
   await expect(page.getByRole("heading", { name: "Changes requested" })).toBeVisible();
-  await page.getByLabel("Venue requirements").fill("Accessible main hall");
+  await page.getByRole("checkbox", { name: "Layouts Other", exact: true }).check();
+  await page.getByRole("button", { name: "Remove Room for 50", exact: true }).click();
+  await page.getByRole("textbox", { name: "Other layouts", exact: true }).fill("Accessible main hall");
+  await page.getByRole("textbox", { name: "Other layouts", exact: true }).press("Enter");
   await page.getByRole("button", { name: "Revise and resubmit" }).click();
   await expect(page.getByRole("heading", { name: "Campus workshop revised" })).toBeVisible();
   await expect(page.getByRole("heading", { name: "Changes requested" })).toHaveCount(0);

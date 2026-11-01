@@ -15,6 +15,7 @@ import {
 import { type BookingRecord } from "@/lib/bookings";
 import { ChangeRequestStatusBadge, type EventChangeRequest, type EventRecord } from "@/lib/events";
 import { Button } from "@/components/ui/button";
+import EventVenueOptions from "@/components/event-venue-options";
 
 export default function EventChangeRequests({
   event,
@@ -61,9 +62,17 @@ export default function EventChangeRequests({
     try {
       // SCRUM-138: proposed values travel with the description and apply on approval.
       const changes = proposedChanges(drafts);
+      const structured = new FormData(event_.currentTarget);
+      const venueChanges: Record<string, string> = {};
+      for (const name of ["venue_requirements", "facility_requirements", "accessibility_requirements"] as const) {
+        const value = String(structured.get(name) ?? "").trim();
+        if (value && value !== String(current[name] ?? "")) venueChanges[name] = value;
+        else if (!value && String(current[name] ?? "")) venueChanges[name] = "";
+      }
+      const submittedChanges = { ...changes, ...venueChanges };
       const result = await apiRequest<{ change_request: EventChangeRequest }>(
         `/events/${event.id}/change-requests`,
-        { method: "POST", body: JSON.stringify(changes ? { description, changes } : { description }) },
+        { method: "POST", body: JSON.stringify(Object.keys(submittedChanges).length ? { description, changes: submittedChanges } : { description }) },
       );
       setDescription("");
       setDrafts({});
@@ -124,7 +133,8 @@ export default function EventChangeRequests({
             {proposing && <>
             <p className="mt-2 text-xs text-muted-foreground">Fill in only what should change. Approved values are applied to the event. For a new date or time, describe it above.</p>
             <div className="mt-3 grid gap-3 sm:grid-cols-2">
-              {CHANGE_FIELDS.map((field) => {
+              <EventVenueOptions venueRequirements={event.venue_requirements} facilityRequirements={event.facility_requirements} accessibilityRequirements={event.accessibility_requirements} />
+              {CHANGE_FIELDS.filter(({ name }) => !["venue_requirements", "facility_requirements", "accessibility_requirements"].includes(name)).map((field) => {
                 const { name, label } = field;
                 const kind = "kind" in field ? field.kind : "text";
                 return <div key={name} className="space-y-1">

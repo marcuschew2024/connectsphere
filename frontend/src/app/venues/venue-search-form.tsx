@@ -5,7 +5,8 @@ import { CalendarDays, ChevronDown, Search, SlidersHorizontal, Users } from "luc
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { apiRequest } from "@/lib/api";
-import { VENUE_LAYOUTS } from "@/lib/venues";
+import { VENUE_ACCESSIBILITY_FEATURES, VENUE_FACILITIES, VENUE_LAYOUTS } from "@/lib/venues";
+import OtherValuesInput from "@/components/other-values-input";
 
 type Features = { facilities: string[]; accessibility: string[] };
 export type VenueSearchInitialValues = {
@@ -32,8 +33,10 @@ export default function VenueSearchForm({
     facilities: initialValues.facilities,
     accessibility: initialValues.accessibility,
   });
+  const [customOther, setCustomOther] = useState({ facilities: false, accessibility: false });
   const [attendance, setAttendance] = useState(initialValues.attendance);
   const [layout, setLayout] = useState(initialValues.layout);
+  const [layoutOther, setLayoutOther] = useState(initialValues.layout && !VENUE_LAYOUTS.includes(initialValues.layout) ? initialValues.layout : "");
   const [slot, setSlot] = useState({
     date: initialValues.date,
     start_time: initialValues.start_time,
@@ -84,6 +87,7 @@ export default function VenueSearchForm({
 
   return <form onSubmit={search} onReset={() => {
     setSelected({ facilities: "", accessibility: "" });
+    setCustomOther({ facilities: false, accessibility: false });
     setAttendance("");
     setLayout("");
     setSlot({ date: "", start_time: "", end_time: "" });
@@ -133,28 +137,42 @@ export default function VenueSearchForm({
               <select id="search-layout" name="layout" className="h-10 w-full rounded-lg border border-input bg-background px-2 text-foreground" value={layout} onChange={(event) => setLayout(event.target.value)}>
                 <option value="">Any layout</option>
                 {VENUE_LAYOUTS.map((layout) => <option key={layout}>{layout}</option>)}
+                <option value="__other">Other</option>
               </select>
+              {layout === "__other" && <input required aria-label="Other layout" maxLength={200} value={layoutOther} onChange={(event) => setLayoutOther(event.target.value)} className="mt-2 h-10 w-full rounded-lg border border-input bg-background px-2 text-foreground" placeholder="Enter a layout" />}
+              <input type="hidden" name="layout" value={layout === "__other" ? layoutOther : layout} />
             </div>
             <label className="space-y-2 text-sm">Minimum capacity
               <Input className="h-10 bg-background" name="capacity" type="number" min={1} max={2147483647} step={1} placeholder="Optional extra room" aria-describedby="capacity-help" />
             </label>
           </div>
           <p id="capacity-help" className="text-xs text-muted-foreground">Attendance already checks that everyone fits. Use minimum capacity only if you need extra space.</p>
-          {(["facilities", "accessibility"] as const).map((key) => <div key={key} className="space-y-3">
-            <label className="block space-y-2 text-sm font-medium">{key === "facilities" ? "Required facilities" : "Accessibility features"}
-              <Input className="h-10 font-normal" name={key} maxLength={1619} value={selected[key]} onChange={(event) => setSelected({ ...selected, [key]: event.target.value })}
-                placeholder={key === "facilities" ? "e.g. Projector, Wi-Fi" : "e.g. Step-free access"} aria-describedby="feature-help" />
-            </label>
-            {features[key].length > 0 && <div className="flex flex-wrap gap-2" role="group" aria-label={`${key} suggestions`}>
-              {features[key].map((feature) => {
-                const active = selected[key].split(",").some((value) => value.trim().toLowerCase() === feature.toLowerCase());
-                return <button key={feature} type="button" aria-pressed={active} onClick={() => toggleFeature(key, feature)}
-                  className={`min-h-9 rounded-full border px-3 py-1.5 text-xs transition-colors focus-visible:outline-2 focus-visible:outline-ring ${active ? "border-primary bg-primary/10 font-medium text-primary" : "border-border bg-background text-muted-foreground hover:border-primary hover:text-foreground"}`}>
-                  {active ? "✓ " : "+ "}{feature}
-                </button>;
-              })}
-            </div>}
-          </div>)}
+          {(["facilities", "accessibility"] as const).map((key) => {
+            const presets = key === "facilities" ? VENUE_FACILITIES : VENUE_ACCESSIBILITY_FEATURES;
+            const values = selected[key].split(",").map((value) => value.trim()).filter(Boolean);
+            const custom = values.filter((value) => !presets.some((preset) => preset.toLowerCase() === value.toLowerCase()));
+            const setCustom = (value: string) => setSelected({ ...selected, [key]: [...values.filter((item) => presets.some((preset) => preset.toLowerCase() === item.toLowerCase())), ...value.split(",").map((item) => item.trim()).filter(Boolean)].join(", ") });
+            return <div key={key} className="space-y-3">
+              <fieldset className="space-y-2">
+                <legend className="text-sm font-medium">{key === "facilities" ? "Required facilities" : "Accessibility features"}</legend>
+                <div className="grid gap-2 sm:grid-cols-2">
+                  {[...new Set([...presets, ...features[key]])].filter((feature) => feature.toLowerCase() !== "lift").map((feature) => (
+                    <label key={feature} className="flex items-center gap-2 rounded-lg border border-border px-3 py-2 text-sm">
+                      <input type="checkbox" checked={values.some((value) => value.toLowerCase() === feature.toLowerCase())} onChange={() => toggleFeature(key, feature)} />{feature}
+                    </label>
+                  ))}
+                  <label className="flex items-center gap-2 rounded-lg border border-border px-3 py-2 text-sm">
+                    <input type="checkbox" checked={customOther[key] || custom.length > 0} onChange={(event) => {
+                      setCustomOther({ ...customOther, [key]: event.target.checked });
+                      if (!event.target.checked) setCustom("");
+                    }} />Other
+                  </label>
+                </div>
+              </fieldset>
+              {(customOther[key] || custom.length > 0) && <OtherValuesInput id={`${key}-other`} label={`Other ${key}`} value={custom.join(", ")} onChange={setCustom} placeholder="Enter one or more values separated by commas" />}
+              <input type="hidden" name={key} value={selected[key]} />
+            </div>;
+          })}
           <p id="feature-help" className="text-xs text-muted-foreground">Pick features from the catalogue above, or type names separated by commas. A venue must have every feature you select.</p>
         </div>
       </details>

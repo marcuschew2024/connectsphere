@@ -6,6 +6,7 @@ import Link from "next/link";
 import { useState, type FormEvent } from "react";
 import { ApiError, apiRequest } from "@/lib/api";
 import type { EventRecord } from "@/lib/events";
+import EventVenueOptions from "@/components/event-venue-options";
 
 // A small list keeps labels, limits and repeated form markup together.
 const TEXT_FIELDS = [
@@ -15,8 +16,6 @@ const TEXT_FIELDS = [
   { name: "purpose", label: "Purpose", limit: 2000, required: true, multiline: true },
 ];
 const REQUIREMENT_FIELDS = [
-  { name: "venue_requirements", label: "Venue requirements" },
-  { name: "accessibility_requirements", label: "Accessibility requirements" },
   { name: "equipment_requirements", label: "Equipment requirements" },
   { name: "registration_requirements", label: "Registration requirements" },
 ];
@@ -198,6 +197,7 @@ export default function EventRequestForm({ canCreate, initialEvent, onSaved }: {
         <fieldset className="space-y-5 border-t border-border pt-4">
           <legend className="pr-3 text-lg font-semibold"><span aria-hidden="true" className="mr-2 text-primary">03</span> Additional requirements (optional)</legend>
           <p className="text-sm text-muted-foreground">Help the Coordinator plan the right space and support. Leave anything you do not need blank.</p>
+          <EventVenueOptions venueRequirements={initialEvent?.venue_requirements} facilityRequirements={initialEvent?.facility_requirements} accessibilityRequirements={initialEvent?.accessibility_requirements} />
           <div className="grid gap-5 sm:grid-cols-2">
           {REQUIREMENT_FIELDS.map((field) => (
             <div key={field.name}>

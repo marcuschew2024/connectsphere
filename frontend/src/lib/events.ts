@@ -16,6 +16,7 @@ export type EventRecord = {
   registered_count?: number;
   withdrawal_closes_at?: string | null;
   venue_requirements: string | null;
+  facility_requirements: string | null;
   accessibility_requirements: string | null;
   equipment_requirements: string | null;
   registration_requirements: string | null;

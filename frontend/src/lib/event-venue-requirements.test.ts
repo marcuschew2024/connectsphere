@@ -7,14 +7,20 @@ describe("eventVenueRequirements", () => {
     const event = {
       expected_attendance: 150,
       event_datetime: "2026-10-20T06:00:00Z",
-      venue_requirements: "Projector, Banquet, Wi-Fi",
+      venue_requirements: "Projector, Banquet, Wi-Fi, Blinds",
+      facility_requirements: "Projector, Wi-Fi",
       accessibility_requirements: "Wheelchair",
     } as CoordinatorEventRecord;
 
     expect(eventVenueRequirements(event)).toEqual({
       attendance: "150",
       layout: "Banquet",
-      specialRequirements: "Projector, Wi-Fi, Wheelchair",
+      layouts: ["Banquet"],
+      customLayouts: [],
+      facilities: ["Projector", "Wi-Fi"],
+      customFacilities: ["Blinds"],
+      accessibility: ["Wheelchair"],
+      customAccessibility: [],
       date: "2026-10-20",
       startTime: "14:00",
       endTime: "",
@@ -25,7 +31,12 @@ describe("eventVenueRequirements", () => {
     expect(eventVenueRequirements(undefined)).toEqual({
       attendance: "",
       layout: "",
-      specialRequirements: "",
+      layouts: [],
+      customLayouts: [],
+      facilities: [],
+      customFacilities: [],
+      accessibility: [],
+      customAccessibility: [],
       date: "",
       startTime: "",
       endTime: "",

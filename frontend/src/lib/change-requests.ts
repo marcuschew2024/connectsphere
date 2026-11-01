@@ -8,6 +8,7 @@ export const CHANGE_FIELDS = [
   { name: "event_datetime", label: "Date and time", kind: "datetime" },
   { name: "expected_attendance", label: "Expected attendance", kind: "number" },
   { name: "venue_requirements", label: "Venue requirements" },
+  { name: "facility_requirements", label: "Facility requirements" },
   { name: "category", label: "Category" },
   { name: "purpose", label: "Purpose" },
   { name: "description", label: "Event description" },

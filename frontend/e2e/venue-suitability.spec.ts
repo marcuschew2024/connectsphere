@@ -96,14 +96,15 @@ test("Coordinator sees all advisory suitability flags and can still submit", asy
   await page.goto("/venues/bookings/new");
 
   await expect(page.getByLabel("Expected attendance")).toHaveValue("150");
-  await expect(page.getByLabel("Layout", { exact: true })).toHaveValue("Banquet");
-  await expect(page.getByLabel("Special requirements")).toHaveValue("Projector, Wheelchair");
+  await expect(page.getByRole("checkbox", { name: "Banquet", exact: true })).toBeChecked();
+  await expect(page.getByRole("checkbox", { name: "Projector", exact: true })).toBeChecked();
+  await expect(page.getByRole("checkbox", { name: "Wheelchair", exact: true })).toBeChecked();
   await expect(page.getByRole("region", { name: "Venue suitability advisory" })).toBeVisible();
   for (const flag of suitabilityFlags) {
     await expect(page.getByText(flag, { exact: true })).toBeVisible();
   }
 
-  await page.getByLabel("Layout").fill("Banquet");
+  await page.getByRole("checkbox", { name: "Banquet", exact: true }).check();
   await page.getByLabel("Start").fill("2099-10-20T14:00");
   await page.getByLabel("End", { exact: true }).fill("2099-10-20T16:00");
   await page.getByRole("button", { name: "Submit booking request" }).click();

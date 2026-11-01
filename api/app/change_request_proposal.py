@@ -18,7 +18,12 @@ Team decision (PO, Decision Log D36):
 from .event_validation import TEXT_LIMITS, validate_event
 
 CHANGEABLE_FIELDS = frozenset(TEXT_LIMITS) | {"expected_attendance", "event_datetime"}
-SIGNIFICANT_FIELDS = frozenset({"expected_attendance", "venue_requirements", "event_datetime"})
+SIGNIFICANT_FIELDS = frozenset({
+    "expected_attendance",
+    "venue_requirements",
+    "facility_requirements",
+    "event_datetime",
+})
 
 
 class ChangeRequestProposal:

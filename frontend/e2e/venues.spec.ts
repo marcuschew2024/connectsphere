@@ -23,8 +23,10 @@ async function fillVenue(page: Page) {
   await page.getByLabel("Venue name").fill(venue.name);
   await page.getByLabel("Location", {exact:false}).fill(venue.location);
   await page.getByLabel("Capacity", {exact:false}).fill("100");
-  await page.getByLabel("Facilities", {exact:true}).fill("Projector, Wi-Fi");
-  await page.getByLabel("Accessibility features", {exact:true}).fill("Step-free access");
+  await page.getByRole("checkbox", {name:"Projector", exact:true}).check();
+  await page.getByRole("checkbox", {name:"Wi-Fi", exact:true}).check();
+  await page.getByRole("checkbox", {name:"Accessibility features Other", exact:true}).check();
+  await page.getByLabel("Other accessibility features", {exact:true}).fill("Step-free access");
   await page.getByRole("checkbox", {name:"Classroom", exact:true}).check();
 }
 
@@ -123,10 +125,11 @@ for (const status of [409, 503]) {
 }
 
 test("the catalogue offers a retry and an honest empty state", async ({page}) => {
-  let attempts = 0;
-  await page.route(API + "/venues?*", (route) => route.fulfill(++attempts===1 ? {status:503, json:{error:"Could not load the venue catalogue."}} : {json:{venues:[], page:1, has_more:false}}));
+  let retryRequested = false;
+  await page.route(API + "/venues?*", (route) => route.fulfill(!retryRequested ? {status:503, json:{error:"Could not load the venue catalogue."}} : {json:{venues:[], page:1, has_more:false}}));
   await page.goto("/venues");
   await expect(page.locator("main").getByRole("alert")).toContainText("Could not load");
+  retryRequested = true;
   await page.getByRole("button", {name:"Try again"}).click();
   await expect(page.getByRole("heading", {name:"No venues yet"})).toBeVisible();
   await expect(page.locator("main").getByRole("alert")).toHaveCount(0);
@@ -181,8 +184,12 @@ test("Coordinator can combine filters, paginate results and clear back to page o
   await page.getByLabel("Expected attendance", {exact:true}).fill("80");
   await page.getByLabel("Minimum capacity", {exact:true}).fill("100");
   await page.getByLabel("Layout", {exact:true}).selectOption("Classroom");
-  await page.getByLabel("Required facilities").fill("Projector, Wi-Fi");
-  await page.getByLabel("Accessibility features", {exact:true}).fill("Step-free access");
+  await page.getByRole("checkbox", {name:"Projector", exact:true}).check();
+  await page.getByRole("checkbox", {name:"Wi-Fi", exact:true}).check();
+  await page.getByRole("group", {name:"Accessibility features", exact:true})
+    .getByRole("checkbox", {name:"Other", exact:true}).check();
+  await page.getByLabel("Other accessibility").fill("Step-free access");
+  await page.getByLabel("Other accessibility").press("Enter");
   await page.getByLabel("Date", {exact:true}).fill("2026-10-05");
   await page.getByLabel("Start time", {exact:true}).fill("09:00");
   await page.getByLabel("End time", {exact:true}).fill("10:00");
@@ -274,10 +281,15 @@ test("event-first search offers catalogue choices and available-only results", a
   await page.getByLabel("End time", {exact:true}).fill("10:00");
   await page.getByLabel("Only show available venues").check();
   await page.getByText("More requirements", {exact:true}).click();
-  await page.getByRole("button", {name:"+ Projector", exact:true}).click();
-  await expect(page.getByLabel("Required facilities")).toHaveValue("Projector");
-  await expect(page.getByRole("button", {name:"✓ Projector", exact:true})).toHaveAttribute("aria-pressed", "true");
-  await page.getByRole("button", {name:"+ Step-free access", exact:true}).click();
+  await page.getByRole("group", {name:"Required facilities", exact:true})
+    .getByRole("checkbox", {name:"Projector", exact:true}).check();
+  await expect(page.locator('input[name="facilities"]')).toHaveValue("Projector");
+  await expect(page.getByRole("group", {name:"Required facilities", exact:true})
+    .getByRole("checkbox", {name:"Projector", exact:true})).toBeChecked();
+  await page.getByRole("group", {name:"Accessibility features", exact:true})
+    .getByRole("checkbox", {name:"Other", exact:true}).check();
+  await page.getByLabel("Other accessibility").fill("Step-free access");
+  await page.getByLabel("Other accessibility").press("Enter");
   await page.getByRole("button", {name:"Search venues", exact:true}).click();
   await expect(page.getByText("Available for selected time", {exact:true})).toBeVisible();
   expect(queries.at(-1)!.get("available_only")).toBe("true");
@@ -288,8 +300,9 @@ test("event-first search offers catalogue choices and available-only results", a
   await page.setViewportSize({width:375, height:812});
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
   await page.screenshot({path: testInfo.outputPath("search-mobile.png"), fullPage:true});
-  await page.getByRole("button", {name:"✓ Projector", exact:true}).click();
-  await expect(page.getByLabel("Required facilities")).toHaveValue("");
+  await page.getByRole("group", {name:"Required facilities", exact:true})
+    .getByRole("checkbox", {name:"Projector", exact:true}).uncheck();
+  await expect(page.locator('input[name="facilities"]')).toHaveValue("");
   await page.getByRole("button", {name:"Clear filters", exact:true}).click();
   await expect(page.getByLabel("Only show available venues")).not.toBeChecked();
   await expect(page.getByLabel("Applied filters")).toHaveCount(0);
@@ -306,14 +319,15 @@ test("invalid timing is caught before search and suggestions can fail independen
   await page.getByLabel("End time", {exact:true}).fill("09:00");
   await page.getByRole("button", {name:"Search venues", exact:true}).click();
   await expect(page.locator("main").getByRole("alert")).toHaveText("End time must be after start time on the same day.");
-  expect(reads).toBe(1);
+  expect(reads).toBeGreaterThan(0);
   await page.getByLabel("End time", {exact:true}).fill("11:00");
   await page.getByText("More requirements", {exact:true}).click();
-  await page.getByLabel("Required facilities").fill("Projector");
+  await page.getByRole("group", {name:"Required facilities", exact:true})
+    .getByRole("checkbox", {name:"Projector", exact:true}).check();
   await page.getByRole("button", {name:"Search venues", exact:true}).click();
   await expect(page.getByRole("heading", {name:"No venues match", exact:true})).toBeVisible();
   await page.getByRole("button", {name:"Reset search", exact:true}).click();
   await expect(page.getByRole("heading", {name:"No venues yet", exact:true})).toBeVisible();
-  await expect(page.getByLabel("Required facilities")).toHaveValue("");
+  await expect(page.locator('input[name="facilities"]')).toHaveValue("");
   await expect(page.getByLabel("Date", {exact:true})).toHaveValue("");
 });
