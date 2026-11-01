@@ -44,15 +44,15 @@ test("empty list gives a clear starting point", async ({ page }) => {
 });
 
 test("load failure offers a working retry", async ({ page }) => {
-  let attempts = 0;
+  let retryRequested = false;
   await page.route("**/events?status=Draft", (route) => {
-    attempts++;
-    return route.fulfill(attempts <= 2
+    return route.fulfill(!retryRequested
       ? { status: 503, json: { error: "Could not load event requests." } }
       : { json: { events: [draft] } });
   });
   await page.goto("/events/drafts");
   await expect(page.locator("main").getByRole("alert")).toHaveText("Could not load event requests.");
+  retryRequested = true;
   await page.getByRole("button", { name: "Try again" }).click();
   await expect(page.getByRole("heading", { name: draft.title })).toBeVisible();
 });

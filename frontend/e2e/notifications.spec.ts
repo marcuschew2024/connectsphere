@@ -76,10 +76,9 @@ test("notifications show an empty state", async ({ page }) => {
 });
 
 test("failed notifications can be refreshed", async ({ page }) => {
-  let attempts = 0;
+  let refreshRequested = false;
   await page.route("**/notifications", (route) => {
-    attempts++;
-    return route.fulfill(attempts === 1
+    return route.fulfill(!refreshRequested
       ? { status: 503, json: { error: "Could not load notifications. Please try again." } }
       : { json: { notifications: [notification] } });
   });
@@ -87,6 +86,7 @@ test("failed notifications can be refreshed", async ({ page }) => {
   const inbox = page.getByRole("region", { name: "Notifications" });
   await expect(inbox.getByRole("alert")).toContainText("Could not load notifications.");
   await expect(inbox.getByText("No notifications yet.")).toHaveCount(0);
+  refreshRequested = true;
   await inbox.getByRole("button", { name: "Refresh" }).click();
   await expect(inbox).toContainText(REASON);
   await expect(inbox.getByRole("alert")).toHaveCount(0);

@@ -125,10 +125,11 @@ for (const status of [409, 503]) {
 }
 
 test("the catalogue offers a retry and an honest empty state", async ({page}) => {
-  let attempts = 0;
-  await page.route(API + "/venues?*", (route) => route.fulfill(++attempts <= 2 ? {status:503, json:{error:"Could not load the venue catalogue."}} : {json:{venues:[], page:1, has_more:false}}));
+  let retryRequested = false;
+  await page.route(API + "/venues?*", (route) => route.fulfill(!retryRequested ? {status:503, json:{error:"Could not load the venue catalogue."}} : {json:{venues:[], page:1, has_more:false}}));
   await page.goto("/venues");
   await expect(page.locator("main").getByRole("alert")).toContainText("Could not load");
+  retryRequested = true;
   await page.getByRole("button", {name:"Try again"}).click();
   await expect(page.getByRole("heading", {name:"No venues yet"})).toBeVisible();
   await expect(page.locator("main").getByRole("alert")).toHaveCount(0);
