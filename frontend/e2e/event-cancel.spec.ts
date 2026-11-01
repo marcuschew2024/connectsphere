@@ -1,4 +1,4 @@
-import { expect, test, type Page } from "@playwright/test";
+import { expect, test, type Page } from "./fixtures";
 
 // SCRUM-69: the assigned Coordinator or the Event Coordinator Lead cancels an event.
 const EVENT_ID = "69696969-6969-4969-8969-696969696969";

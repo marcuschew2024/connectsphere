@@ -1,4 +1,4 @@
-import { expect, test, type Page } from "@playwright/test";
+import { expect, test, type Page } from "./fixtures";
 import type { OwnRegistration } from "../src/lib/registrations";
 
 const API = "http://localhost:5001";

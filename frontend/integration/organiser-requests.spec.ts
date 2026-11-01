@@ -1,7 +1,7 @@
 import { expect, test, type Page } from "@playwright/test";
 
-const API = "http://localhost:5001";
-const ORIGIN = "http://localhost:3107";
+const API = process.env.QA_API_URL ?? "http://localhost:5001";
+const ORIGIN = process.env.QA_WEB_URL ?? "http://localhost:3107";
 
 async function signIn(page: Page, account: string) {
   await page.goto("/login");

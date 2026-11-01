@@ -1,4 +1,4 @@
-import { test, expect, type Page } from "@playwright/test";
+import { test, expect, type Page } from "./fixtures";
 
 // SCRUM-30 availability calendar against a MOCKED read-contract (venue + bookings), since
 // the live endpoints depend on SCRUM-31. Uses a venue open every day 09:00–18:00.

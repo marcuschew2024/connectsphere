@@ -23,7 +23,9 @@ function EditVenue({ venueId }: { venueId: string }) {
         if (venue.is_retired) throw new Error("This venue is retired. Its details are kept for history and cannot be edited.");
         setVenue(venue);
       })
-      .catch((error) => { if (active) setError(error.name === "AbortError" ? "Loading took too long. Reload to try again." : error.message); })
+      .catch((error: unknown) => { if (active) setError(error instanceof Error || error instanceof DOMException
+        ? error.name === "AbortError" ? "Loading took too long. Reload to try again." : error.message
+        : "Could not load the venue. Reload to try again."); })
       .finally(() => clearTimeout(timeout));
     return () => { active = false; clearTimeout(timeout); controller.abort(); };
   }, [venueId]);

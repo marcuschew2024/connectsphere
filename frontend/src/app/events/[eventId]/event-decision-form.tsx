@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, type FormEvent } from "react";
+import { useRef, useState, type FormEvent } from "react";
 import { ApiError, apiRequest } from "@/lib/api";
 import type { EventRecord } from "@/lib/events";
 
@@ -12,19 +12,21 @@ export default function EventDecisionForm({
   onSaved: (event: EventRecord) => void;
 }) {
   const [reason, setReason] = useState("");
+  const submitting = useRef(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
 
   if (event.status !== "Submitted") return null;
 
   async function makeDecision(decision: "approve" | "reject") {
-    if (busy) return;
+    if (submitting.current) return;
 
     if (decision === "reject" && !reason.trim()) {
       setError("A reason is required when rejecting a request.");
       return;
     }
 
+    submitting.current = true;
     setBusy(true);
     setError("");
 
@@ -49,6 +51,7 @@ export default function EventDecisionForm({
           : "Could not save the decision.",
       );
     } finally {
+      submitting.current = false;
       setBusy(false);
     }
   }

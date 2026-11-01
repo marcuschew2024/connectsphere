@@ -168,7 +168,8 @@ def search_venues(page, filters, include_retired=True, listing=None):
     matched_count = 0
     checked = {}
     listing = listing or list_venues
-    while len(matches) <= PAGE_SIZE:
+    # Exhaustion and the look-ahead match below are the two loop exit conditions.
+    while True:
         rows, has_more = listing(source_page)
         for venue in rows:
             if not include_retired and venue.get("is_retired"):
@@ -212,20 +213,21 @@ def filter_options():
             break
         page += 1
 
-    def unique_preserving_preferred(field_values):
-        by_normalised = {}
-        for value in field_values:
-            if not isinstance(value, str) or not value.strip():
-                continue
-            cleaned = value.strip()
-            normalised = _normalise(cleaned)
-            preferred = (
-                normalised in by_normalised
-                and cleaned.istitle()
-                and not by_normalised[normalised].istitle()
-            )
-            if normalised not in by_normalised or preferred:
-                by_normalised[normalised] = cleaned
-        return sorted(by_normalised.values(), key=_normalise)
+    return {key: _unique_preserving_preferred(field_values) for key, field_values in values.items()}
 
-    return {key: unique_preserving_preferred(field_values) for key, field_values in values.items()}
+
+def _unique_preserving_preferred(field_values):
+    by_normalised = {}
+    for value in field_values:
+        if not isinstance(value, str) or not value.strip():
+            continue
+        cleaned = value.strip()
+        normalised = _normalise(cleaned)
+        preferred = (
+            normalised in by_normalised
+            and cleaned.istitle()
+            and not by_normalised[normalised].istitle()
+        )
+        if normalised not in by_normalised or preferred:
+            by_normalised[normalised] = cleaned
+    return sorted(by_normalised.values(), key=_normalise)

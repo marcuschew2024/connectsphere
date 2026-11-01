@@ -1,4 +1,4 @@
-import { expect, test, type Page } from "@playwright/test";
+import { expect, test, type Page } from "./fixtures";
 
 // SCRUM-132: the assigned Coordinator completes and closes a delivered event.
 const EVENT_ID = "13213213-2132-4132-8132-132132132132";

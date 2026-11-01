@@ -9,6 +9,6 @@ select = ["E", "F", "I", "W", "UP", "B"]
 testpaths = ["tests"]
 
 [tool.coverage.report]
-# Coverage gate: the suite currently sits at ~85%. Keep this floor at or below the
-# real number so CI stays green and the floor can only ratchet upward over time.
-fail_under = 80
+# SCRUM-161: preserve complete backend statement/branch coverage. Run the full
+# suite against the disposable acceptance database before applying this gate.
+fail_under = 100

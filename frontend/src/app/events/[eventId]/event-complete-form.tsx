@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { ApiError, apiRequest } from "@/lib/api";
 import type { EventCompletionResult, EventRecord } from "@/lib/events";
 import { Button } from "@/components/ui/button";
@@ -19,13 +19,15 @@ export default function EventCompleteForm({
 }) {
   const [note, setNote] = useState("");
   const [confirming, setConfirming] = useState(false);
+  const submitting = useRef(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
 
   if (event.status !== "Preparation") return null;
 
   async function completeEvent() {
-    if (busy) return;
+    if (submitting.current) return;
+    submitting.current = true;
     setBusy(true);
     setError("");
     try {
@@ -40,6 +42,7 @@ export default function EventCompleteForm({
         completeError instanceof ApiError ? completeError.message : "Could not complete the event.",
       );
     } finally {
+      submitting.current = false;
       setBusy(false);
     }
   }

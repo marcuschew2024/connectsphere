@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { ApiError, apiRequest } from "@/lib/api";
 import type { EventCancellationResult, EventRecord } from "@/lib/events";
 import { Button } from "@/components/ui/button";
@@ -21,6 +21,7 @@ export default function EventCancelForm({
 }) {
   const [reason, setReason] = useState("");
   const [confirming, setConfirming] = useState(false);
+  const submitting = useRef(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
 
@@ -36,7 +37,8 @@ export default function EventCancelForm({
   }
 
   async function cancelEvent() {
-    if (busy) return;
+    if (submitting.current) return;
+    submitting.current = true;
     setBusy(true);
     setError("");
     try {
@@ -51,6 +53,7 @@ export default function EventCancelForm({
         cancelError instanceof ApiError ? cancelError.message : "Could not cancel the event.",
       );
     } finally {
+      submitting.current = false;
       setBusy(false);
     }
   }

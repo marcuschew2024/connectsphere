@@ -1,4 +1,4 @@
-import { expect, test, type Page } from "@playwright/test";
+import { expect, test, type Page } from "./fixtures";
 
 // SCRUM-46: organisers request changes after submission; the assigned Coordinator reviews them.
 const EVENT_ID = "46464646-4646-4464-8464-464646464646";

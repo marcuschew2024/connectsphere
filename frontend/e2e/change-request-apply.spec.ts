@@ -1,4 +1,4 @@
-import { expect, test, type Page } from "@playwright/test";
+import { expect, test, type Page } from "./fixtures";
 
 // SCRUM-138: proposed values travel with a change request and approval applies them.
 // The API is mocked; the atomic apply, rollback and re-checks are covered by the API's

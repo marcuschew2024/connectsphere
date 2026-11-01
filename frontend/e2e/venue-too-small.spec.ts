@@ -1,4 +1,4 @@
-import { expect, test, type Page } from "@playwright/test";
+import { expect, test, type Page } from "./fixtures";
 
 // SCRUM-152 (SCRUM-47 AC4, SCRUM-62): an attendance change above a booked venue's capacity
 // flags that venue. The API is mocked; the capacity re-check itself is covered by

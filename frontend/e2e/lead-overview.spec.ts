@@ -1,4 +1,4 @@
-import { expect, test, type Page } from "@playwright/test";
+import { expect, test, type Page } from "./fixtures";
 
 const API = "http://localhost:5001";
 const coordinators = [{ id: 2, display_name: "Coordinator A" }, { id: 3, display_name: "Coordinator B" }];

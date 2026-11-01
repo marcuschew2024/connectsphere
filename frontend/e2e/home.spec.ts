@@ -1,4 +1,4 @@
-import { test, expect } from "@playwright/test";
+import { test, expect } from "./fixtures";
 
 test("home page shows the ConnectSphere heading", async ({ page }) => {
   await page.goto("/");

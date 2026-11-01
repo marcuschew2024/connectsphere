@@ -99,6 +99,7 @@ export default function NewBookingPage() {
       setAccessibilityOther(requirements.customAccessibility.join(", "));
       setAccessibilityOtherEnabled(requirements.customAccessibility.length > 0);
       setStartAt(requirements.date && requirements.startTime ? `${requirements.date}T${requirements.startTime}` : "");
+      // Preserve the event end supplied by the Organiser; older events may omit it.
       setEndAt(requirements.date && requirements.endTime ? `${requirements.date}T${requirements.endTime}` : "");
       setSelectedVenueId(allVenues[0]?.id ?? "");
     }
@@ -151,6 +152,7 @@ export default function NewBookingPage() {
     setAccessibilityOther(requirements.customAccessibility.join(", "));
     setAccessibilityOtherEnabled(requirements.customAccessibility.length > 0);
     setStartAt(requirements.date && requirements.startTime ? `${requirements.date}T${requirements.startTime}` : "");
+    // Use the selected event’s end, clearing any value from the previous event.
     setEndAt(requirements.date && requirements.endTime ? `${requirements.date}T${requirements.endTime}` : "");
   }
 
@@ -211,7 +213,9 @@ export default function NewBookingPage() {
       setBusy(false);
       return;
     }
-    const submittedLayouts = [...layouts.map((value) => VENUE_LAYOUTS.find((option) => option.toLowerCase() === value.toLowerCase()) ?? value), ...layoutOther.split(",").map((value) => value.trim()).filter(Boolean)];
+    // layouts contains preset matches only (eventVenueRequirements or preset checkboxes).
+    // Custom layouts are kept separately in layoutOther. Preserve preset spelling.
+    const submittedLayouts = [...layouts.map((value) => VENUE_LAYOUTS.find((option) => option.toLowerCase() === value.toLowerCase())!), ...layoutOther.split(",").map((value) => value.trim()).filter(Boolean)];
     const submittedLayout = submittedLayouts.join(", ");
     if (!submittedLayout) {
       setError("Enter a layout.");

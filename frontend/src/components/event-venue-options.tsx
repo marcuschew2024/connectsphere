@@ -48,7 +48,8 @@ function OptionGroup({ label, options, name, selected, onChange, other, onOtherC
               onChange([...selected, "__other__"]);
               return;
             }
-            if (!event.target.checked) onChange(selected.filter((value) => options.some((option) => option.toLowerCase() === value.toLowerCase())));
+            onChange(selected.filter((value) => options.some((option) => option.toLowerCase() === value.toLowerCase())));
+            onOtherChange("");
           }} className="h-4 w-4 accent-primary" />
           Other
         </label>

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { ApiError, apiRequest } from "@/lib/api";
 import type { EventRecord } from "@/lib/events";
 
@@ -14,14 +14,16 @@ export default function EventConfirmForm({
   event: EventRecord;
   onSaved: (event: EventRecord) => void;
 }) {
+  const submitting = useRef(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
 
   if (event.status !== "Planning") return null;
 
   async function confirmEvent() {
-    if (busy) return;
+    if (submitting.current) return;
 
+    submitting.current = true;
     setBusy(true);
     setError("");
 
@@ -39,6 +41,7 @@ export default function EventConfirmForm({
           : "Could not confirm the event.",
       );
     } finally {
+      submitting.current = false;
       setBusy(false);
     }
   }

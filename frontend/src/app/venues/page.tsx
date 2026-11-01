@@ -1,5 +1,6 @@
 "use client";
 
+import { singaporeDateTime } from "@/lib/event-venue-requirements";
 import { recordReference } from "@/lib/record-reference";
 
 import Link from "next/link";
@@ -57,33 +58,15 @@ type SearchValues = {
 
 function requirementsForEvent(event: PlanningEvent | undefined): SearchValues {
   const requirements = eventVenueRequirements(event as CoordinatorEventRecord | undefined);
-  const timing = eventTiming(event?.event_datetime);
+  const timing = singaporeDateTime(event?.event_datetime);
   return {
     attendance: event?.expected_attendance != null ? String(event.expected_attendance) : "",
     layout: [...requirements.layouts, ...requirements.customLayouts].join(", "),
     facilities: [...requirements.facilities, ...requirements.customFacilities].join(", "),
     accessibility: event?.accessibility_requirements ?? "",
     date: timing.date,
-    start_time: timing.startTime,
-    end_time: timing.endTime,
-  };
-}
-
-function eventTiming(value: string | null | undefined) {
-  if (!value) return { date: "", startTime: "", endTime: "" };
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return { date: "", startTime: "", endTime: "" };
-  const parts = new Intl.DateTimeFormat("en-CA", {
-    timeZone: "Asia/Singapore", year: "numeric", month: "2-digit", day: "2-digit",
-    hour: "2-digit", minute: "2-digit", hourCycle: "h23",
-  }).formatToParts(date);
-  const part = (type: Intl.DateTimeFormatPartTypes) =>
-    parts.find((item) => item.type === type)?.value ?? "";
-  const startTime = `${part("hour")}:${part("minute")}`;
-  return {
-    date: `${part("year")}-${part("month")}-${part("day")}`,
-    startTime,
-    endTime: "",
+    start_time: timing.time,
+    end_time: "",
   };
 }
 

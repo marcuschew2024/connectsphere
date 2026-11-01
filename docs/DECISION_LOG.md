@@ -1419,3 +1419,136 @@ auto-assign in D9) are recorded explicitly rather than left implicit.
   and SCRUM-80 dependency before merge. The user authorised push and merge on 1 November 2026 after manual
   verification and disclosure of the SCRUM-80 dependency. Independent third-party
   review is not claimed; hosted CI remains a required merge gate. The existing integrated lifecycle test gains assertions; none are removed.
+
+### D50 — Reject coerced equipment reservation quantities (SCRUM-161)
+
+- **Context.** Intent-based failure tests reproduced `true` and `1.5` being accepted
+  by the reservation endpoint as one unit because `int(...)` coerced them. Non-string
+  reservation times could also escape date parsing as unhandled type errors.
+  A real-database test also found malformed date strings reached the query before
+  validation, returning a misleading database-unavailable error.
+- **Decision.** Apply the existing positive whole-number quantity rule at the JSON
+  boundary using an integer type check (excluding booleans), bounded by MAX_QUANTITY.
+  Reservation timestamps must be strings; the existing availability engine continues
+  to validate timezone and interval ordering through a shared pure `equipment_window`
+  helper. Routes invoke that same helper before querying reservations. Refusals return
+  400 before persistence; no overlap rule or valid interval behaviour changes.
+- **Constraints.** Existing successful integer reservations, role guards, stock/overlap
+  rules and database schema remain unchanged. No existing test is weakened or excluded.
+- **Verification.** New tests first reproduced boolean/fractional acceptance (201),
+  then assert 400 and no write. Missing/invalid fields, non-text dates, stock lookup,
+  read-role restrictions and registration error mapping receive additional tests.
+  Executed suite results are recorded in docs/SCRUM-161.md.
+- **Trade-off.** Numeric strings and integral JSON floats are refused instead of
+  silently coerced. The browser sends integer numbers. Clients must send the documented
+  whole-number JSON quantity; reviewers should check any external callers.
+- **Owner / review.** Jerome owns SCRUM-161. The user authorised meaningful testing
+  and fixing defects it exposes. A human must review the input-contract clarification
+  before merge; no merge or independent teammate approval is claimed here.
+
+### D51 — Combine frontend test coverage using identical source counters (SCRUM-161)
+
+- **Context.** The user requested one frontend coverage report accounting for unit and
+  browser tests. Adding percentages, or merging incompatible V8/transpiled statement
+  maps, would misrepresent what ran. Navigation can also discard a document's counters.
+- **Decision.** Keep the existing Vitest/V8 unit gate and report. Add an opt-in combined
+  lane that instruments original TS/TSX with the same pinned Istanbul instrumenter
+  before both Vitest and browser compilation. Merge execution counts only after matching
+  every statement/function/branch map and checking the source inventory and hashes.
+  Include every eligible source file, including untouched/server-only files, in each
+  comparison denominator. Report unit, browser and their union separately.
+- **Constraints.** Instrument only the client side of a separate `.next-coverage`
+  build; normal builds contain no coverage counters. Server render/build execution and
+  the real API/database browser lane do not contribute to this report. The browser
+  scenarios retain their existing mocks, actions and assertions. Their only edits are
+  imports of an automatic coverage fixture. Full-document counters are saved synchronously
+  in tab storage before navigation; final collection deduplicates document snapshots.
+- **Verification.** Tests prove complementary branch union, unchanged individual reports,
+  untouched-file inclusion and rejection of incompatible maps. A browser probe verifies
+  real application counters survive two reloads. The combined command requires successful
+  unit, build and browser runs, validates receipts and refuses empty browser coverage.
+  CI retains both ordinary coverage and combined HTML/JSON/LCOV evidence.
+- **Trade-off.** Istanbul and V8 use different statement/branch counting models; the
+  combined lane's own unit baseline is the valid comparison, not the old 5.78% figure.
+  Server-only execution remains unmeasured and visible at zero; passing UI assertions
+  on a server-rendered page do not imply browser execution of its TSX. Collection assumes
+  the current tests' same-origin navigation and open tabs; new cross-origin or explicitly
+  closed-tab scenarios need collector verification before their coverage is claimed.
+- **Owner / review.** Jerome owns SCRUM-161. The user authorised combined coverage.
+  Human review should check counter compatibility, denominators, browser fixture imports,
+  the added CI cost and the reported limitations. No hosted CI, push or merge is claimed.
+
+### D52 — Show booking edits only when the existing API permits them (SCRUM-161)
+
+- **Context.** Release 1 booking-edit tests found that a direct edit URL showed an
+  editable form for Confirmed bookings and another Coordinator's request. The API
+  already rejected both cases, leaving a misleading screen.
+- **Decision.** Render the form only for a Requested booking whose requester matches
+  the signed-in Coordinator. Other returned records show an explicit read-only message;
+  the submit handler checks the same condition. The API remains the authority.
+- **Constraints.** Mirror the existing `change_booking` permission/state rule. No new
+  API permission, reassignment policy, database migration or status transition is added.
+- **Verification.** Component cases cover owned Requested bookings, terminal/Held
+  bookings and another requester; controlled-browser regressions cover successful edits
+  and the direct-URL denials. Existing backend permission tests remain intact.
+- **Trade-off.** A stale tab can become non-editable after it loads; the API must still
+  reject a subsequent save. The UI condition does not replace that check.
+- **Owner / review.** Jerome owns SCRUM-161; Ernest owns the booking feature and Marcus
+  reviews access-policy alignment before merge. The user authorised fixing defects found
+  while improving Release 1 evidence. No independent human sign-off is claimed.
+
+### D53 — Preserve form intent and enforce complete combined coverage (SCRUM-161)
+
+- **Context.** The user explicitly requested 100% combined frontend coverage. New
+  intent-based cases reproduced stale custom values after Other was unchecked and two
+  lifecycle writes before React committed the busy state. An unstructured venue-editor
+  rejection also left no useful error. Remaining branches included duplicate date
+  formatting and conditions impossible under the current preset-only layout state.
+- **Decision.** Clear custom values when deselected. Use an immediate in-flight ref for
+  the eight tested action buttons, resetting it in `finally` while retaining busy UI.
+  Explain unexpected venue-load failures. Reuse the existing Singapore time helper,
+  explicitly clear the booking end on event selection, and canonicalise only known
+  presets while keeping custom layouts separate. Enforce exact covered/total equality
+  for combined statements, branches, functions and lines after writing diagnostic reports.
+- **Constraints.** Existing tests, source inclusion rules, backend permissions, status
+  transitions and APIs remain intact. No coverage ignore annotations are added. Known
+  layouts enter preset state only through matching event requirements or preset controls;
+  mixed-case and custom layouts must retain the same submitted meaning. No server-side
+  idempotency or new database guarantee is implied by the in-flight UI guard.
+- **Verification.** The two UI regressions failed before their fixes. Tests now assert
+  cleared serialized values and one write for two queued activations. Existing normal
+  and instrumented browser suites, units, build/lint and exact source counters are
+  recorded in `docs/SCRUM-161.md`. A gate test rejects a single missing counter even when
+  its percentage rounds to 100. The full run includes all 95 eligible source files.
+- **Trade-off.** The stricter gate requires every future change to supply corresponding
+  unit or browser evidence and increases test cost. It cannot establish every input,
+  permission policy, integration or release acceptance criterion. State invariants must
+  be revisited if preset handling or the event timing contract changes.
+- **Owner / review.** Jerome owns SCRUM-161. The user authorised pursuing 100% and fixing
+  exposed defects. Jerome reviews test intent and UI concurrency; Ernest/Marcus review
+  booking assumptions and API/UI alignment. Human review and green hosted CI remain
+  required before merge; no push, merge or independent approval is claimed.
+
+### D54 — Retain main's event end-time feature when publishing SCRUM-161
+
+- **Context.** Before the authorised push/merge, main advanced to `853c7bd` (#90).
+  Events now require an end on submission; forms use separate date/start/end fields.
+  D53's earlier start-only assumption no longer applies. The SQL test harness also
+  gained the end-time migration, conflicting with this branch's cleanup grant.
+- **Decision.** Preserve main's contract and migration. Keep both harness additions,
+  adapt existing test selectors/valid event fixtures to the new contract, and restore
+  selected-event end-time prefill in venue bookings. Older events without an end clear
+  the previous value; equipment reservations retain saved-slot precedence.
+- **Constraints.** No tests/scenarios/assertions are removed or weakened. Only labels
+  and required valid inputs change in existing tests. No migration or API ordering rule
+  is redesigned. Main's documented reschedule/end-time limitation remains explicit.
+- **Verification.** Additional input/order/timezone and prefill cases; full backend
+  database coverage, all frontend units, normal/instrumented browser suites, and all
+  eleven real browser/API/database journeys. Current exact totals are in SCRUM-161.md.
+- **Trade-off.** The suite now depends on the already-merged end-time schema. Existing
+  reschedule still needs its owner's duration decision; coverage does not resolve it.
+- **Owner / review.** Jerome owns SCRUM-161; Marcus owns main #90's event timing design.
+  The user explicitly authorised pushing and merging on 1 November 2026 after seeing
+  the coverage result and release limitations. This record makes the compatibility
+  changes reviewable; independent teammate review is not claimed. Green hosted CI
+  remains the merge gate.

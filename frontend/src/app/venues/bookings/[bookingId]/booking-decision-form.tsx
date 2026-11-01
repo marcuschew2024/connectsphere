@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, type FormEvent } from "react";
+import { useRef, useState, type FormEvent } from "react";
 import { ApiError, apiRequest } from "@/lib/api";
 import type { BookingRecord } from "@/lib/bookings";
 
@@ -17,19 +17,21 @@ export default function BookingDecisionForm({
   const [reason, setReason] = useState("");
   const [alternative, setAlternative] = useState("");
   const [expiryHours, setExpiryHours] = useState("48");
+  const submitting = useRef(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
 
   if (booking.status !== "Requested" && booking.status !== "Pending") return null;
 
   async function makeDecision(decision: "approve" | "reject" | "hold") {
-    if (busy) return;
+    if (submitting.current) return;
 
     if (decision === "reject" && !reason.trim()) {
       setError("A reason is required when rejecting a request.");
       return;
     }
 
+    submitting.current = true;
     setBusy(true);
     setError("");
 
@@ -59,6 +61,7 @@ export default function BookingDecisionForm({
           : "Could not save the decision.",
       );
     } finally {
+      submitting.current = false;
       setBusy(false);
     }
   }
