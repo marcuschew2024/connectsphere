@@ -160,10 +160,14 @@ def cancel_booking(booking_id: str, user_id: int) -> dict:
 
 
 def list_bookings_for_event(event_id: str) -> list[dict]:
-    """All venue bookings for one event (any status), for the confirmation gate (SCRUM-39)."""
+    """All venue bookings for one event (any status), for the confirmation gate (SCRUM-39).
+
+    start_at/end_at are included so the gate can check a booking's slot still covers
+    the event's date/time after a reschedule (SCRUM-159).
+    """
     try:
         result = _client().table("venue_bookings").select(
-            "id,venue_id,status"
+            "id,venue_id,status,start_at,end_at"
         ).eq("event_id", event_id).execute()
         return result.data or []
     except ServiceUnavailable:
