@@ -25,12 +25,12 @@ file) in the *same PR as the fix*. Owner does a final sweep at freeze — any ro
 | 6 | Event status mgmt | Lifecycle Planning→Confirmed→Completed view | `event-status.spec.ts` | ✅ | — |
 | 7 | Event info mgmt | Edit during Planning | `event-decision.spec.ts` (coordinator Planning edit) | ✅ | Marcus |
 | 7 | Event info mgmt | **Impactful change flagged vs ordinary edit** (SCRUM-58) | `change-request-apply.spec.ts` (significant vs ordinary) | ✅ | Marcus |
-| 8 | Venue catalogue | Add / update / retire + full record + layouts | `venues.spec.ts`, `venue-edit.spec.ts` | 🔶 | Jessica |
+| 8 | Venue catalogue | Add / update / retire + full record + layouts | `venues.spec.ts`, `venue-edit.spec.ts`, `venue-retire.spec.ts` | ✅ | Jessica |
 | 9 | Venue availability calendar | Availability + blocked periods | `venue-calendar.spec.ts` | ✅ | — |
-| 10 | Venue search & filter | Filter by date/capacity/facility/etc | `venues.spec.ts` *(verify)* | 🔶 | Jessica |
+| 10 | Venue search & filter | Filter by date/capacity/facility/etc | `venues.spec.ts` | ✅ | Jessica |
 | 11 | **Venue suitability** | **Unsuitable on facility/accessibility/layout, not just capacity** (SCRUM-116/117) | `venue-suitability.spec.ts` | ✅ | Jessica |
 | 12 | Venue booking request | Coordinator requests venue from Planning event | `bookings.spec.ts` | ✅ | — |
-| 13 | Venue booking approval | **Approve blocks the slot + notifies coordinator** (SCRUM-118/119) | `bookings.spec.ts` (extend) | 🔶 | Jessica / Marcus |
+| 13 | Venue booking approval | **Approve blocks the slot + notifies coordinator** (SCRUM-118/119) | `bookings.spec.ts` | ✅ | Jessica / Marcus |
 | 14 | Booking conflict detection | **Overlapping / buffered double-book hard-blocked** (SCRUM-137) | `bookings.spec.ts` | ✅ | Jessica |
 | 15 | Equipment request mgmt | Record + review/update request | `equipment-requests.spec.ts`, `equipment-request-status.spec.ts` | ✅ | — |
 | 16 | Equipment availability | **Unavailable/damaged excluded from available** (SCRUM-63); reserved units on stock later damaged stop counting (SCRUM-153) | `equipment.spec.ts`, `unusable-equipment.spec.ts` | ✅ | Ernest |
