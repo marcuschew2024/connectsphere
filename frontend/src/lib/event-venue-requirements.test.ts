@@ -43,6 +43,18 @@ describe("eventVenueRequirements", () => {
     });
   });
 
+  it("classifies Seminar Room as a custom layout and not a facility", () => {
+    const result = eventVenueRequirements({
+      venue_requirements: "U-shape, Seminar Room",
+      facility_requirements: "Projector, Wi-Fi",
+    } as CoordinatorEventRecord);
+
+    expect(result.layouts).toEqual(["U-shape"]);
+    expect(result.customLayouts).toEqual(["Seminar Room"]);
+    expect(result.facilities).toEqual(["Projector", "Wi-Fi"]);
+    expect(result.customFacilities).toEqual([]);
+  });
+
   it("handles invalid event timestamps and leaves end time empty", () => {
     expect(singaporeDateTime("not-a-date")).toEqual({ date: "", time: "" });
     expect(eventVenueRequirements({

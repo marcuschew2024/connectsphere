@@ -308,30 +308,37 @@ export default function NewBookingPage() {
               <label className="block text-sm font-medium">Start<input name="start_at" type="datetime-local" required value={startAt} onChange={(event) => setStartAt(event.target.value)} className={`${INPUT} mt-2`} /></label>
               <label className="block text-sm font-medium">End<input name="end_at" type="datetime-local" required value={endAt} onChange={(event) => setEndAt(event.target.value)} className={`${INPUT} mt-2`} /></label>
             </div>
-            <div className="grid gap-4 sm:grid-cols-2">
-              <label className="block text-sm font-medium">
-                Expected attendance <span className="font-normal text-muted-foreground">(from the event — editable)</span>
-                <input name="expected_attendance" type="number" min="1" required value={attendance} onChange={(e) => setAttendance(e.target.value)} className={`${INPUT} mt-2`} />
-              </label>
-              <fieldset>
-                <legend className="mb-2 text-sm font-medium">Layout *</legend>
-                <div className="grid gap-2 sm:grid-cols-2">
-                  {VENUE_LAYOUTS.map((option) => <label key={option} className="flex items-center gap-2 rounded-lg border border-border px-3 py-2 text-sm"><input type="checkbox" checked={layouts.some((value) => value.toLowerCase() === option.toLowerCase())} onChange={(event) => setLayouts(event.target.checked ? [...layouts, option] : layouts.filter((value) => value.toLowerCase() !== option.toLowerCase()))} />{option}</label>)}
-                  <label className="flex items-center gap-2 rounded-lg border border-border px-3 py-2 text-sm"><input type="checkbox" checked={layoutOtherEnabled} onChange={(event) => { setLayoutOtherEnabled(event.target.checked); if (!event.target.checked) setLayoutOther(""); }} />Other</label>
-                </div>
-                {layoutOtherEnabled && <OtherValuesInput id="other-layouts" label="Other layouts" value={layoutOther} onChange={setLayoutOther} placeholder="Enter one or more layouts separated by commas" />}
-              </fieldset>
-            </div>
-            <div className="grid gap-4 sm:grid-cols-2">
-              <fieldset className="space-y-2"><legend className="text-sm font-medium">Facilities</legend>{VENUE_FACILITIES.map((option) => <label key={option} className="flex items-center gap-2 text-sm"><input type="checkbox" checked={facilities.includes(option)} onChange={(event) => setFacilities(event.target.checked ? [...facilities, option] : facilities.filter((value) => value !== option))} />{option}</label>)}
-                <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={facilityOtherEnabled} onChange={(event) => { setFacilityOtherEnabled(event.target.checked); if (!event.target.checked) setFacilityOther(""); }} />Other</label>
-                {facilityOtherEnabled && <OtherValuesInput id="other-facilities" label="Other facilities" value={facilityOther} onChange={setFacilityOther} placeholder="Enter one or more facilities separated by commas" />}
-              </fieldset>
-              <fieldset className="space-y-2"><legend className="text-sm font-medium">Accessibility</legend>{VENUE_ACCESSIBILITY_FEATURES.map((option) => <label key={option} className="flex items-center gap-2 text-sm"><input type="checkbox" checked={accessibility.includes(option)} onChange={(event) => setAccessibility(event.target.checked ? [...accessibility, option] : accessibility.filter((value) => value !== option))} />{option}</label>)}
-                <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={accessibilityOtherEnabled} onChange={(event) => { setAccessibilityOtherEnabled(event.target.checked); if (!event.target.checked) setAccessibilityOther(""); }} />Other</label>
-                {accessibilityOtherEnabled && <OtherValuesInput id="other-accessibility-features" label="Other accessibility features" value={accessibilityOther} onChange={setAccessibilityOther} placeholder="Enter one or more features separated by commas" />}
-              </fieldset>
-            </div>
+            <label className="block max-w-xl text-sm font-medium">
+              Expected attendance <span className="font-normal text-muted-foreground">(from the event — editable)</span>
+              <input name="expected_attendance" type="number" min="1" required value={attendance} onChange={(e) => setAttendance(e.target.value)} className={`${INPUT} mt-2`} />
+            </label>
+
+            <fieldset className="space-y-3">
+              <legend className="text-sm font-medium">Layout *</legend>
+              <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
+                {VENUE_LAYOUTS.map((option) => <label key={option} className="flex items-center gap-2 rounded-lg border border-border bg-background px-3 py-2.5 text-sm"><input type="checkbox" checked={layouts.some((value) => value.toLowerCase() === option.toLowerCase())} onChange={(event) => setLayouts(event.target.checked ? [...layouts, option] : layouts.filter((value) => value.toLowerCase() !== option.toLowerCase()))} />{option}</label>)}
+                <label className="flex items-center gap-2 rounded-lg border border-border bg-background px-3 py-2.5 text-sm"><input type="checkbox" checked={layoutOtherEnabled} onChange={(event) => { setLayoutOtherEnabled(event.target.checked); if (!event.target.checked) setLayoutOther(""); }} />Other</label>
+              </div>
+              {layoutOtherEnabled && <OtherValuesInput id="other-layouts" label="Other layouts" value={layoutOther} onChange={setLayoutOther} placeholder="Enter one or more layouts separated by commas" />}
+            </fieldset>
+
+            <fieldset className="space-y-3">
+              <legend className="text-sm font-medium">Facilities</legend>
+              <div className="grid gap-2 sm:grid-cols-2">
+                {VENUE_FACILITIES.map((option) => <label key={option} className="flex items-center gap-2 rounded-lg border border-border bg-background px-3 py-2.5 text-sm"><input type="checkbox" checked={facilities.includes(option)} onChange={(event) => setFacilities(event.target.checked ? [...facilities, option] : facilities.filter((value) => value !== option))} />{option}</label>)}
+                <label className="flex items-center gap-2 rounded-lg border border-border bg-background px-3 py-2.5 text-sm"><input type="checkbox" checked={facilityOtherEnabled} onChange={(event) => { setFacilityOtherEnabled(event.target.checked); if (!event.target.checked) setFacilityOther(""); }} />Other</label>
+              </div>
+              {facilityOtherEnabled && <OtherValuesInput id="other-facilities" label="Other facilities" value={facilityOther} onChange={setFacilityOther} placeholder="Enter one or more facilities separated by commas" />}
+            </fieldset>
+
+            <fieldset className="space-y-3">
+              <legend className="text-sm font-medium">Accessibility</legend>
+              <div className="grid gap-2 sm:grid-cols-2">
+                {VENUE_ACCESSIBILITY_FEATURES.map((option) => <label key={option} className="flex items-center gap-2 rounded-lg border border-border bg-background px-3 py-2.5 text-sm"><input type="checkbox" checked={accessibility.includes(option)} onChange={(event) => setAccessibility(event.target.checked ? [...accessibility, option] : accessibility.filter((value) => value !== option))} />{option}</label>)}
+                <label className="flex items-center gap-2 rounded-lg border border-border bg-background px-3 py-2.5 text-sm"><input type="checkbox" checked={accessibilityOtherEnabled} onChange={(event) => { setAccessibilityOtherEnabled(event.target.checked); if (!event.target.checked) setAccessibilityOther(""); }} />Other</label>
+              </div>
+              {accessibilityOtherEnabled && <OtherValuesInput id="other-accessibility-features" label="Other accessibility features" value={accessibilityOther} onChange={setAccessibilityOther} placeholder="Enter one or more features separated by commas" />}
+            </fieldset>
 
             <div className="flex flex-wrap gap-3">
               <button type="submit" disabled={busy} className="rounded-md bg-primary px-5 py-3 text-sm font-semibold text-primary-foreground disabled:opacity-50">{busy ? "Submitting..." : "Submit booking request"}</button>

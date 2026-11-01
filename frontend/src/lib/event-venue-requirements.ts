@@ -43,11 +43,6 @@ export function eventVenueRequirements(event: CoordinatorEventRecord | undefined
     customFacilities: [...new Set([
       ...storedFacilities.filter((value) => !VENUE_FACILITIES.some((facility) => facility.toLowerCase() === value.toLowerCase())),
       ...legacyFacilityValues,
-      ...requirements.filter((value) =>
-        value !== layout &&
-        !VENUE_FACILITIES.some((facility) => facility.toLowerCase() === value.toLowerCase()) &&
-        !isLegacyFacilityOther(value),
-      ),
     ])],
     accessibility: accessibility.filter((value) => VENUE_ACCESSIBILITY_FEATURES.some((feature) => feature.toLowerCase() === value.toLowerCase())),
     customAccessibility: accessibility.filter((value) => !VENUE_ACCESSIBILITY_FEATURES.some((feature) => feature.toLowerCase() === value.toLowerCase())),
