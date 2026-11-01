@@ -1528,3 +1528,27 @@ auto-assign in D9) are recorded explicitly rather than left implicit.
   exposed defects. Jerome reviews test intent and UI concurrency; Ernest/Marcus review
   booking assumptions and API/UI alignment. Human review and green hosted CI remain
   required before merge; no push, merge or independent approval is claimed.
+
+### D54 — Retain main's event end-time feature when publishing SCRUM-161
+
+- **Context.** Before the authorised push/merge, main advanced to `853c7bd` (#90).
+  Events now require an end on submission; forms use separate date/start/end fields.
+  D53's earlier start-only assumption no longer applies. The SQL test harness also
+  gained the end-time migration, conflicting with this branch's cleanup grant.
+- **Decision.** Preserve main's contract and migration. Keep both harness additions,
+  adapt existing test selectors/valid event fixtures to the new contract, and restore
+  selected-event end-time prefill in venue bookings. Older events without an end clear
+  the previous value; equipment reservations retain saved-slot precedence.
+- **Constraints.** No tests/scenarios/assertions are removed or weakened. Only labels
+  and required valid inputs change in existing tests. No migration or API ordering rule
+  is redesigned. Main's documented reschedule/end-time limitation remains explicit.
+- **Verification.** Additional input/order/timezone and prefill cases; full backend
+  database coverage, all frontend units, normal/instrumented browser suites, and all
+  eleven real browser/API/database journeys. Current exact totals are in SCRUM-161.md.
+- **Trade-off.** The suite now depends on the already-merged end-time schema. Existing
+  reschedule still needs its owner's duration decision; coverage does not resolve it.
+- **Owner / review.** Jerome owns SCRUM-161; Marcus owns main #90's event timing design.
+  The user explicitly authorised pushing and merging on 1 November 2026 after seeing
+  the coverage result and release limitations. This record makes the compatibility
+  changes reviewable; independent teammate review is not claimed. Green hosted CI
+  remains the merge gate.

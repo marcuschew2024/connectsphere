@@ -117,3 +117,7 @@ it("booking preserves canonical preset spelling and separate custom layouts", as
   events = [{ ...event, venue_requirements: "cLaSsRoOm, Cabaret" }]; await open(); timing(); submit(); await screen.findByRole("heading", { name: "Booking request submitted" });
   expect(JSON.parse(api.mock.calls.find(([, options]) => options?.method === "POST")![1]!.body as string).layout).toBe("Classroom, Cabaret");
 });
+it("booking defaults follow the selected event's start and end", async () => {
+  events = [{ ...event, event_end_datetime: "2099-10-20T07:00:00Z" }, { ...event, id: "second", title: "Second", event_datetime: "2099-10-21T01:00:00Z", event_end_datetime: "2099-10-21T03:00:00Z" }]; await open();
+  expect((screen.getByLabelText("End") as HTMLInputElement).value).toBe("2099-10-20T15:00"); change("Event", "second"); expect((screen.getByLabelText("Start") as HTMLInputElement).value).toBe("2099-10-21T09:00"); expect((screen.getByLabelText("End") as HTMLInputElement).value).toBe("2099-10-21T11:00");
+});

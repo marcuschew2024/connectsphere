@@ -47,9 +47,9 @@ it.each(["Request changes", "Reject"])("safety %s requires and persists a trimme
 });
 it.each([null, "invalid"])("clears unreadable stored date %s in edit/resubmit forms", value => {
   const view = render(<Edit event={{ ...event, event_datetime: value }} onSaved={saved} />);
-  expect((screen.getByLabelText(/Date and time/) as HTMLInputElement).value).toBe(""); view.unmount();
+  expect((screen.getByLabelText(/^Date/) as HTMLInputElement).value).toBe(""); view.unmount();
   render(<Resubmit event={{ ...event, event_datetime: value }} clarification={clarification} onSaved={saved} />);
-  expect((screen.getByLabelText(/Date and time/) as HTMLInputElement).value).toBe("");
+  expect((screen.getByLabelText(/^Date/) as HTMLInputElement).value).toBe("");
 });
 it.each([[[], "ordinary", "No changes to save."], [["expected_attendance"], "important", "Recorded as an important change"], [["title"], "ordinary", "Recorded as an ordinary change"]] as const)("edit reports the actual saved change classification %s %s", async (fields, importance, message) => {
   api.mockResolvedValue({ event, changed_fields: fields, importance }); render(<Edit event={event} onSaved={saved} />); submit("Save changes");
@@ -58,7 +58,7 @@ it.each([[[], "ordinary", "No changes to save."], [["expected_attendance"], "imp
 it.each(["edit", "resubmit"])("%s preserves empty values as null and prevents duplicate pending submissions", async kind => {
   const pending = deferred<object>(); api.mockReturnValue(pending.promise);
   render(kind === "edit" ? <Edit event={event} onSaved={saved} /> : <Resubmit event={event} clarification={clarification} onSaved={saved} />);
-  input(/Date and time/, ""); input(/Expected attendance/, "");
+  input(/^Date/, ""); input(/Expected attendance/, "");
   const name = kind === "edit" ? "Save changes" : "Revise and resubmit";
   const form = screen.getByRole("button", { name }).closest("form")!; fireEvent.submit(form); fireEvent.submit(form);
   expect(api).toHaveBeenCalledTimes(1); expect(JSON.parse(api.mock.calls[0][1]!.body as string)).toMatchObject({ event_datetime: null, expected_attendance: null });
@@ -109,7 +109,7 @@ it.each(["load", "save"])("withdrawal %s aborts a stalled request and offers rec
 });
 
 it("direct event editing rejects an HTML date beyond JavaScript's supported range", () => {
-  render(<Edit event={event} onSaved={saved} />); input(/Date and time/, "999999-12-31T23:59"); submit("Save changes");
+  render(<Edit event={event} onSaved={saved} />); input(/^Date/, "999999-12-31"); input(/Start time/, "23:59"); submit("Save changes");
   expect(screen.getByText("Choose a valid date and time.")).toBeTruthy(); expect(api).not.toHaveBeenCalled();
 });
 it("direct event editing explains a partially typed invalid number", () => {
@@ -141,7 +141,7 @@ it.each(["edit", "resubmit"])("%s normalises omitted optional controls as null i
   const legacy = { ...event, title: null, category: null, purpose: null, description: null };
   render(kind === "edit" ? <Edit event={legacy} onSaved={saved} /> : <Resubmit event={legacy} clarification={clarification} onSaved={saved} />);
   // Disabled controls are omitted by native FormData. Exercise that serialization boundary.
-  (screen.getByLabelText(/Date and time/) as HTMLInputElement).disabled = true;
+  (screen.getByLabelText(/^Date/) as HTMLInputElement).disabled = true;
   (screen.getByLabelText(/Expected attendance/) as HTMLInputElement).disabled = true;
   api.mockResolvedValue({ event, changed_fields: [], importance: "ordinary" }); submit(kind === "edit" ? "Save changes" : "Revise and resubmit");
   await waitFor(() => expect(saved).toHaveBeenCalled()); expect(JSON.parse(api.mock.calls[0][1]!.body as string)).toMatchObject({ event_datetime: null, expected_attendance: null });

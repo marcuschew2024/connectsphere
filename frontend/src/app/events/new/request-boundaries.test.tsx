@@ -9,7 +9,7 @@ const api = vi.mocked(apiRequest);
 beforeEach(() => { vi.resetAllMocks(); HTMLElement.prototype.scrollIntoView = vi.fn(); });
 function form() { return screen.getByRole("button", { name: "Submit request" }).closest("form")!; }
 it("request creation rejects an unsupported date before calling the API", () => {
-  render(<Form canCreate />); fireEvent.change(screen.getByLabelText(/Preferred date and time/i), { target: { value: "999999-12-31T23:59" } }); fireEvent.submit(form());
+  render(<Form canCreate />); fireEvent.change(screen.getByLabelText(/Preferred date/i), { target: { value: "999999-12-31" } }); fireEvent.change(screen.getByLabelText(/Start time/), { target: { value: "23:59" } }); fireEvent.submit(form());
   expect(screen.getByText("Choose a valid date and time.")).toBeTruthy(); expect(api).not.toHaveBeenCalled();
 });
 it("request creation explains a browser partial-number input", () => {
@@ -29,7 +29,7 @@ it("a pending request cannot be submitted again", async () => {
 });
 it("a draft with omitted scheduling controls stores null values", async () => {
   api.mockResolvedValue({ event: { ...event, status: "Draft" } }); render(<Form canCreate />);
-  (screen.getByLabelText(/Preferred date and time/) as HTMLInputElement).disabled = true;
+  (screen.getByLabelText(/Preferred date/) as HTMLInputElement).disabled = true;
   (screen.getByLabelText(/Expected attendance/) as HTMLInputElement).disabled = true;
   fireEvent.click(screen.getByRole("button", { name: "Save as draft" })); await screen.findByText(/Draft saved/);
   expect(JSON.parse(api.mock.calls[0][1]!.body as string)).toMatchObject({ event_datetime: null, expected_attendance: null });

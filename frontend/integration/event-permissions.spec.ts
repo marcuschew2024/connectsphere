@@ -16,7 +16,7 @@ test("INTEGRATED-05 non-management roles cannot open unrelated event details or 
     const created = await owner.request.post(`${API}/events`, { headers: { Origin: WEB }, data: {
       action: "submit", title: `Permission boundary ${Date.now()}`, description: "Public description",
       purpose: "CONFIDENTIAL-161-PLANNING", category: "Workshop",
-      event_datetime: "2099-10-20T06:00:00Z", expected_attendance: 2,
+      event_datetime: "2099-10-20T06:00:00Z", event_end_datetime: "2099-10-20T07:00:00Z", expected_attendance: 2,
     } });
     expect(created.status()).toBe(201);
     const { event } = await created.json();

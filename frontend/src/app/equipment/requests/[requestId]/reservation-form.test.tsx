@@ -36,3 +36,8 @@ it("ignores duplicate pending form submissions", async () => {
   expect(screen.queryByLabelText("Existing booking — Microphone")).toBeNull(); input("Reservation end (SGT)", "2099-10-20T15:00"); submit(); submit(); expect(api).toHaveBeenCalledTimes(1);
   await act(async () => pending.resolve({})); expect(saved).toHaveBeenCalledTimes(1);
 });
+it("equipment reservation defaults use the event end unless a saved reservation overrides it", () => {
+  const withEnd = { ...request, event: { ...request.event, event_end_datetime: "2099-10-20T07:00:00Z" } };
+  const view = render(<Form request={withEnd} onSaved={saved} onReload={reload} />); expect((screen.getByLabelText("Reservation end (SGT)") as HTMLInputElement).value).toBe("2099-10-20T15:00"); view.unmount();
+  render(<Form request={{ ...withEnd, reservation_end_at: "2099-10-20T08:00:00Z" }} onSaved={saved} onReload={reload} />); expect((screen.getByLabelText("Reservation end (SGT)") as HTMLInputElement).value).toBe("2099-10-20T16:00");
+});

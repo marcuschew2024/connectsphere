@@ -4,16 +4,17 @@
 Branch: `feature/SCRUM-161-meaningful-test-coverage`, based on main `3acb2b5`.
 The user expanded permission/failure testing to backend coverage, combined frontend
 coverage, Release 1 journey evidence, and finally 100% across the combined frontend.
-This work is local; hosted CI, human approval, push and merge remain pending.
+The owner authorised push and merge on 1 November 2026. These are pre-publication
+verification results; the PR and Jira record hosted CI and final merge status.
 
 ## Current measured results — 1 November 2026
 
 | Scope | Statements | Branches | Functions | Lines |
 |---|---:|---:|---:|---:|
-| Backend application | **100%** (3,907/3,907) | **100%** (1,434/1,434) | Not reported by coverage.py | **100%** |
-| Frontend, combined unit + controlled browser | **100%** (2,813/2,813) | **100%** (2,798/2,798) | **100%** (908/908) | **100%** (2,281/2,281) |
-| Frontend, same-counter units only | 91.89% | 87.52% | 87.00% | 93.86% |
-| Frontend, same-counter browsers only | 83.11% | 76.76% | 81.60% | 85.62% |
+| Backend application | **100%** (3,926/3,926) | **100%** (1,444/1,444) | Not reported by coverage.py | **100%** |
+| Frontend, combined unit + controlled browser | **100%** (2,863/2,863) | **100%** (2,907/2,907) | **100%** (914/914) | **100%** (2,325/2,325) |
+| Frontend, same-counter units only | 92.03% | 87.99% | 87.08% | 93.97% |
+| Frontend, same-counter browsers only | 83.02% | 76.36% | 81.72% | 85.63% |
 
 All **95 eligible frontend source files** remain included, with zero skipped counters.
 Backend retains its six pre-existing excluded lines; none were added by this task.
@@ -21,27 +22,27 @@ The combined result is the union of identical Istanbul counters, not a sum or av
 of percentages. Statements, branches, functions and lines must each have `covered === total`;
 the new gate rejects even one uncovered counter, including percentages rounded to 100.
 
-- **559 unit/component tests pass** in both ordinary V8 and combined Istanbul runs.
+- **594 unit/component tests pass** in both ordinary V8 and combined Istanbul runs.
 - **325 instrumented browser checks pass:** 324 application scenarios plus the collector
   probe that verifies counters survive full page reloads.
 - Ordinary production build and **324 normal browser scenarios pass**.
 - ESLint, TypeScript through the production build, four coverage-tool tests, seven
   evidence-tool tests, 26 requirement-map validations and whitespace checks pass.
-- Backend is unchanged in this frontend increment. Its earlier full isolated-database
-  run passed **2,259 tests**, with no failures or skips, and remains the backend evidence.
-- All **11 real browser/API/database journeys** passed together in the preceding
-  increment. They were not rerun for this frontend coverage increment; they are separate
-  from the controlled browser suite and remain required in hosted CI.
+- After incorporating main’s event end-time feature (#90), the full isolated-database
+  run passed **2,273 backend tests** with 100% coverage, no failures and no skips.
+- All **11 real browser/API/database journeys** were rerun together against the merged
+  schema and frontend and passed. These remain separate from the controlled browser
+  suite and are also required in hosted CI.
 
-The independent V8 unit-only report remains available: 95.86% statements/lines,
-87.94% branches and 82.75% functions across frontend source. Its `src/lib` gate still
+The independent V8 unit-only report remains available: 95.92% statements/lines,
+88.35% branches and 82.99% functions across frontend source. Its `src/lib` gate still
 passes at 100% on all four measures. V8 and Istanbul count different source constructs;
 use the same-counter rows above to explain the combined result. The earlier 5.78% V8
 unit figure and 89.10% combined statement figure are historical baselines.
 
 ## Behaviour exercised
 
-The latest increment adds **361 unit/component cases and one browser recovery scenario**
+The latest increment adds **396 unit/component cases and one browser recovery scenario**
 to the preceding 198-unit / 323-browser baseline. Existing test bodies and assertions
 are preserved. Tests render real components with mocked I/O, exercise accessible user
 actions and assert payloads, visible outcomes, cancellation and absence of writes.
@@ -83,12 +84,13 @@ performed through the browser. No manual-test or hosted Supabase data was change
 5. An unstructured venue-edit load failure could leave a permanent loading screen.
    It now shows a recovery message while retaining timeout and cancellation handling.
 
-The latest changes and the full-coverage gate are recorded in **D53**. No new status
+The full-coverage gate is recorded in **D53**, and compatibility with main’s new
+end-time contract in **D54**. No new status
 transition, permission policy, database migration or API contract is introduced here.
 
 Small refactors retain existing behaviour: venue search reuses the already-tested
-Singapore date helper; selecting an event explicitly clears the booking end because
-events provide only a start; preset layout canonicalisation relies on the existing
+Singapore date helper; selecting an event prefills its end time (or clears the previous
+value for older events without an end); preset layout canonicalisation relies on the existing
 preset-only state invariant, with custom layouts kept separately. A mixed-case preset
 plus custom-layout regression checks the serialized result. An unreachable repeated
 checkbox condition is removed after the checked branch returns. These remove redundant
@@ -137,6 +139,8 @@ These previously recorded gaps are not closed by source coverage:
   Coordinator-attested re-review versus independently enforced re-approvals.
 - **Registration owners / Marcus:** registration-period editing (SCRUM-42), deferred
   waitlist/promotion (SCRUM-80), reminders (SCRUM-50), and Preparation closing registration.
+- **Event timing owner:** main #90 leaves duration-preserving reschedule as follow-up;
+  moving a start through a change request does not currently move the end with it.
 - **Release owner:** final HTTPS/session-expiry/deployment checks, full recipient matrix,
   clean-clone freeze smoke run, hosted CI and independent human review.
 
@@ -160,4 +164,19 @@ not prove the omitted buffered-exclusion migration. No new release acceptance is
    and preset assumptions. D50's input contract still requires domain review. Hosted CI
    must pass; local results do not replace review or the real integrated lane.
 5. **Accountable:** Jerome owns SCRUM-161 and the implementation. Named feature/release
-   owners retain their policy and acceptance decisions. Keep Jira In Progress until merge.
+   owners retain their policy and acceptance decisions. The user authorised push and merge; mark Jira Done only after verified merge.
+
+## Main synchronisation and test compatibility
+
+Before publication, main advanced to `853c7bd` (#90), introducing required event end
+times and separate date/start/end controls. The SQL harness conflict was resolved by
+retaining both migration replays and the isolated cleanup grant. Existing UI tests
+now target those controls; integrated event fixtures supply the newly required end.
+No assertions, scenarios or test names were removed. This is a reviewed contract
+adaptation, not a relaxation to make failures pass. New cases cover ordering, missing
+and invalid/naive times, field-error recovery, end-time prefill and saved-reservation
+precedence. Main’s feature is preserved, including its documented reschedule limitation.
+
+The first ordinary-browser attempt used the integration API origin (5011), while its
+controlled fixtures target 5001. That run was stopped; the normal build and suite were
+rerun with the correct origin. Its failures are not counted as passing evidence.

@@ -34,7 +34,7 @@ async function setup(as: Login) {
   const title = `Release verification ${crypto.randomUUID()}`;
   const { event } = await call(organiser, "POST", "/events", { action: "submit", title,
     description: "Release lifecycle evidence", purpose: "Private organising notes", category: "Workshop",
-    event_datetime: START, expected_attendance: 2 }, 201);
+    event_datetime: START, event_end_datetime: END, expected_attendance: 2 }, 201);
   await call(lead, "POST", `/events/${event.id}/coordinator`, { coordinator_id: coordinator.id });
   await call(coordinator, "POST", `/events/${event.id}/decision`, { decision: "approve" });
   const room = await venue(staff, title);
@@ -173,7 +173,7 @@ test("INTEGRATED-11 clarification resubmits the same request and rejection prese
   const organiser = await as("organiser.a", "Organiser"), lead = await as("coordinator-lead", "Event Coordinator Lead"),
     coordinator = await as("coordinator.a", "Coordinator");
   const { event } = await call(organiser, "POST", "/events", { action: "submit", title: `Clarification ${crypto.randomUUID()}`,
-    description: "Workshop", purpose: "Learning", category: "Workshop", event_datetime: START, expected_attendance: 2 }, 201);
+    description: "Workshop", purpose: "Learning", category: "Workshop", event_datetime: START, event_end_datetime: END, expected_attendance: 2 }, 201);
   await call(lead, "POST", `/events/${event.id}/coordinator`, { coordinator_id: coordinator.id });
   await coordinator.page.goto(`/events/${event.id}`);
   await coordinator.page.locator("summary").filter({ hasText: "Request clarification" }).click();

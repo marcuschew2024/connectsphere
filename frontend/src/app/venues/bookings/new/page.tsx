@@ -99,8 +99,8 @@ export default function NewBookingPage() {
       setAccessibilityOther(requirements.customAccessibility.join(", "));
       setAccessibilityOtherEnabled(requirements.customAccessibility.length > 0);
       setStartAt(requirements.date && requirements.startTime ? `${requirements.date}T${requirements.startTime}` : "");
-      // Events specify a start only; the Coordinator must choose the booking end.
-      setEndAt("");
+      // Preserve the event end supplied by the Organiser; older events may omit it.
+      setEndAt(requirements.date && requirements.endTime ? `${requirements.date}T${requirements.endTime}` : "");
       setSelectedVenueId(allVenues[0]?.id ?? "");
     }
     loadOptions().catch((requestError) =>
@@ -152,8 +152,8 @@ export default function NewBookingPage() {
     setAccessibilityOther(requirements.customAccessibility.join(", "));
     setAccessibilityOtherEnabled(requirements.customAccessibility.length > 0);
     setStartAt(requirements.date && requirements.startTime ? `${requirements.date}T${requirements.startTime}` : "");
-    // Do not carry the previous event’s booking end into a new request.
-    setEndAt("");
+    // Use the selected event’s end, clearing any value from the previous event.
+    setEndAt(requirements.date && requirements.endTime ? `${requirements.date}T${requirements.endTime}` : "");
   }
 
   function onVenueChange(venueId: string) {
