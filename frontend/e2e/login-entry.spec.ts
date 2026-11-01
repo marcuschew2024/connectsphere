@@ -1,4 +1,4 @@
-import { test, expect } from "@playwright/test";
+import { test, expect } from "./fixtures";
 
 // SCRUM-139: real login is the entry point; demo identities never drive a production build.
 const API = "http://localhost:5001";

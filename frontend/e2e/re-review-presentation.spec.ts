@@ -1,4 +1,4 @@
-import { expect, test, type Page } from "@playwright/test";
+import { expect, test, type Page } from "./fixtures";
 
 // SCRUM-156: a significant change awaiting re-review is shown as such to both roles, and
 // marking it implemented asks for confirmation. The API is mocked; what is stored and sent

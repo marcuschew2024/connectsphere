@@ -1,4 +1,4 @@
-import { expect, test, type Page } from "@playwright/test";
+import { expect, test, type Page } from "./fixtures";
 
 // Core feature #4 (SCRUM-18): the assigned Coordinator approves a submitted request
 // (→ Planning) or rejects it with a required reason (→ Rejected). The clarification/

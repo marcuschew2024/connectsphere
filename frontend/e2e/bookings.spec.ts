@@ -1,4 +1,4 @@
-import { test, expect } from "@playwright/test";
+import { test, expect } from "./fixtures";
 
 // SCRUM-31 booking submission and SCRUM-122 booking decision UI.
 test.use({ timezoneId: "Asia/Singapore" });

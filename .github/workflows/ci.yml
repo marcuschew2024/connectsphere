@@ -45,6 +45,9 @@ jobs:
           PLAYWRIGHT_JUNIT_OUTPUT_FILE: test-results/browser.xml
         run: npm run test:e2e -- --reporter=html,junit --output=test-results/browser
 
+      - name: Combined unit and browser source coverage
+        run: npm run test:coverage:combined
+
       - name: Save browser test evidence
         if: always()
         uses: actions/upload-artifact@v4
@@ -53,6 +56,7 @@ jobs:
           path: |
             frontend/playwright-report/
             frontend/coverage/
+            frontend/coverage-combined/
             frontend/test-results/
 
   api:

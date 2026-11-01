@@ -1,4 +1,4 @@
-import { expect, test, type Page } from "@playwright/test";
+import { expect, test, type Page } from "./fixtures";
 
 // SCRUM-130: the Event Coordinator Lead's unassigned queue and (re)assignment.
 const API = "http://localhost:5001";

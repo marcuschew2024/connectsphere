@@ -59,13 +59,14 @@ before merge. All existing backend/browser/unit tests are preserved, and coverag
 inclusions/exclusions are unchanged. The backend gate is raised from 80% to 100%, and `src/lib` now has a 100%
 statement/branch/function/line gate. Whole-source frontend reporting remains enabled.
 
-Frontend **whole-source** unit coverage includes pages that are tested with Playwright;
-it is not combined browser coverage. Report `src/lib` separately without hiding those
+Frontend **whole-source V8 unit coverage** includes pages that are tested with Playwright;
+it remains a separate unit-only report. The combined source report below now also
+accounts for execution in the controlled browser suite. Report `src/lib` separately without hiding those
 pages from the coverage denominator. `equipment-requests.ts` mostly declares types; its runtime status choices are tested.
 Type declarations do not add runtime coverage evidence.
 
-Whole-page/component coverage, additional booking-edit browser journeys, and other
-owners’ release scope are not declared complete here. Waiting-list creation/promotion remains deferred under
+Uncovered UI branches, additional booking-edit browser journeys, and other owners’
+release scope are not declared complete here. Waiting-list creation/promotion remains deferred under
 SCRUM-80. The final freeze smoke run and shared deployment verification remain separate.
 
 ## Reviewer questions
@@ -101,8 +102,8 @@ SCRUM-80. The final freeze smoke run and shared deployment verification remain s
 | Frontend whole-source unit coverage | 3.99% → **5.78%** | 86.29% → **90.79%** |
 
 Frontend shared logic covers all 475 measured statements, 239 branches and 38 functions.
-Whole-source frontend coverage is 475/8,205 statements. Browser tests execute pages but
-are not instrumented into this unit report, so **the whole application is not at 100%**.
+Whole-source frontend coverage is 475/8,205 statements. Browser execution remains outside this V8 unit report. The separate combined report
+below now measures it; **the whole application is not at 100%**.
 The frontend whole-source branch percentage is not evidence that 90.79% of UI decisions
 were tested: V8 cannot enumerate all branches of modules never loaded by unit tests.
 Complete coverage also does not certify every Release 1 acceptance criterion.
@@ -131,6 +132,42 @@ disposable SQL bootstrap grants DELETE on venue blocks solely so acceptance fixt
 can clean up their rows. Production permissions and migrations are unchanged.
 
 The full backend run passed the new 100% gate, and Vitest passed its `src/lib` gate.
-No new coverage exclusions were added. Existing tests remain intact; only new test
-files were added. Local results are ready for Jerome’s review; push/merge and hosted CI
+No new coverage exclusions were added. Existing tests remain intact; test additions preserved their existing assertions. The later combined-report step
+also changes browser fixture imports, as explained below. Local results are ready for Jerome’s review; push/merge and hosted CI
 remain pending.
+
+## Combined frontend report
+
+At the user's further request, an opt-in source-instrumented lane now accounts for unit
+and controlled-browser execution together. It uses the same counter map in both runs,
+includes untouched files, checks source hashes, and keeps separate unit/browser/combined
+reports. D51 records the measurement contract and limits. Browser tests change only their
+fixture import; assertions, actions, test names and mocked API responses are unchanged.
+An additional collector probe verifies that counters survive two full reloads.
+
+`PLAYWRIGHT_PORT=3137 npm run test:coverage:combined` passed on 1 November 2026:
+three merger checks, 148 unit tests, the instrumented production build and 321 browser
+tests (320 application scenarios plus one collector probe). The 95-file baseline includes
+untouched sources. Collection retained 364 documents across 321 test receipts; 37 tests
+retained more than one document. No application source or existing assertion changed.
+
+| Same-source Istanbul report | Statements | Branches | Functions | Lines |
+|---|---:|---:|---:|---:|
+| Unit only | 9.11% | 6.70% | 9.33% | 9.36% |
+| Browser only | 80.56% | 75.32% | 79.69% | 83.07% |
+| **Combined union** | **81.63%** | **76.74%** | **80.68%** | **83.95%** |
+
+The combined totals are 2,285/2,799 statements, 2,152/2,804 branches, 735/911 functions
+and 1,900/2,263 lines. The original V8 unit-only report stays separate; its 5.78% figure
+uses a different counting model and is not the baseline for this table.
+
+Remaining gaps include booking queue/edit pages, the equipment availability modal,
+draft-workspace paths, error/conditional branches, unused UI primitives and server-only
+layout/forbidden rendering. A browser assertion can pass for server-rendered HTML while
+its server TSX remains unmeasured. These files remain in the denominator.
+
+Reproduce with `npm run test:coverage:combined` from `frontend`. Open
+`frontend/coverage-combined/combined/index.html`; `comparison.json` records all three
+summaries and `sources.json` records source digests. CI generates and uploads these
+artifacts without replacing the normal unit report or its existing 100% shared-logic gate.
+Hosted CI, human review, push and merge remain pending.

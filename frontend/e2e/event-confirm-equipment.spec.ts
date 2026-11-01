@@ -1,4 +1,4 @@
-import { expect, test, type Page } from "@playwright/test";
+import { expect, test, type Page } from "./fixtures";
 
 // SCRUM-154 (evidence for SCRUM-136 / D22): confirmation is refused while the event's
 // equipment is not fully reserved, and succeeds once Tech Support reserves it. The API

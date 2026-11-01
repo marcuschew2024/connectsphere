@@ -1,4 +1,4 @@
-import { expect, test } from "@playwright/test";
+import { expect, test } from "./fixtures";
 
 const API = "http://localhost:5001";
 const ID = "11111111-1111-4111-8111-111111111111";

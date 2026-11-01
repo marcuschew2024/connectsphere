@@ -1,4 +1,4 @@
-import { test, expect, type Page } from "@playwright/test";
+import { test, expect, type Page } from "./fixtures";
 import type { Venue } from "../src/lib/venues";
 
 // SCRUM-26: Venue Staff retire a venue. The API is mocked; the retirement rules and the

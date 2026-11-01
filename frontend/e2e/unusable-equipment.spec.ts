@@ -1,4 +1,4 @@
-import { expect, test, type Page } from "@playwright/test";
+import { expect, test, type Page } from "./fixtures";
 
 // SCRUM-153 (SCRUM-63): reserved units on stock later marked Damaged / Under Maintenance
 // do not count as reserved, and the request page says why.

@@ -1,4 +1,4 @@
-import { expect, test, type Page } from "@playwright/test";
+import { expect, test, type Page } from "./fixtures";
 
 // SCRUM-155: every notification link opens a page its recipient can access, and a
 // registered attendee sees that their event was cancelled.

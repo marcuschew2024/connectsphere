@@ -1,4 +1,4 @@
-import { expect, test, type Page } from "@playwright/test";
+import { expect, test, type Page } from "./fixtures";
 
 const EVENT_ID = "11111111-1111-4111-8111-111111111111";
 const API_ORIGIN = "http://localhost:5001";

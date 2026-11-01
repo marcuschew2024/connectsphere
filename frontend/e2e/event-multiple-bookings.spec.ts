@@ -1,4 +1,4 @@
-import { expect, test, type Page } from "@playwright/test";
+import { expect, test, type Page } from "./fixtures";
 import type { BookingRecord } from "../src/lib/bookings";
 
 // SCRUM-126: one event holds several venue bookings, each managed independently. The API

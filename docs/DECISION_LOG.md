@@ -1445,3 +1445,35 @@ auto-assign in D9) are recorded explicitly rather than left implicit.
 - **Owner / review.** Jerome owns SCRUM-161. The user authorised meaningful testing
   and fixing defects it exposes. A human must review the input-contract clarification
   before merge; no merge or independent teammate approval is claimed here.
+
+### D51 — Combine frontend test coverage using identical source counters (SCRUM-161)
+
+- **Context.** The user requested one frontend coverage report accounting for unit and
+  browser tests. Adding percentages, or merging incompatible V8/transpiled statement
+  maps, would misrepresent what ran. Navigation can also discard a document's counters.
+- **Decision.** Keep the existing Vitest/V8 unit gate and report. Add an opt-in combined
+  lane that instruments original TS/TSX with the same pinned Istanbul instrumenter
+  before both Vitest and browser compilation. Merge execution counts only after matching
+  every statement/function/branch map and checking the source inventory and hashes.
+  Include every eligible source file, including untouched/server-only files, in each
+  comparison denominator. Report unit, browser and their union separately.
+- **Constraints.** Instrument only the client side of a separate `.next-coverage`
+  build; normal builds contain no coverage counters. Server render/build execution and
+  the real API/database browser lane do not contribute to this report. The browser
+  scenarios retain their existing mocks, actions and assertions. Their only edits are
+  imports of an automatic coverage fixture. Full-document counters are saved synchronously
+  in tab storage before navigation; final collection deduplicates document snapshots.
+- **Verification.** Tests prove complementary branch union, unchanged individual reports,
+  untouched-file inclusion and rejection of incompatible maps. A browser probe verifies
+  real application counters survive two reloads. The combined command requires successful
+  unit, build and browser runs, validates receipts and refuses empty browser coverage.
+  CI retains both ordinary coverage and combined HTML/JSON/LCOV evidence.
+- **Trade-off.** Istanbul and V8 use different statement/branch counting models; the
+  combined lane's own unit baseline is the valid comparison, not the old 5.78% figure.
+  Server-only execution remains unmeasured and visible at zero; passing UI assertions
+  on a server-rendered page do not imply browser execution of its TSX. Collection assumes
+  the current tests' same-origin navigation and open tabs; new cross-origin or explicitly
+  closed-tab scenarios need collector verification before their coverage is claimed.
+- **Owner / review.** Jerome owns SCRUM-161. The user authorised combined coverage.
+  Human review should check counter compatibility, denominators, browser fixture imports,
+  the added CI cost and the reported limitations. No hosted CI, push or merge is claimed.

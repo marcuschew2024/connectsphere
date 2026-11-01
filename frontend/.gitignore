@@ -40,3 +40,8 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# Opt-in instrumented test build and combined evidence
+/.next-coverage/
+/coverage-combined/
+/.coverage-data/
