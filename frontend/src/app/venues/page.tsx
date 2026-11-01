@@ -3,10 +3,10 @@
 import { recordReference } from "@/lib/record-reference";
 
 import Link from "next/link";
-import { Building2, CheckCircle2, CircleHelp, CircleX, MapPin, Users } from "lucide-react";
+import { Building2, CheckCircle2, CircleHelp, CircleX, MapPin, TriangleAlert, Users } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { apiRequest } from "@/lib/api";
-import { VENUE_DAYS, type Venue } from "@/lib/venues";
+import { VENUE_DAYS, VENUE_LAYOUTS, type Venue } from "@/lib/venues";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import VenueWorkspace from "./venue-workspace";
@@ -27,6 +27,71 @@ const FILTER_LABELS: Record<string, string> = {
   start_time: "From", end_time: "Until", available_only: "Available venues only",
 };
 
+type Suitability = {
+  is_suitable: boolean;
+  flags: string[];
+  checked_rules_count: number;
+};
+
+type PlanningEvent = {
+  id: string;
+  title: string;
+  status: string;
+  expected_attendance: number | null;
+  event_datetime: string | null;
+  venue_requirements: string | null;
+  accessibility_requirements: string | null;
+};
+
+type SearchValues = {
+  attendance: string;
+  layout: string;
+  facilities: string;
+  accessibility: string;
+  date: string;
+  start_time: string;
+  end_time: string;
+};
+
+function requirementsForEvent(event: PlanningEvent | undefined): SearchValues {
+  const venueRequirements = (event?.venue_requirements ?? "")
+    .split(",")
+    .map((value) => value.trim())
+    .filter(Boolean);
+  const layouts = venueRequirements.filter((value) =>
+    VENUE_LAYOUTS.some((layout) => layout.toLowerCase() === value.toLowerCase()),
+  );
+  const facilities = venueRequirements.filter((value) => !layouts.includes(value));
+  const timing = eventTiming(event?.event_datetime);
+  return {
+    attendance: event?.expected_attendance != null ? String(event.expected_attendance) : "",
+    layout: layouts[0] ?? "",
+    facilities: facilities.join(", "),
+    accessibility: event?.accessibility_requirements ?? "",
+    date: timing.date,
+    start_time: timing.startTime,
+    end_time: timing.endTime,
+  };
+}
+
+function eventTiming(value: string | null | undefined) {
+  if (!value) return { date: "", startTime: "", endTime: "" };
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return { date: "", startTime: "", endTime: "" };
+  const parts = new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Asia/Singapore", year: "numeric", month: "2-digit", day: "2-digit",
+    hour: "2-digit", minute: "2-digit", hourCycle: "h23",
+  }).formatToParts(date);
+  const part = (type: Intl.DateTimeFormatPartTypes) =>
+    parts.find((item) => item.type === type)?.value ?? "";
+  const startTime = `${part("hour")}:${part("minute")}`;
+  return {
+    date: `${part("year")}-${part("month")}-${part("day")}`,
+    startTime,
+    endTime: "",
+  };
+}
+
 function Catalogue({ canCreate }: { canCreate: boolean }) {
   const [venues, setVenues] = useState<Venue[]>([]);
   const [page, setPage] = useState(1);
@@ -35,7 +100,23 @@ function Catalogue({ canCreate }: { canCreate: boolean }) {
   const [error, setError] = useState("");
   const [attempt, setAttempt] = useState(0);
   const [filters, setFilters] = useState("");
+  const [planningEvents, setPlanningEvents] = useState<PlanningEvent[]>([]);
+  const [selectedEventId, setSelectedEventId] = useState("");
+  const [searchValues, setSearchValues] = useState<SearchValues>(requirementsForEvent(undefined));
+  const [suitabilityByVenue, setSuitabilityByVenue] = useState<Record<string, Suitability>>({});
+  const [checkingSuitability, setCheckingSuitability] = useState(false);
   const top = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const controller = new AbortController();
+    apiRequest<{ events: PlanningEvent[] }>("/events", { signal: controller.signal })
+      .then((result) => {
+        if (controller.signal.aborted) return;
+        const planning = result.events.filter((event) => event.status === "Planning");
+        setPlanningEvents(planning);
+      })
+      .catch(() => {});
+    return () => controller.abort();
+  }, []);
   useEffect(() => {
     const controller = new AbortController();
     apiRequest<{ venues: Venue[]; has_more: boolean }>(`/venues?page=${page}${filters ? `&${filters}` : ""}`, { signal: controller.signal })
@@ -44,6 +125,32 @@ function Catalogue({ canCreate }: { canCreate: boolean }) {
       .finally(() => { if (!controller.signal.aborted) setLoading(false); });
     return () => controller.abort();
   }, [page, attempt, filters]);
+  useEffect(() => {
+    if (!selectedEventId || venues.length === 0) {
+      return;
+    }
+    const controller = new AbortController();
+    void Promise.resolve().then(() => {
+      if (!controller.signal.aborted) setCheckingSuitability(true);
+    });
+    Promise.all(venues.map(async (venue) => {
+      const result = await apiRequest<{ suitability: Suitability }>(
+        `/venues/${venue.id}/suitability/${selectedEventId}`,
+        { signal: controller.signal },
+      );
+      return [venue.id, result.suitability] as const;
+    }))
+      .then((results) => {
+        if (!controller.signal.aborted) setSuitabilityByVenue(Object.fromEntries(results));
+      })
+      .catch(() => {
+        if (!controller.signal.aborted) setSuitabilityByVenue({});
+      })
+      .finally(() => {
+        if (!controller.signal.aborted) setCheckingSuitability(false);
+      });
+    return () => controller.abort();
+  }, [selectedEventId, venues]);
   function search(query: string) {
     setFilters(query); setPage(1); setLoading(true); setError(""); setAttempt((value) => value + 1);
   }
@@ -56,7 +163,27 @@ function Catalogue({ canCreate }: { canCreate: boolean }) {
       <p className="text-sm text-muted-foreground">Shared with Venue Staff and Coordinators</p>
       {canCreate && <Button asChild><Link href="/venues/new">Add a venue <span aria-hidden="true">＋</span></Link></Button>}
     </div>
-    <VenueSearchForm onSearch={search} busy={loading} />
+    <VenueSearchForm key={selectedEventId || "venue-search"} initialValues={searchValues} onSearch={search} busy={loading} />
+    <div className="rounded-xl border border-border bg-card p-4">
+      <label className="grid gap-2 text-sm font-medium" htmlFor="suitability-event">
+        Check suitability for event
+        <select
+          id="suitability-event"
+          className="h-10 rounded-lg border border-input bg-background px-3"
+          value={selectedEventId}
+          onChange={(event) => {
+            setSelectedEventId(event.target.value);
+            setSuitabilityByVenue({});
+            const chosen = planningEvents.find((item) => item.id === event.target.value);
+            setSearchValues(requirementsForEvent(chosen));
+          }}
+        >
+          <option value="">Choose an event to see advisory flags</option>
+          {planningEvents.map((event) => <option key={event.id} value={event.id}>{event.title}</option>)}
+        </select>
+      </label>
+      {checkingSuitability && <p role="status" className="mt-2 text-xs text-muted-foreground">Checking venue suitability…</p>}
+    </div>
     {loading && <p role="status" className="p-6 text-sm text-muted-foreground">Loading venues…</p>}
     {error && <div className="rounded-xl border border-destructive/30 bg-destructive/5 p-5">
       <p role="alert" className="text-sm text-destructive">{error}</p>
@@ -85,6 +212,7 @@ function Catalogue({ canCreate }: { canCreate: boolean }) {
         {venues.map((venue) => {
           const state = venue.is_retired ? "retired" : venue.search_availability ?? "not_checked";
           const StatusIcon = state === "available" ? CheckCircle2 : state === "not_checked" ? CircleHelp : CircleX;
+          const suitability = suitabilityByVenue[venue.id];
           return <li key={venue.id} className="flex min-w-0 flex-col overflow-hidden rounded-2xl border border-border bg-card shadow-md transition-shadow hover:shadow-lg">
           <div className="border-b border-border bg-primary/5 p-5 sm:p-6">
             <div className="mb-5 flex items-center justify-between gap-3">
@@ -105,6 +233,17 @@ function Catalogue({ canCreate }: { canCreate: boolean }) {
             <div><dt className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Facilities</dt><dd className="mt-1 break-words text-foreground">{venue.facilities.join(" · ") || "None listed"}</dd></div>
             <div><dt className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Accessibility</dt><dd className="mt-1 break-words text-foreground">{venue.accessibility.join(" · ") || "None listed"}</dd></div>
           </dl>
+          {suitability && !suitability.is_suitable && (
+            <section aria-label={`Venue suitability advisory for ${venue.name}`} className="mt-4 rounded-lg border border-amber-500/30 bg-amber-500/5 p-3">
+              <p className="flex items-center gap-2 text-sm font-semibold text-amber-700 dark:text-amber-400">
+                <TriangleAlert className="size-4 shrink-0" aria-hidden="true" />
+                Suitability advisory
+              </p>
+              <ul className="mt-2 list-disc space-y-1 pl-5 text-xs text-muted-foreground">
+                {suitability.flags.map((flag) => <li key={flag}>{flag}</li>)}
+              </ul>
+            </section>
+          )}
           <details className="mt-5 border-t border-border pt-4">
             <summary className="cursor-pointer text-sm font-medium text-primary">Opening hours <span className="ml-1 text-xs font-normal text-muted-foreground">(Singapore time)</span></summary>
             <dl className="mt-3 space-y-2 text-xs text-muted-foreground">{VENUE_DAYS.map((day) => <div key={day} className="flex justify-between gap-3"><dt className="capitalize">{day}</dt><dd>{venue.operating_hours[day] ? `${venue.operating_hours[day]!.opens} – ${venue.operating_hours[day]!.closes}` : "Closed"}</dd></div>)}</dl>
@@ -112,7 +251,23 @@ function Catalogue({ canCreate }: { canCreate: boolean }) {
           <div className="mt-5 flex flex-wrap items-center justify-between gap-3 border-t border-border pt-4">
             <p className="text-xs text-muted-foreground">Added {new Date(venue.created_at).toLocaleDateString()}{venue.creator?.display_name ? ` by ${venue.creator.display_name}` : ""}</p>
             {canCreate && !venue.is_retired && <Link href={`/venues/${venue.id}/edit`} className="inline-flex min-h-10 items-center rounded-lg border border-border px-4 py-2 text-sm font-medium hover:bg-muted">Edit venue</Link>}
-            <Link href={`/venues/${venue.id}`} className="inline-flex min-h-10 shrink-0 items-center rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-opacity hover:opacity-90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring">View availability →</Link>
+            {(() => {
+              const query = new URLSearchParams();
+              if (selectedEventId) query.set("eventId", selectedEventId);
+              if (filters) {
+                const searchDate = new URLSearchParams(filters).get("date");
+                if (searchDate) query.set("date", searchDate);
+              }
+              const qs = query.toString();
+              return (
+                <Link
+                  href={`/venues/${venue.id}${qs ? `?${qs}` : ""}`}
+                  className="inline-flex min-h-10 shrink-0 items-center rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-opacity hover:opacity-90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+                >
+                  View availability →
+                </Link>
+              );
+            })()}
           </div>
           </div>
         </li>; })}

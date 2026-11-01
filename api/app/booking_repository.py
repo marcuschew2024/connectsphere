@@ -19,12 +19,22 @@ def find_overlapping_bookings(
     start_at: str,
     end_at: str,
     buffer_window_minutes: int = 0,
+    setup_minutes: int | None = None,
+    turnaround_minutes: int | None = None,
 ) -> list[dict]:
     """Find active booking states whose slots overlap the request (expanded for buffers)."""
     try:
         query_start = start_at
         query_end = end_at
-        if buffer_window_minutes > 0:
+        if setup_minutes is not None or turnaround_minutes is not None:
+            from datetime import timedelta
+            s_dt = datetime.fromisoformat(start_at.replace("Z", "+00:00"))
+            e_dt = datetime.fromisoformat(end_at.replace("Z", "+00:00"))
+            setup = max(0, setup_minutes if setup_minutes is not None else 0)
+            turnaround = max(0, turnaround_minutes if turnaround_minutes is not None else 0)
+            query_start = (s_dt - timedelta(minutes=setup + turnaround)).isoformat()
+            query_end = (e_dt + timedelta(minutes=setup + turnaround)).isoformat()
+        elif buffer_window_minutes > 0:
             from datetime import timedelta
             s_dt = datetime.fromisoformat(start_at.replace("Z", "+00:00"))
             e_dt = datetime.fromisoformat(end_at.replace("Z", "+00:00"))
@@ -93,7 +103,8 @@ def list_bookings_for_event_detail(event_id: str) -> list[dict]:
     """Return every venue arrangement belonging to one event."""
     try:
         result = _client().table("venue_bookings").select(
-            "*,venue:venues(reference,name,location),event:events(reference,title,event_datetime,expected_attendance)"
+            "*,venue:venues(reference,name,location,capacity),"
+            "event:events(reference,title,event_datetime,expected_attendance)"
         ).eq("event_id", event_id).order("requested_at").execute()
         return result.data or []
     except ServiceUnavailable:
@@ -149,10 +160,14 @@ def cancel_booking(booking_id: str, user_id: int) -> dict:
 
 
 def list_bookings_for_event(event_id: str) -> list[dict]:
-    """All venue bookings for one event (any status), for the confirmation gate (SCRUM-39)."""
+    """All venue bookings for one event (any status), for the confirmation gate (SCRUM-39).
+
+    start_at/end_at are included so the gate can check a booking's slot still covers
+    the event's date/time after a reschedule (SCRUM-159).
+    """
     try:
         result = _client().table("venue_bookings").select(
-            "id,venue_id,status"
+            "id,venue_id,status,start_at,end_at"
         ).eq("event_id", event_id).execute()
         return result.data or []
     except ServiceUnavailable:
@@ -204,12 +219,25 @@ def record_booking_decision(
         ) from error
 
 
-def list_venue_bookings_in_range(venue_id: str, start_at: str, end_at: str) -> list[dict]:
+def list_venue_bookings_in_range(
+    venue_id: str,
+    start_at: str,
+    end_at: str,
+    setup_minutes: int = 0,
+    turnaround_minutes: int = 0,
+) -> list[dict]:
     """Bookings for one venue overlapping [start_at, end_at): confirmed, requested, blocked.
 
     Powers the availability calendar (SCRUM-30). Half-open overlap via start < to and end > from.
     """
     try:
+        buffer_minutes = max(0, setup_minutes) + max(0, turnaround_minutes)
+        if buffer_minutes:
+            s_dt = datetime.fromisoformat(start_at.replace("Z", "+00:00"))
+            e_dt = datetime.fromisoformat(end_at.replace("Z", "+00:00"))
+            from datetime import timedelta
+            start_at = (s_dt - timedelta(minutes=buffer_minutes)).isoformat()
+            end_at = (e_dt + timedelta(minutes=buffer_minutes)).isoformat()
         result = _client().table("venue_bookings").select(
             "id,venue_id,start_at,end_at,status"
         ).eq("venue_id", venue_id).in_(

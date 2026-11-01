@@ -131,6 +131,7 @@ function RequestDetails({ requestId, role }: { requestId: string; role: string }
             {request.items.map(item => <li key={item.equipment_id} className="space-y-2 p-4">
               <div className="flex items-start justify-between gap-4"><div className="min-w-0"><h3 className="break-words text-sm font-semibold">{item.equipment_type}</h3><p className="break-words text-xs text-muted-foreground">{item.location}</p></div><span className="shrink-0 text-sm font-semibold">Qty {item.quantity}</span></div>
               <p className="text-sm">Reserved {item.reserved_quantity ?? 0} · Remaining {Math.max(0, item.quantity - (item.reserved_quantity ?? 0))}</p>
+              {(item.unusable_reserved_quantity ?? 0) > 0 && <p role="alert" className="rounded-lg border border-destructive/30 bg-destructive/5 p-2 text-sm text-destructive">{item.unusable_reserved_quantity} reserved {item.unusable_reserved_quantity === 1 ? "unit is" : "units are"} on stock that is no longer operational and {item.unusable_reserved_quantity === 1 ? "does" : "do"} not count. Repair the item or reserve other stock before the event is confirmed.</p>}
               <p className="whitespace-pre-wrap break-words text-sm text-muted-foreground">{item.technical_notes || "No technical notes."}</p>
             </li>)}
           </ul>

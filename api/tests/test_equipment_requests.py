@@ -74,7 +74,8 @@ def test_submit_notifies_tech_support_pool(request_api):
     assert notifications == [(
         (None, ID, "equipment_request_submitted",
          "A new equipment request needs review."),
-        {"recipient_role": "Tech Support"},
+        # SCRUM-155: the notice names the request, so its link opens that request.
+        {"recipient_role": "Tech Support", "subject_id": response.json["request"].get("id")},
     )]
 
 

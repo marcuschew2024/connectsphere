@@ -18,28 +18,29 @@ file) in the *same PR as the fix*. Owner does a final sweep at freeze — any ro
 | 1 | Auth / RBAC | **Attendee/Venue/Tech CANNOT change status or see internal fields** (SCRUM-135) | `event-status.spec.ts` (extend) | ❌ | Jerome |
 | 2 | Event request creation | Organiser creates + submits | `events.spec.ts` | ✅ | — |
 | 3 | Draft requests | Save + resume + submit draft | `drafts.spec.ts` | ✅ | — |
-| 4 | Review & approval | Coordinator approve / reject | *(verify)* | 🔶 | Marcus |
-| 4 | Review & approval | Request clarification / amendment | `change-requests.spec.ts` *(verify)* | 🔶 | Marcus |
-| 5 | Coordinator assignment | Auto-assign on submit | `coordinator-assignment.spec.ts` | ✅ | — |
-| 5 | Coordinator assignment | Lead reassign from queue | *(verify)* | 🔶 | Ernest |
+| 4 | Review & approval | Coordinator approve / reject (+ reason required on reject) | `event-decision.spec.ts` | ✅ | Marcus |
+| 4 | Review & approval | Request clarification / amendment | `events.spec.ts` (return for clarification) | ✅ | Marcus |
+| 5 | Coordinator assignment | Submission enters the Lead's unassigned queue (SCRUM-130 replaced auto-assign) | `coordinator-assignment.spec.ts` (TC-130-01/02) | ✅ | Ernest |
+| 5 | Coordinator assignment | Lead reassign from queue; closed events cannot be moved | `coordinator-assignment.spec.ts` (TC-130-03) | ✅ | Ernest |
 | 6 | Event status mgmt | Lifecycle Planning→Confirmed→Completed view | `event-status.spec.ts` | ✅ | — |
-| 7 | Event info mgmt | Edit during Planning | *(verify)* | 🔶 | Marcus |
-| 7 | Event info mgmt | **Impactful change flagged vs ordinary edit** (SCRUM-58) | — | ❌ | Marcus |
+| 7 | Event info mgmt | Edit during Planning | `event-decision.spec.ts` (coordinator Planning edit) | ✅ | Marcus |
+| 7 | Event info mgmt | **Impactful change flagged vs ordinary edit** (SCRUM-58) | `change-request-apply.spec.ts` (significant vs ordinary) | ✅ | Marcus |
 | 8 | Venue catalogue | Add / update / retire + full record + layouts | `venues.spec.ts`, `venue-edit.spec.ts` | 🔶 | Jessica |
 | 9 | Venue availability calendar | Availability + blocked periods | `venue-calendar.spec.ts` | ✅ | — |
 | 10 | Venue search & filter | Filter by date/capacity/facility/etc | `venues.spec.ts` *(verify)* | 🔶 | Jessica |
-| 11 | **Venue suitability** | **Unsuitable on facility/accessibility/layout, not just capacity** (SCRUM-116/117) | NEW `venue-suitability.spec.ts` | ❌ | Jessica |
+| 11 | **Venue suitability** | **Unsuitable on facility/accessibility/layout, not just capacity** (SCRUM-116/117) | `venue-suitability.spec.ts` | ✅ | Jessica |
 | 12 | Venue booking request | Coordinator requests venue from Planning event | `bookings.spec.ts` | ✅ | — |
 | 13 | Venue booking approval | **Approve blocks the slot + notifies coordinator** (SCRUM-118/119) | `bookings.spec.ts` (extend) | 🔶 | Jessica / Marcus |
-| 14 | Booking conflict detection | **Overlapping / buffered double-book hard-blocked** (SCRUM-137) | `bookings.spec.ts` (extend) | 🔶 | Jessica |
+| 14 | Booking conflict detection | **Overlapping / buffered double-book hard-blocked** (SCRUM-137) | `bookings.spec.ts` | ✅ | Jessica |
 | 15 | Equipment request mgmt | Record + review/update request | `equipment-requests.spec.ts`, `equipment-request-status.spec.ts` | ✅ | — |
-| 16 | Equipment availability | **Unavailable/damaged excluded from available** (SCRUM-63) | `equipment.spec.ts` (extend) | 🔶 | Ernest |
-| 17 | Equipment reservation | Reserve reduces availability; **confirm blocked while equipment pending** (SCRUM-136) | `event-confirm.spec.ts` (extend) | 🔶 | Ernest |
+| 16 | Equipment availability | **Unavailable/damaged excluded from available** (SCRUM-63); reserved units on stock later damaged stop counting (SCRUM-153) | `equipment.spec.ts`, `unusable-equipment.spec.ts` | ✅ | Ernest |
+| 17 | Equipment reservation | Reserve reduces availability; **confirm blocked while equipment pending** (SCRUM-136) | `event-confirm.spec.ts`, `event-confirm-equipment.spec.ts` | ✅ | Ernest |
 | 18 | Attendee registration | Register / withdraw / view own status | `attendee-registration.spec.ts` + 3 | ✅ | — |
 | 18 | Attendee registration | **Organiser/Coordinator view event registrations** (SCRUM-45) | `event-registration-roster.spec.ts`; integrated lifecycle | ✅ roster; SCRUM-80 waitlist deferred | Jerome |
 | 19 | Event change requests | Raise change post-submit/confirm | `change-requests.spec.ts` | ✅ | — |
-| 19 | Event change requests | **Significant change re-opens venue/equipment review + notifies** (SCRUM-47/62) | `change-requests.spec.ts` (extend) | 🔶 | Ernest |
-| 20 | Notifications | **Fires on submit/decision/assignment/booking/registration/change/cancel** (SCRUM-51) | `notifications.spec.ts` (extend) | 🔶 | Marcus |
+| 19 | Event change requests | **Significant change re-opens venue/equipment review + notifies** (SCRUM-47/62); attendance above a booked venue's capacity is flagged (SCRUM-152) | `change-request-apply.spec.ts`, `venue-too-small.spec.ts` | ✅ | Ernest |
+| 19 | Event change requests | **A date change that orphans an approved booking blocks confirmation** (SCRUM-159, NFR-d consistency) | `event-confirm.spec.ts` | ✅ | Marcus |
+| 20 | Notifications | **Fires on submit/decision/assignment/booking/registration/change/cancel** (SCRUM-51) | `notifications.spec.ts` (decision + pool feeds), `change-request-apply.spec.ts` (change re-review), `event-cancel.spec.ts` (attendees notified), `notification-links.spec.ts` (every recipient's link opens; attendee sees cancellation — SCRUM-155) | ✅ | Marcus |
 | — | Safety check | Gates preparation until passed | `event-safety-check.spec.ts`, `safety-officer.spec.ts` | ✅ | — |
 | — | Confirm / complete | Confirm + complete/close event | `event-confirm.spec.ts`, `event-complete.spec.ts` | ✅ | — |
 

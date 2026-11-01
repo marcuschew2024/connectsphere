@@ -7,6 +7,7 @@ from zoneinfo import ZoneInfo
 from werkzeug.exceptions import BadRequest
 
 from .booking_repository import find_overlapping_bookings
+from .venue_overlap import OverlapEngine
 from .venue_repository import PAGE_SIZE, list_venues
 from .venue_unavailability_repository import list_unavailability
 from .venue_validation import DAYS
@@ -75,7 +76,7 @@ def parse_filters(args):
 
 
 def matches_filters(venue, filters):
-    """Every chosen feature is required; capacity and attendance are minimums."""
+    """Apply explicit catalogue filters without filtering out suitability advisories."""
     minimum = max(filters.get("attendance", 0), filters.get("capacity", 0))
     if venue["capacity"] < minimum:
         return False
@@ -92,7 +93,7 @@ def matches_filters(venue, filters):
 
 
 def availability(venue, filters):
-    """Use SCRUM-31's existing half-open conflict check; never reserve a venue here."""
+    """Use the venue's buffer-aware half-open conflict check; never reserve a venue here."""
     if venue.get("is_retired", False):
         return "retired"
     if "date" not in filters:
@@ -101,17 +102,41 @@ def availability(venue, filters):
     if (not hours or filters["start_time"] < hours["opens"]
             or filters["end_time"] > hours["closes"]):
         return "closed"
+    setup_m = max(0, int(venue.get("setup_time_minutes") or 0))
+    turnaround_m = max(0, int(venue.get("turnaround_time_minutes") or 0))
     conflicts = find_overlapping_bookings(
-        venue["id"], filters["start_time_iso"], filters["end_time_iso"]
+        venue["id"], filters["start_time_iso"], filters["end_time_iso"],
+        setup_minutes=setup_m,
+        turnaround_minutes=turnaround_m,
     )
     blocks = list_unavailability(
         venue["id"], filters["start_time_iso"], filters["end_time_iso"]
     )
     if blocks:
         return "blocked"
-    if any(row["status"] == "Blocked" for row in conflicts):
+    if not conflicts:
+        return "available"
+
+    # If records have start_at, evaluate buffer overlap via OverlapEngine; otherwise respect status
+    has_full_records = all("start_at" in r and "end_at" in r for r in conflicts)
+    if has_full_records:
+        overlap = OverlapEngine().evaluate(
+            venue["id"],
+            datetime.fromisoformat(filters["start_time_iso"]),
+            datetime.fromisoformat(filters["end_time_iso"]),
+            conflicts,
+            setup_minutes=setup_m,
+            turnaround_minutes=turnaround_m,
+        )
+        if overlap.hard_conflict is not None:
+            return "blocked" if overlap.hard_conflict.status == "Blocked" else "booked"
+        if overlap.tentative_conflict is not None:
+            return "booked"
+        return "available"
+
+    if any(row.get("status") == "Blocked" for row in conflicts):
         return "blocked"
-    if conflicts:
+    if any(row.get("status") == "Confirmed" for row in conflicts):
         return "booked"
     return "available"
 

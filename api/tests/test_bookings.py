@@ -18,7 +18,11 @@ def event_record():
 
 
 def payload(**overrides):
-    start = datetime.now(UTC) + timedelta(days=3)
+    # SCRUM-157: anchor to 09:00 SGT (01:00 UTC) so the 2-hour slot never crosses midnight
+    # in Singapore and trips the same-day rule (D40), whatever time the suite runs.
+    start = (datetime.now(UTC) + timedelta(days=3)).replace(
+        hour=1, minute=0, second=0, microsecond=0
+    )
     values = {
         "event_id": "event-1", "venue_id": "venue-1",
         "start_at": start.isoformat(),
@@ -78,7 +82,8 @@ def test_coordinator_submission_records_requested_actor_and_notifies_venue_staff
     assert notifications == [(
         (None, "event-1", "venue_booking_requested",
          "Venue booking requested for Campus workshop."),
-        {"recipient_role": "Venue Staff"},
+        # SCRUM-155: the notice names the booking, so its link opens that booking.
+        {"recipient_role": "Venue Staff", "subject_id": booking["id"]},
     )]
 
 
@@ -222,14 +227,17 @@ def test_tc_129_02_integration_back_to_back_bookings_conflict_due_to_buffers(
         },
     )
 
-    base = datetime.now(UTC) + timedelta(days=3)
+    # Anchor to 09:00 SGT (01:00 UTC) so T+1h to T+5h stay on the same Singapore day (D40)
+    base = (datetime.now(UTC) + timedelta(days=3)).replace(
+        hour=1, minute=0, second=0, microsecond=0
+    )
     existing_start = (base + timedelta(hours=1)).isoformat()
     existing_end = (base + timedelta(hours=3)).isoformat()
 
     # An existing Confirmed booking runs from T+1h to T+3h (with turnaround, occupied until T+3.5h)
     monkeypatch.setattr(
         "app.bookings.find_overlapping_bookings",
-        lambda venue_id, s, e, buffer_window_minutes=0: [{
+        lambda venue_id, s, e, **_buffers: [{
             "id": "existing-confirmed",
             "venue_id": venue_id,
             "start_at": existing_start,
@@ -251,5 +259,6 @@ def test_tc_129_02_integration_back_to_back_bookings_conflict_due_to_buffers(
     )
 
     assert response.status_code == 409
-    assert "already confirmed or blocked" in response.json["error"]
+    booking_error = response.json["error"]
+    assert "conflicts with an approved booking and its setup/turnaround buffer" in booking_error
     assert created == []

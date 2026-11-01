@@ -27,6 +27,10 @@ from .supabase_client import get_supabase_client  # noqa: F401
 from .venue_overlap import OverlapEngine
 from .venue_repository import get_venue
 from .venue_retirement import VenueRetirement
+from .venue_suitability import CapacityRule
+
+# Bookings that still hold (or may hold) the venue for the event.
+ACTIVE_BOOKING_STATUSES = frozenset({"Requested", "Pending", "Held", "Confirmed"})
 
 bookings = Blueprint("bookings", __name__, url_prefix="/venues/bookings")
 
@@ -61,10 +65,11 @@ def _validated_booking_fields(data, event: dict, existing: dict | None = None) -
         raise BadRequest("Enter valid start and end times including a time zone.") from None
     if end <= start:
         raise BadRequest("The booking end time must be after the start time.")
-    if start.astimezone(SINGAPORE).date() != end.astimezone(SINGAPORE).date():
-        raise BadRequest("A booking must start and end on the same day.")
     if start < datetime.now(UTC):
         raise BadRequest("The booking cannot start in the past.")
+    if start.astimezone(SINGAPORE).date() != end.astimezone(SINGAPORE).date():
+        raise BadRequest("A booking must start and end on the same day.")
+
     attendance = data.get(
         "expected_attendance",
         source.get("expected_attendance", event.get("expected_attendance")),
@@ -84,10 +89,9 @@ def _validated_booking_fields(data, event: dict, existing: dict | None = None) -
 
     setup_m = int(venue.get("setup_time_minutes") or 0)
     turnaround_m = int(venue.get("turnaround_time_minutes") or 0)
-    buffer_window = setup_m + turnaround_m
-
     conflicts = find_overlapping_bookings(
-        venue_id, start.isoformat(), end.isoformat(), buffer_window_minutes=buffer_window
+        venue_id, start.isoformat(), end.isoformat(),
+        setup_minutes=setup_m, turnaround_minutes=turnaround_m,
     )
     overlap = OverlapEngine().evaluate(
         venue_id, start, end, conflicts,
@@ -97,7 +101,9 @@ def _validated_booking_fields(data, event: dict, existing: dict | None = None) -
     )
     if not overlap.can_request:
         if overlap.hard_conflict is not None:
-            raise Conflict("The venue is already confirmed or blocked for that time slot.")
+            raise Conflict(
+                "That time conflicts with an approved booking and its setup/turnaround buffer."
+            )
         raise Conflict("The venue already has a tentative booking hold for that time slot.")
     return {
         "venue_id": venue_id,
@@ -162,10 +168,11 @@ def submit_booking():
         raise BadRequest("Enter valid start and end times including a time zone.") from None
     if end <= start:
         raise BadRequest("The booking end time must be after the start time.")
-    if start.astimezone(SINGAPORE).date() != end.astimezone(SINGAPORE).date():
-        raise BadRequest("A booking must start and end on the same day.")
     if start < datetime.now(UTC):
         raise BadRequest("The booking cannot start in the past.")
+    if start.astimezone(SINGAPORE).date() != end.astimezone(SINGAPORE).date():
+        raise BadRequest("A booking must start and end on the same day.")
+
 
     attendance = data.get("expected_attendance", event.get("expected_attendance"))
     if type(attendance) is not int or not 1 <= attendance <= 2_147_483_647:
@@ -183,21 +190,22 @@ def submit_booking():
 
     setup_m = int(venue.get("setup_time_minutes") or 0)
     turnaround_m = int(venue.get("turnaround_time_minutes") or 0)
-    buffer_window = setup_m + turnaround_m
-
     overlap = OverlapEngine().evaluate(
         venue_id,
         start,
         end,
         find_overlapping_bookings(
-            venue_id, start.isoformat(), end.isoformat(), buffer_window_minutes=buffer_window
+            venue_id, start.isoformat(), end.isoformat(),
+            setup_minutes=setup_m, turnaround_minutes=turnaround_m,
         ),
         setup_minutes=setup_m,
         turnaround_minutes=turnaround_m,
     )
     if not overlap.can_request:
         if overlap.hard_conflict is not None:
-            raise Conflict("The venue is already confirmed or blocked for that time slot.")
+            raise Conflict(
+                "That time conflicts with an approved booking and its setup/turnaround buffer."
+            )
         raise Conflict("The venue already has a tentative booking hold for that time slot.")
 
     saved = create_booking({
@@ -215,7 +223,7 @@ def submit_booking():
     create_notification(
         None, event_id, "venue_booking_requested",
         f"Venue booking requested for {event.get('title') or 'an event'}.",
-        recipient_role="Venue Staff",
+        recipient_role="Venue Staff", subject_id=saved.get("id"),
     )
     return jsonify({"booking": saved}), 201
 
@@ -257,7 +265,15 @@ def event_bookings(event_id):
         require_related_user(user, event, action="view_event_bookings")
     else:
         require_role(user, "Venue Staff", action="view_event_bookings")
-    return jsonify({"bookings": list_bookings_for_event_detail(event_id)}), 200
+    bookings = list_bookings_for_event_detail(event_id)
+    # SCRUM-152 (SCRUM-47/62): re-check every active booking against the event's
+    # current attendance, so a change after booking flags a now-too-small venue.
+    for booking in bookings:
+        active = booking.get("status") in ACTIVE_BOOKING_STATUSES
+        booking["capacity_warning"] = (
+            CapacityRule().evaluate(event, booking.get("venue") or {}) if active else None
+        )
+    return jsonify({"bookings": bookings}), 200
 
 
 @bookings.patch("/<booking_id>")
@@ -343,8 +359,6 @@ def decide_booking(booking_id):
         venue = get_venue(booking["venue_id"]) or {}
         setup_m = int(venue.get("setup_time_minutes") or 0)
         turnaround_m = int(venue.get("turnaround_time_minutes") or 0)
-        buffer_window = setup_m + turnaround_m
-
         overlap = OverlapEngine().evaluate(
             booking["venue_id"],
             booking["start_at"],
@@ -353,14 +367,16 @@ def decide_booking(booking_id):
                 booking["venue_id"],
                 booking["start_at"],
                 booking["end_at"],
-                buffer_window_minutes=buffer_window,
+                setup_minutes=setup_m, turnaround_minutes=turnaround_m,
             ),
             exclude_booking_id=booking_id,
             setup_minutes=setup_m,
             turnaround_minutes=turnaround_m,
         )
         if not overlap.can_confirm:
-            raise Conflict("The venue is already confirmed or blocked for that time slot.")
+            raise Conflict(
+                "That time conflicts with an approved booking and its setup/turnaround buffer."
+            )
 
     updated = record_booking_decision(
         booking_id,

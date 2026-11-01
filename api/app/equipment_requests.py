@@ -120,7 +120,7 @@ def submit_request():
     create_notification(
         None, event_id, "equipment_request_submitted",
         "A new equipment request needs review.",
-        recipient_role="Tech Support",
+        recipient_role="Tech Support", subject_id=saved.get("id"),
     )
     return jsonify({"request": saved}), 201
 

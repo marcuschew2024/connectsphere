@@ -142,6 +142,10 @@ def list_own_registrations(attendee_id: int, page: int) -> tuple[list[dict], boo
         raise ServiceUnavailable("Could not load your registrations. Please try again.") from error
 
 
+# SCRUM-155: a registered attendee is also told when the event is cancelled (S1 Q20, D41).
+ATTENDEE_NOTICE_TYPES = ["registration_confirmed", "registration_withdrawn", "event_cancelled"]
+
+
 def get_registration_confirmations(attendee_id: int) -> list[dict]:
     """Never include organiser decisions, even if an account's role changes."""
     try:
@@ -151,7 +155,7 @@ def get_registration_confirmations(attendee_id: int) -> list[dict]:
         return (client.table("notifications")
                 .select("id,event_id,notification_type,message,created_at,event:events(title)")
                 .eq("recipient_id", attendee_id).in_(
-                    "notification_type", ["registration_confirmed", "registration_withdrawn"])
+                    "notification_type", ATTENDEE_NOTICE_TYPES)
                 .order("created_at", desc=True).limit(50).execute().data or [])
     except ServiceUnavailable:
         raise

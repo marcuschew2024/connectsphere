@@ -19,12 +19,33 @@ def _soon(hours):
     return (datetime.now(UTC) + timedelta(hours=hours)).isoformat()
 
 
+def _past(hours):
+    """SCRUM-157: yesterday 09:00 SGT (01:00 UTC) plus ``hours`` - always in the past and
+    never crossing midnight in Singapore (D40), whatever time the suite runs."""
+    base = (datetime.now(UTC) - timedelta(days=1)).replace(
+        hour=1, minute=0, second=0, microsecond=0
+    )
+    return (base + timedelta(hours=hours)).isoformat()
+
+
+def _anchored(hours):
+    """SCRUM-157: 09:00 SGT (01:00 UTC) three days ahead, plus ``hours`` - never crosses
+    midnight in Singapore (D40), whatever time the suite runs."""
+    base = (datetime.now(UTC) + timedelta(days=3)).replace(
+        hour=1, minute=0, second=0, microsecond=0
+    )
+    return (base + timedelta(hours=hours)).isoformat()
+
+
 # One timestamp for "end equals start": two separate calls would differ by microseconds.
 SAME_TIME = _soon(72)
 
 
 def _conflict(status, venue_id="venue-1"):
-    start = datetime.now(UTC) + timedelta(days=3)
+    # SCRUM-157: same 09:00 SGT anchor as payload(), so the conflict overlaps it at any hour.
+    start = (datetime.now(UTC) + timedelta(days=3)).replace(
+        hour=1, minute=0, second=0, microsecond=0
+    )
     return {"id": f"existing-{status}", "venue_id": venue_id, "status": status,
             "start_at": start.isoformat(), "end_at": (start + timedelta(hours=2)).isoformat()}
 
@@ -44,7 +65,7 @@ def _conflict(status, venue_id="venue-1"):
     (payload(end_at=None), 400, "valid start and end times"),
     (payload(start_at=SAME_TIME, end_at=SAME_TIME), 400, "end time must be after"),
     (payload(start_at=_soon(73), end_at=_soon(72)), 400, "end time must be after"),
-    (payload(start_at=_soon(-2), end_at=_soon(1)), 400, "cannot start in the past"),
+    (payload(start_at=_past(0), end_at=_past(2)), 400, "cannot start in the past"),
     (payload(expected_attendance=0), 400, "positive whole-number"),
     (payload(expected_attendance=True), 400, "positive whole-number"),
     (payload(expected_attendance="80"), 400, "positive whole-number"),
@@ -113,8 +134,8 @@ def test_blank_special_requirements_are_stored_as_none(booking_api):  # noqa: F8
 
 
 @pytest.mark.parametrize(("status", "message"), [
-    ("Confirmed", "already confirmed or blocked"),
-    ("Blocked", "already confirmed or blocked"),
+    ("Confirmed", "conflicts with an approved booking and its setup/turnaround buffer"),
+    ("Blocked", "conflicts with an approved booking and its setup/turnaround buffer"),
     ("Requested", "tentative booking hold"),
 ])
 def test_overlapping_slots_are_refused(booking_api, monkeypatch, status, message):  # noqa: F811
@@ -149,7 +170,7 @@ def test_submission_requires_the_trusted_origin(booking_api):  # noqa: F811
 def changing(app, monkeypatch):
     saved = []
     monkeypatch.setattr("app.bookings.get_booking", lambda booking_id: {
-        **booking(), "start_at": _soon(72), "end_at": _soon(74),
+        **booking(), "start_at": _anchored(0), "end_at": _anchored(2),
     } if booking_id == "booking-a" else None)
     monkeypatch.setattr("app.bookings.get_event_by_id", lambda event_id: event())
     monkeypatch.setattr("app.bookings.get_venue", lambda venue_id: (
@@ -168,7 +189,7 @@ def changing(app, monkeypatch):
     ({"venue_id": 9}, "valid venue"),
     ({"start_at": "soon"}, "valid start and end times"),
     ({"start_at": _soon(80), "end_at": _soon(79)}, "end time must be after"),
-    ({"start_at": _soon(-3), "end_at": _soon(1)}, "cannot start in the past"),
+    ({"start_at": _past(0), "end_at": _past(2)}, "cannot start in the past"),
     ({"expected_attendance": 0}, "positive whole-number"),
     ({"expected_attendance": 101}, "capacity of 100"),
     ({"layout": " "}, "layout of 1 to 100"),
@@ -192,14 +213,16 @@ def test_unchanged_details_are_kept_when_only_some_fields_change(changing):
 
 
 @pytest.mark.parametrize(("status", "message"), [
-    ("Confirmed", "already confirmed or blocked"), ("Held", "tentative booking hold"),
+    ("Confirmed", "conflicts with an approved booking and its setup/turnaround buffer"),
+    ("Held", "tentative booking hold"),
 ])
 def test_a_change_into_an_occupied_slot_is_refused(changing, monkeypatch, status, message):
     client, saved = changing
     monkeypatch.setattr("app.bookings.find_overlapping_bookings",
                         lambda *args, **kwargs: [_conflict(status)])
     response = client.patch("/venues/bookings/booking-a",
-                            json={"start_at": _soon(72), "end_at": _soon(74)}, headers=ORIGIN)
+                            json={"start_at": _anchored(0), "end_at": _anchored(2)},
+                            headers=ORIGIN)
     assert response.status_code == 409
     assert message in response.json["error"]
     assert saved == []

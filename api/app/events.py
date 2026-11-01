@@ -35,6 +35,7 @@ from .event_repository import (
     list_all_supervised_events,
     list_coordinators,
     list_event_equipment_requests,
+    list_planning_events,
     list_safety_review_events,
     log_event_edit,
     mark_clarification_resubmitted,
@@ -184,6 +185,8 @@ def list_events():
     elif user["role"] == "Coordinator":
         # SCRUM-54: a Coordinator views every non-draft event, their own surfaced first.
         event_list = list_all_events_for_coordinator(user["id"])
+    elif user["role"] == "Venue Staff":
+        event_list = list_planning_events()
     else:
         event_list = get_events_for_user(user["id"], drafts_only=status == "Draft")
         event_list = [event for event in event_list
@@ -613,6 +616,7 @@ def confirm_event(event_id):
 
     gate = EventConfirmation.from_arrangements(
         list_bookings_for_event(event_id), list_confirmation_requests(event_id),
+        event_datetime=event.get("event_datetime"),
     )
     if not gate.can_confirm:
         raise Conflict("This event cannot be confirmed yet. " + " ".join(gate.outstanding))

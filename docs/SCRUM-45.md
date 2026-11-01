@@ -3,8 +3,8 @@
 [Jira story](https://spm-g6t4.atlassian.net/browse/SCRUM-45) · Jerome · Sprint 4 · 3 points.
 
 Implemented on `feature/SCRUM-45-event-registration-roster`. No schema migration is
-required. This branch has not been pushed or merged; hosted CI and human review remain
-merge gates. The application uses the existing registration and readable-reference schema.
+required. The owner authorised push and merge on 1 November 2026 after manual verification.
+Hosted CI must pass on the integrated branch before merge. The application uses the existing registration and readable-reference schema.
 
 After manual verification, the user requested broader event-request UI improvements.
 See [Event request usability follow-up](EVENT_REQUEST_UX.md) for that additional scope.
@@ -36,7 +36,7 @@ signup or promotion, and does not claim a real non-zero waitlist journey was tes
 The UI explicitly says waiting-list signup is unavailable. Jerome/Marcus must accept
 this scope reconciliation before treating the complete waitlist scenario as delivered.
 
-The read contract and privacy decisions are recorded in **D42** in
+The read contract and privacy decisions are recorded in **D49** in
 [DECISION_LOG.md](DECISION_LOG.md). Roster data omits email, account IDs, passwords and
 supplementary registration answers. No public attendee permissions or database grants
 are expanded. Exact counts and rows use separate reads, so concurrent changes can
@@ -84,7 +84,7 @@ Open `http://localhost:3107`. Local sample accounts use
    session, role guards, repository pattern and design tokens; SCRUM-80 deferral.
 3. **Evidence:** the executed tests and checks above, with requirement mappings updated.
    Historical release-verification snapshots were preserved rather than rewritten.
-4. **Human review needed:** D42 API/access contract, privacy fields, current-assignment
+4. **Human review needed:** D49 API/access contract, privacy fields, current-assignment
    boundary, actual Organiser/Coordinator usability and explicit waitlist dependency.
 5. **Accountable:** Jerome owns SCRUM-45; Marcus reviews product/access policy. No
-   independent human review or remote CI execution is claimed for this unpushed branch.
+   independent third-party review is claimed; hosted CI results are recorded on the pull request.

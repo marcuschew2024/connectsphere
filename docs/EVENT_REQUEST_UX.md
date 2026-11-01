@@ -33,8 +33,9 @@ the same. No changes to the venue-request permissions/dropdown or waiting-list s
 are included. The root/frontend AGENTS rules and semantic design tokens apply.
 
 Jerome owns the implementation; the requesting project owner reviews the form layout,
-stage wording, mobile usability and the clarity of the next step. No independent human
-approval, hosted CI run, push or merge is claimed.
+stage wording, mobile usability and the clarity of the next step. The owner authorised push and merge on 1 November 2026 after the manual testing
+and UI follow-up. Hosted CI is the final merge gate; no independent third-party
+review is claimed.
 
 ## Verification
 

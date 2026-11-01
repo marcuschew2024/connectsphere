@@ -2,7 +2,7 @@
 
 import { recordReference } from "@/lib/record-reference";
 
-import { useParams } from "next/navigation";
+import { useParams, useSearchParams } from "next/navigation";
 import { useEffect, useState, type FormEvent } from "react";
 import { ApiError, apiRequest } from "@/lib/api";
 import { useActingRole } from "@/lib/use-acting-role";
@@ -11,6 +11,12 @@ import { weekStartMs, type CalendarBooking } from "@/lib/availability";
 import type { Venue } from "@/lib/venues";
 import VenueAvailabilityCalendar from "./venue-availability-calendar";
 import VenueRetirePanel from "./venue-retire-panel";
+
+type Suitability = {
+  is_suitable: boolean;
+  flags: string[];
+  checked_rules_count: number;
+};
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 const INTERNAL_ROLES = ["Coordinator", "Venue Staff"];
@@ -55,6 +61,8 @@ async function loadVenueData(venueId: string, weekStart: number, controller?: Ab
 // Overlap/suitability logic is NOT computed here — this only displays the returned bookings.
 export default function VenueDetailPage() {
   const params = useParams<{ venueId: string }>();
+  const searchParams = useSearchParams();
+  const eventId = searchParams.get("eventId");
   const [actingRole] = useActingRole();
   const [venue, setVenue] = useState<Venue | null>(null);
   const [bookings, setBookings] = useState<CalendarBooking[]>([]);
@@ -67,8 +75,20 @@ export default function VenueDetailPage() {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(true);
   const [keptBookings, setKeptBookings] = useState<number | null>(null);
+  const [suitability, setSuitability] = useState<Suitability | null>(null);
 
-  const weekStart = weekStartMs(new Date());
+  const dateParam = searchParams.get("date");
+  const initialWeekStart = (() => {
+    if (dateParam && /^\d{4}-\d{2}-\d{2}$/.test(dateParam)) {
+      const parsed = new Date(`${dateParam}T00:00:00+08:00`);
+      if (!Number.isNaN(parsed.getTime())) {
+        return weekStartMs(parsed);
+      }
+    }
+    return weekStartMs(new Date());
+  })();
+
+  const [currentWeekStart, setCurrentWeekStart] = useState<number>(initialWeekStart);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -78,7 +98,7 @@ export default function VenueDetailPage() {
       controller.abort();
     }, 8000);
 
-    loadVenueData(params.venueId, weekStart, controller)
+    loadVenueData(params.venueId, currentWeekStart, controller)
       .then((loaded) => {
         setVenue(loaded.venue);
         setBookings(loaded.bookings);
@@ -103,7 +123,15 @@ export default function VenueDetailPage() {
       window.clearTimeout(timeout);
       controller.abort();
     };
-  }, [params.venueId, weekStart]);
+  }, [params.venueId, currentWeekStart]);
+  useEffect(() => {
+    if (!eventId) return;
+    const controller = new AbortController();
+    apiRequest<{ suitability: Suitability }>(`/venues/${params.venueId}/suitability/${eventId}`, { signal: controller.signal })
+      .then((result) => { if (!controller.signal.aborted) setSuitability(result.suitability); })
+      .catch(() => { if (!controller.signal.aborted) setSuitability(null); });
+    return () => controller.abort();
+  }, [eventId, params.venueId]);
 
   async function blockVenue(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -116,7 +144,7 @@ export default function VenueDetailPage() {
         method: "POST",
         body: JSON.stringify({ start_at: start, end_at: end, reason, note }),
       });
-      const loaded = await loadVenueData(params.venueId, weekStart);
+      const loaded = await loadVenueData(params.venueId, currentWeekStart);
       setVenue(loaded.venue);
       setBookings(loaded.bookings);
       setBlocks(loaded.blocks);
@@ -134,7 +162,7 @@ export default function VenueDetailPage() {
     setError("");
     try {
       await apiRequest(`/venues/${params.venueId}/unavailability/${blockId}`, { method: "DELETE" });
-      const loaded = await loadVenueData(params.venueId, weekStart);
+      const loaded = await loadVenueData(params.venueId, currentWeekStart);
       setVenue(loaded.venue);
       setBookings(loaded.bookings);
       setBlocks(loaded.blocks);
@@ -165,6 +193,16 @@ export default function VenueDetailPage() {
             <p className="mt-1 text-sm text-muted-foreground">{venue.location} · capacity {venue.capacity}</p>
           </header>
 
+          {suitability && !suitability.is_suitable && (
+            <section aria-label="Venue suitability advisory" className="rounded-xl border border-amber-500/30 bg-amber-500/5 p-4">
+              <h2 className="font-semibold text-amber-700 dark:text-amber-400">Suitability advisory</h2>
+              <p className="mt-1 text-sm text-muted-foreground">This venue may not meet every requirement. It remains available to request.</p>
+              <ul className="mt-2 list-disc space-y-1 pl-5 text-sm">
+                {suitability.flags.map((flag) => <li key={flag}>{flag}</li>)}
+              </ul>
+            </section>
+          )}
+
           {/* SCRUM-26: retirement banner and the Venue Staff retire action. */}
           {venue.is_retired ? (
             <div role="status" className="rounded-xl border border-border bg-muted/40 p-4 text-sm">
@@ -179,7 +217,14 @@ export default function VenueDetailPage() {
             <VenueRetirePanel venue={venue} onRetired={(result) => { setVenue(result.venue); setKeptBookings(result.kept_confirmed_bookings); }} />
           )}
 
-          <VenueAvailabilityCalendar hours={venue.operating_hours} bookings={bookings} weekStart={weekStart} />
+          <VenueAvailabilityCalendar
+            hours={venue.operating_hours}
+            bookings={bookings}
+            weekStart={currentWeekStart}
+            onPrevWeek={() => setCurrentWeekStart((prev) => prev - 7 * DAY_MS)}
+            onNextWeek={() => setCurrentWeekStart((prev) => prev + 7 * DAY_MS)}
+            onToday={() => setCurrentWeekStart(weekStartMs(new Date()))}
+          />
 
           {actingRole === "Venue Staff" && (
             <section aria-labelledby="venue-block-heading" className="rounded-2xl border border-border bg-card p-5 shadow-sm">

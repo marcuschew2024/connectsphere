@@ -102,18 +102,19 @@ An at-a-glance summary of where AI was and was not used sits in the
   intervals conflict only when `existing.start < new.end AND new.start < existing.end`, so
   **touching endpoints are compatible**. Classify conflicts by status — `Confirmed` and
   `Blocked` are **hard** conflicts; `Requested`/`Pending` are a single **tentative** hold
-  that blocks another *request* but never defeats a later confirmed decision. **No setup
-  or turnaround buffer** is applied by the engine.
+  that blocks another *request* but never defeats a later confirmed decision.   With the SCRUM-129 PO decision and its SCRUM-137 reconciliation, buffers do apply.
+  The engine expands published bookings to the occupied interval
+  `[start_at - setup_time, end_at + turnaround_time)` using each venue's configurable
+  minutes; zero values preserve the original half-open behaviour.
 - **Constraints / guardrails.** The engine is pure and total — unrecognised statuses are
   ignored defensively; the half-open rule is the single source of truth for "do these
   overlap?".
 - **Verification.** Unit tests cover the exact boundary (back-to-back allowed, true
   overlap rejected) and status precedence; the database enforces the same invariant
   independently (see D7).
-- **Trade-off.** No buffer means consecutive events have zero changeover gap — accepted
-  for the MVP; a configurable turnaround is a known future change (venue setup/turnaround).
-  **Update:** delivered by SCRUM-129 (Week 7 Customer Change #1), which adds per-venue
-  setup/turnaround buffers to the same half-open check; zero buffers keep this rule.
+- **Trade-off.** Configurable buffers reduce usable availability and can reveal historical
+  conflicts. Those conflicts are reported rather than deleted, and the database is the
+  final concurrency backstop.
 - **Owner.** Venue & booking work.
 
 ### D5 — Event confirmation gate (multi-venue), with a documented deferred seam
@@ -1213,7 +1214,200 @@ auto-assign in D9) are recorded explicitly rather than left implicit.
   by the clarifications and would be untested surface added at code freeze.
 - **Owner.** Marcus (notification scope).
 
-### D42 — Private event registration rosters (SCRUM-45)
+### D42 — Reservations on unusable stock do not count as ready (SCRUM-153, SCRUM-63)
+
+- **Context.** The Release v1 review reproduced this: a unit reserved while Operational
+  stayed "Reserved" after Tech Support marked the item Damaged. The confirmation gate
+  (D22) then confirmed the event with no usable stock. New reservations and
+  availability already exclude unusable stock.
+- **Decision (owner, Ernest, 31 Oct 2026).** When readiness is derived, a reservation on
+  an item that is not currently Operational is left out. The request reads as not fully
+  reserved and confirmation is refused until the item is repaired or other stock is
+  reserved. Nothing is auto-released. The request page lists such units as "no longer
+  operational" (`unusable_reserved_quantity`).
+- **Constraints.** No schema or grant change. The rule lives in the existing readiness
+  derivation used by the request views and the confirm gate. Rows without an embedded
+  condition keep the previous behaviour.
+- **Verification.** `test_unusable_equipment_readiness.py` covers the rule;
+  `test_unusable_equipment_readiness_acceptance.py` runs on the real database: reserve,
+  mark Damaged / Under Maintenance, confirm refused (409) with the event and reservation
+  unchanged, repair, confirm allowed. The new tests fail without the fix.
+  `e2e/unusable-equipment.spec.ts` covers the request page.
+
+### D43 — An attendance increase re-checks booked venue capacity (SCRUM-152, SCRUM-47/62)
+
+- **Context.** The Release v1 review reproduced this: approving a change from 20 to 150
+  attendees on a 100-capacity booked venue applied the change, but nothing compared
+  the new attendance with the venue's capacity. SCRUM-47 AC4 and SCRUM-62 require that
+  re-check and a flag.
+- **Decision (owner, Ernest, 31 Oct 2026). Flag only, consistent with D36:** nothing is
+  blocked, cancelled or un-booked.
+  - **Approval.** `approve_change_request()` (replaced by migration
+    `20261031180000_scrum_152_venue_too_small_flag.sql`) lists every active booking
+    (Requested / Pending / Held / Confirmed) whose venue capacity is below the newly
+    applied attendance. It names them in the Coordinator's re-review notice ("Venue
+    too small for N attendees: …") and returns them as `affected.over_capacity`.
+  - **Event page.** `GET /venues/bookings/event/<id>` re-checks each active booking with
+    the existing `CapacityRule` (SCRUM-29), so the bookings panel shows "Venue too
+    small" for as long as the mismatch exists.
+- **Constraints.** Same function signature, grants and transaction. The check runs only
+  when attendance was actually applied. No schema change.
+- **Verification.** `test_venue_too_small_acceptance.py` runs on the real database:
+  over capacity is flagged on the notice, the response and the bookings; within
+  capacity and cancelled bookings are not flagged; the booking and event are
+  unchanged. The tests fail against the previous function and API.
+  `test_event_bookings_capacity_warning.py` (unit) covers the boundaries: at capacity
+  and one under are not flagged, one over is; every active status is flagged and
+  rejected / cancelled / released bookings are not; missing capacity or attendance is
+  never flagged. The integration test repeats "one over" on Requested and Held
+  bookings. `e2e/venue-too-small.spec.ts` covers the event page.
+- **Changed existing test (reviewable).** In `test_change_request_apply_acceptance.py`,
+  the significant-change test compared `affected` exactly, and its own scenario
+  (150 attendees on a 100-capacity venue) is the bug. Its count assertion is
+  unchanged; it now also asserts `over_capacity`: the venue is listed for the
+  attendance change and nothing for the venue-requirements change.
+- **Trade-off.** Confirmation is not blocked by a too-small venue; the Coordinator
+  decides, per D36 / S1 Q32. Blocking would be a new gate rule and is deferred.
+- **Owner.** Ernest Wong.
+
+### D44 — Every notification opens a page its recipient can access (SCRUM-155)
+
+- **Context.** The Release v1 manual review found two problems with notifications that
+  D41 requires. Venue Staff and Tech Support pool notices linked to the event page,
+  which those roles cannot open ("no access"). Registered attendees' `event_cancelled`
+  notices (S1 Q20) were stored but never shown, because the Attendee Home only read
+  signup and withdrawal confirmations.
+- **Decision (owner, Ernest, 31 Oct 2026).**
+  - **Pool notices.** They open the exact record the notice is about: the booking's
+    approval page for Venue Staff, the equipment request for Tech Support. Revised
+    after the owner's manual test; the first version opened the queue. A nullable
+    `notifications.subject_id` (migration
+    `20261031200000_scrum_155_notification_subject.sql`) stores that record's ID when
+    the notice is created. Older notices without one fall back to the queue.
+  - **Attendees.** Their Home panel also shows "Event cancelled", linking to their
+    registrations.
+  - **Everything else.** Every other link is unchanged and still opens the event.
+- **Constraints.** One additive, nullable column, with no foreign key because the
+  subject may be a booking or an equipment request. The feed returns `subject_id`; no
+  access rule changes, since Venue Staff and Tech Support can already open those
+  pages. The Attendee read stays limited to notices addressed to that attendee.
+- **Verification.** `lib/notification-links.test.ts` covers the link rule;
+  `test_attendee_cancellation_notice_acceptance.py` and
+  `test_notification_subject_acceptance.py` run on the real database and fail without
+  the fix; `e2e/notification-links.spec.ts` covers the pages.
+- **Changed existing tests (reviewable).** `test_bookings.py` and
+  `test_equipment_requests.py` assert the exact pool-notification call; it now also
+  carries `subject_id`. No other assertion changed.
+
+### D45 — A change awaiting re-review is shown as such, not as a plain approval (SCRUM-156)
+
+- **Context.** During the Release v1 manual review of SCRUM-152, an approved significant
+  change behaved as D36 intends but was presented as a finished approval. History said
+  "Change Request Approved", the Organiser saw "Approved" with Coordinator-oriented text
+  and no mention of the too-small venue, and "Mark as implemented" was a single click
+  even while the re-review still showed a problem.
+- **Decision (owner, Ernest, 31 Oct 2026). Presentation only;** D36's status model is
+  unchanged (the stored status stays Approved until Implemented).
+  - **History.** A significant approval is recorded as
+    `change_request_approved_re_review`, shown as "Change Request Approved — Re-review
+    Required". Ordinary approvals are unchanged.
+  - **Badge.** Both roles see "Approved · Re-review in progress" until Implemented.
+  - **Organiser.** They get their own explanation. The page and notification name any
+    too-small venue and suggest a new change request. The capacity check is read from
+    the event's bookings (D43), so it is still shown after a reload.
+  - **Coordinator.** "Mark as implemented" on a re-review asks "Have you re-checked…?"
+    and lists anything still unresolved. It is not blocked; the Coordinator decides
+    (S1 Q32).
+- **How.** Migration `20261031190000_scrum_156_re_review_presentation.sql` replaces
+  `approve_change_request()` (D43 version) and changes only the history action and the
+  Organiser notice. The same transaction, grants and response are kept.
+- **Verification.** `test_re_review_presentation_acceptance.py` runs on the real database
+  and fails against the D43 function. It covers four cases: significant attendance
+  (re-review plus the too-small venue), significant venue (re-review, no capacity
+  flag), ordinary approval (unchanged), and implementing a re-review (the re-review
+  entry stays in history before "implemented").
+  `e2e/re-review-presentation.spec.ts` covers the Organiser view, confirm / cancel and
+  the history label. `lib/history.test.ts` covers the label.
+- **Changed existing tests (reviewable).** These are the behaviour this ticket changes;
+  no other assertion was removed.
+  - `test_change_request_apply_acceptance.py` (concurrent approvals): the "applied
+    once" history count also accepts the new action.
+  - `e2e/change-request-apply.spec.ts`: the significant change's badge reads
+    "Approved · Re-review in progress", and the test clicks the new confirmation before
+    Implemented.
+- **Owner.** Ernest Wong.
+
+### D46 — Scheduled reminders (SCRUM-50) deferred; not a Release 1 core feature
+
+- **Context.** The Week-1 customer brief mentioned "reminders for time-sensitive
+  matters", so SCRUM-50 (scheduled reminders) was carried in the backlog. At the
+  Release 1 freeze the PO reconciled the backlog against the customer's **20 named core
+  features** (`docs/` project instructions) and the Section-G6 clarifications.
+- **Decision (owner, Marcus — PO, 1 Nov 2026). Deferred, no code.** Scheduled/time-based
+  reminders are **not** among the 20 core features. The required user-facing notices are
+  delivered by core feature **#20 Notification System** — event-triggered notices on
+  submission, clarification, approval/rejection, assignment, booking decisions, changes,
+  registration, confirmation and cancellation — which is built and verified (SCRUM-51,
+  and the D41/D44 notification-coverage reviews). The customer also set **no SLA / no
+  time limit on any step** (Section-G6 Session 1 Q29), so there is no deadline a reminder
+  would enforce.
+- **Trade-off.** Release 1 ships event-triggered notifications but no proactive
+  scheduled nudges (e.g. "event in 24h"). Accepted: out of the graded core scope; the
+  story stays in the backlog for a future release.
+
+### D47 — "Reschedule an event" (SCRUM-48) deferred as a standalone feature; subsumed by #7/#19/#20
+
+- **Context.** SCRUM-48 (reschedule) was carried as a Must story. At the Release 1
+  freeze the PO reconciled it against the 20 core features and the Section-G6
+  clarifications, and traced the date-change behaviour in code.
+- **Decision (owner, Marcus — PO, 1 Nov 2026). Deferred as a dedicated feature, no new
+  code.** There is no standalone "reschedule" core feature; a date change is already
+  covered by the features that exist:
+  - **Planning stage** — a Coordinator may edit `event_datetime` directly only while the
+    event is in **Planning** (`events.py` `edit_event`, TC-US4.6-03). The field is in
+    `IMPORTANT_FIELDS`, so the edit is classified **important** and audit-logged — core
+    feature **#7** (distinguish normal edits from important changes affecting existing
+    arrangements).
+  - **Post-confirmation** — a Confirmed event cannot be edited directly; the Organiser
+    must raise a **change request** (Section-G6 Session 1 Q28), which the Coordinator
+    processes with the significant-change re-review of venue/equipment arrangements
+    (core feature **#19**; SCRUM-138/152/156), and attendees are notified of changes and
+    cancellations (core feature **#20**; S1 Q20).
+- **Known limitation (recorded for honest release notes).** The confirm gate
+  (`EventConfirmation.from_arrangements`) checks that every venue booking is *approved*
+  but does not re-validate an approved booking's slot against a date that was edited
+  *later* in Planning. This is a narrow #7/#14 interaction edge (a Coordinator would
+  have to change the date after a booking was approved, within Planning, without
+  re-requesting), not the reschedule feature. Left as a known limitation for Release 1
+  rather than a freeze-eve change; a follow-up story can have the confirm gate reject an
+  approved booking whose slot no longer matches the event.
+- **Trade-off.** Release 1 handles date changes through ordinary-vs-important edits and
+  the change-request path rather than a bespoke reschedule flow. Accepted: no standalone
+  feature in the graded core scope; the story stays in the backlog.
+
+### D48 — Buffered venue availability is consistent across every write and read path (SCRUM-137)
+
+- **Context.** Week 7 Change #1 introduced per-venue setup and turnaround buffers, but
+  search, calendar, booking checks, and the database exclusion constraints could use
+  different published/raw intervals.
+- **Decision.** Buffers apply. A booking occupies
+  `[start_at - setup_time_minutes, end_at + turnaround_time_minutes)` across search,
+  availability calendar, booking application checks, and the database. Back-to-back
+  published slots remain compatible only when their occupied intervals do not overlap.
+- **Constraints / guardrails.** Venue buffers are snapshotted on venue bookings and
+  refreshed when venue configuration changes. Existing bookings that conflict under the
+  buffered rule are preserved and recorded in `problematic_venue_bookings`; database
+  exclusion constraints are the concurrency backstop once the conflicts are cleared.
+- **Verification.** Pure overlap unit tests, repository/search/calendar route tests,
+  booking request and approval integration tests, and a real PostgreSQL buffer/constraint
+  acceptance test.
+- **Trade-off.** Venue buffer changes can make previously valid bookings conflict and
+  therefore require human disposition; this is safer than silently deleting history or
+  weakening the exclusion constraint.
+- **Owner.** Jessica (Venue Staff/Safety Officer stream), with Ernest as technical
+  implementation reviewer.
+
+### D49 — Private event registration rosters (SCRUM-45)
 
 - **Context.** SCRUM-45 requires the Organiser/Coordinator to see who registered and
   registered versus waitlisted totals against capacity. General event membership includes
@@ -1253,5 +1447,6 @@ auto-assign in D9) are recorded explicitly rather than left implicit.
 - **Review and owner.** Jerome (SCRUM-45 assignee/implementation owner); Marcus
   (product/access-policy reviewer). The user authorised implementation on 31 October
   2026. Human review must confirm the contract, current-assignment boundary, data fields
-  and SCRUM-80 dependency before merge. Independent review or merge approval is not
-  claimed. The existing integrated lifecycle test gains assertions; none are removed.
+  and SCRUM-80 dependency before merge. The user authorised push and merge on 1 November 2026 after manual
+  verification and disclosure of the SCRUM-80 dependency. Independent third-party
+  review is not claimed; hosted CI remains a required merge gate. The existing integrated lifecycle test gains assertions; none are removed.

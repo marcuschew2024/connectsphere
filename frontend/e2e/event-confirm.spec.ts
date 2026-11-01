@@ -58,6 +58,25 @@ test("coordinator sees the blocked message when a booking is still pending", asy
   await expect(page.getByTestId("event-status-badge")).toHaveText("Planning");
 });
 
+// SCRUM-159: after a reschedule, an orphaned approved booking blocks confirm with the reason.
+test("coordinator sees the blocked message when a booking no longer matches the event date", async ({ page }) => {
+  await stubEventPage(page, "Coordinator");
+  await page.route(`${API_ORIGIN}/events/${EVENT_ID}/confirm`, (route) =>
+    route.fulfill({
+      status: 409,
+      json: {
+        error:
+          "This event cannot be confirmed yet. 1 approved venue booking(s) no longer match the event's date/time and must be re-checked.",
+      },
+    }));
+
+  await page.goto(`/events/${EVENT_ID}`);
+  await page.getByRole("button", { name: "Confirm event" }).click();
+
+  await expect(page.getByTestId("confirm-blocked-message")).toContainText("no longer match");
+  await expect(page.getByTestId("event-status-badge")).toHaveText("Planning");
+});
+
 // A non-Coordinator never sees the confirm action (AC: only a Coordinator may confirm).
 test("an organiser does not see the confirm action", async ({ page }) => {
   await stubEventPage(page, "Organiser");
