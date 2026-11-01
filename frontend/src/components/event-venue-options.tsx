@@ -68,9 +68,15 @@ export default function EventVenueOptions({ venueRequirements, facilityRequireme
 }) {
   const venueValues = parse(venueRequirements);
   const [facilities, setFacilities] = useState(parse(facilityRequirements).concat(venueValues.filter((value) => VENUE_FACILITIES.some((option) => option.toLowerCase() === value.toLowerCase()) || isLegacyFacilityOther(value))));
-  const [layouts, setLayouts] = useState(venueValues.filter((value) => !VENUE_FACILITIES.some((option) => option.toLowerCase() === value.toLowerCase()) && !isLegacyFacilityOther(value)));
+  const customLayouts = otherValues(venueValues, VENUE_LAYOUTS).filter((value) =>
+    !VENUE_FACILITIES.some((option) => option.toLowerCase() === value.toLowerCase()) &&
+    !isLegacyFacilityOther(value),
+  );
+  const [layouts, setLayouts] = useState(venueValues.filter((value) =>
+    VENUE_LAYOUTS.some((option) => option.toLowerCase() === value.toLowerCase()),
+  ).concat(customLayouts.length > 0 ? "__other__" : []));
   const [accessibility, setAccessibility] = useState(parse(accessibilityRequirements));
-  const [layoutOther, setLayoutOther] = useState(otherValues(layouts, VENUE_LAYOUTS).join(", "));
+  const [layoutOther, setLayoutOther] = useState(customLayouts.join(", "));
   const [facilityOther, setFacilityOther] = useState(otherValues(facilities, VENUE_FACILITIES).join(", "));
   const [accessibilityOther, setAccessibilityOther] = useState(otherValues(accessibility, VENUE_ACCESSIBILITY_FEATURES).join(", "));
 

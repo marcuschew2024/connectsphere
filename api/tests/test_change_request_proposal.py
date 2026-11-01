@@ -93,7 +93,12 @@ def test_pax_and_venue_are_the_significant_changes(changes, significant):
 def test_field_lists_match_the_database_contract():
     assert CHANGEABLE_FIELDS == {
         "title", "description", "purpose", "category", "expected_attendance",
-        "venue_requirements", "facility_requirements", "accessibility_requirements", "equipment_requirements",
+        "venue_requirements", "facility_requirements", "accessibility_requirements",
+        "equipment_requirements",
         "registration_requirements",
     }
-    assert SIGNIFICANT_FIELDS == {"expected_attendance", "venue_requirements", "facility_requirements"}
+    assert SIGNIFICANT_FIELDS == {
+        "expected_attendance",
+        "venue_requirements",
+        "facility_requirements",
+    }
