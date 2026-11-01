@@ -39,10 +39,12 @@ test.beforeEach(async ({ page }) => {
 });
 
 test("venue staff can approve a pending booking", async ({ page }) => {
+  let approved = false;
   await page.route(`${API_ORIGIN}/venues/bookings/${BOOKING_ID}/decision`, async (route) => {
     const body = route.request().postDataJSON();
     expect(body.decision).toBe("approve");
     expect(body).not.toHaveProperty("reason");
+    approved = true;
     await route.fulfill({ json: { booking: {
       ...PENDING_BOOKING, status: "Confirmed", decided_by: 3, decision_at: "2026-09-27T05:00:00Z",
     } } });
@@ -58,6 +60,44 @@ test("venue staff can approve a pending booking", async ({ page }) => {
 
   await expect(page.getByRole("heading", { name: "Booking confirmed" })).toBeVisible();
   await expect(page.getByRole("button", { name: "Approve" })).toHaveCount(0);
+
+  await page.route("**/notifications", (route) => route.fulfill({ json: {
+    notifications: approved ? [{
+      id: 1,
+      event_id: PENDING_BOOKING.event_id,
+      notification_type: "booking_approved",
+      message: "Your venue booking was approved and the slot is now confirmed.",
+      created_at: "2026-09-27T05:00:00Z",
+      event: { title: REQUEST_EVENT.title },
+    }] : [],
+  } }));
+  await page.route("**/session", (route) => route.fulfill({ json: {
+    user: { id: 2, display_name: "Demo Coordinator", role: "Coordinator" },
+  } }));
+
+  await page.goto("/");
+  const inbox = page.getByRole("region", { name: "Notifications" });
+  await expect(inbox.getByRole("heading", { name: "Request update" })).toBeVisible();
+  await expect(inbox).toContainText("Your venue booking was approved and the slot is now confirmed.");
+
+  await page.route(`${API_ORIGIN}/events`, (route) => route.fulfill({ json: { events: [REQUEST_EVENT] } }));
+  await page.route(`${API_ORIGIN}/venues?*`, (route) => route.fulfill({ json: { venues: [REQUEST_VENUE], page: 1, has_more: false } }));
+  await page.route(`${API_ORIGIN}/venues/bookings`, async (route) => {
+    expect(approved).toBe(true);
+    await route.fulfill({
+      status: 409,
+      json: { error: "The venue is already confirmed or blocked for that time slot." },
+    });
+  });
+
+  await page.goto("/venues/bookings/new");
+  await expect(page.getByRole("combobox", { name: "Venue", exact: true })).toHaveValue(REQUEST_VENUE.id);
+  await page.getByLabel("Expected attendance").fill("120");
+  await page.getByRole("checkbox", { name: "Theatre", exact: true }).check();
+  await page.getByLabel("Start").fill("2099-10-20T14:00");
+  await page.getByLabel("End", { exact: true }).fill("2099-10-20T16:00");
+  await page.getByRole("button", { name: "Submit booking request" }).click();
+  await expect(page.getByText("The venue is already confirmed or blocked for that time slot.", { exact: true })).toBeVisible();
 });
 
 test("venue staff can reject with a reason and a suggested alternative", async ({ page }) => {
