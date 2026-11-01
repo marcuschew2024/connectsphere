@@ -64,6 +64,7 @@ def live_requests(monkeypatch):
                         "category": "Workshop",
                         "expected_attendance": 20,
                         "event_datetime": "2099-10-20T06:00:00Z",
+                        "event_end_datetime": "2099-10-20T08:00:00Z",
                         "organiser_id": 1,
                         "coordinator_id": coordinator,
                         "status": status,

@@ -110,6 +110,9 @@ def test_rescheduling_applies_the_new_date_and_flags_re_review(live):  # noqa: F
     after = row(db, "events", event["id"])
     assert datetime.fromisoformat(after["event_datetime"]) == datetime.fromisoformat(
         "2099-12-20T06:00:00+00:00")
+    # Duration-preserving: the 2-hour event stays 2 hours, so the end shifts too.
+    assert datetime.fromisoformat(after["event_end_datetime"]) == datetime.fromisoformat(
+        "2099-12-20T08:00:00+00:00")
     assert after["status"] == "Confirmed"
     stored = row(db, "event_change_requests", saved["id"])
     assert stored["significant"] is True
