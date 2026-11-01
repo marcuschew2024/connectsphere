@@ -30,7 +30,9 @@ promises an assignment notification that Release 1 does not send (Decision D41).
 This is presentation and local filtering only. Existing routes, payloads, form fields,
 accessible action names, permissions, confirmation gates and database schema remain
 the same. No changes to the venue-request permissions/dropdown or waiting-list signup
-are included. The root/frontend AGENTS rules and semantic design tokens apply.
+are introduced by this UI follow-up. The latest main integrated on 1 November already
+filters venue-request choices to the Coordinator's own Planning events; that team fix
+is retained. The root/frontend AGENTS rules and semantic design tokens apply.
 
 Jerome owns the implementation; the requesting project owner reviews the form layout,
 stage wording, mobile usability and the clarity of the next step. The owner authorised push and merge on 1 November 2026 after the manual testing
