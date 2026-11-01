@@ -88,7 +88,7 @@ def test_invalid_proposed_values_are_reported_by_field(proposing, changes, field
 
 @pytest.mark.parametrize("body", [
     {"description": "Change", "changes": {}},
-    {"description": "Change", "changes": {"event_datetime": "2099-01-01T00:00:00Z"}},
+    {"description": "Change", "changes": {"organiser_id": 9}},  # not a changeable field
     {"description": "Change", "changes": ["title"]},
     {"changes": {"title": "New"}},
     {"description": "", "changes": {"title": "New"}},

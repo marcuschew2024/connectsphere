@@ -96,6 +96,31 @@ def test_approving_applies_the_values_and_records_the_decision(live):  # noqa: F
     assert all(kind != "event_re_review_required" for _, kind in sent)
 
 
+# SCRUM-48: rescheduling via a change request applies the new date, flags re-review, and
+# runs the attendee-notify path. No one is registered here, so notified_attendees is 0 and
+# no reschedule notice is sent (the populated path mirrors cancel_event's attendee notify).
+def test_rescheduling_applies_the_new_date_and_flags_re_review(live):  # noqa: F811
+    db, users, _, make_event, _ = live
+    event = make_event(status="Confirmed")
+    saved = _propose(users, event, {"event_datetime": "2099-12-20T06:00:00Z"})
+
+    response = _approve(users, event, saved["id"])
+
+    assert response.status_code == 200, response.json
+    after = row(db, "events", event["id"])
+    assert datetime.fromisoformat(after["event_datetime"]) == datetime.fromisoformat(
+        "2099-12-20T06:00:00+00:00")
+    assert after["status"] == "Confirmed"
+    stored = row(db, "event_change_requests", saved["id"])
+    assert stored["significant"] is True
+    assert "event_datetime" in stored["applied_changes"]
+    sent = [(n["recipient_id"], n["notification_type"]) for n in _notifications(db, event["id"])]
+    assert (1, "event_change_request_updated") in sent
+    assert any(kind == "event_re_review_required" for _, kind in sent)
+    assert response.json["affected"]["notified_attendees"] == 0
+    assert all(kind != "event_rescheduled" for _, kind in sent)
+
+
 # AC2 + AC3: pax/venue changes flag re-review and notify; nothing is un-booked.
 @pytest.mark.parametrize("changes", [
     {"expected_attendance": 150}, {"venue_requirements": "Lecture theatre for 150"},
@@ -116,6 +141,8 @@ def test_a_significant_change_flags_re_review_and_keeps_every_arrangement(live, 
     affected = response.json["affected"]
     # SCRUM-152 adds over_capacity: 150 attendees exceed this venue's capacity (100).
     too_small = affected.pop("over_capacity")
+    # SCRUM-48 adds notified_attendees; a pax/venue change reschedules no one, so it is 0.
+    assert affected.pop("notified_attendees") == 0
     assert affected == {"venue_bookings": 1, "equipment_reservations": 1}
     assert [venue["booking_id"] for venue in too_small] == (
         [booking["id"]] if "expected_attendance" in changes else [])
@@ -210,7 +237,9 @@ def test_the_database_function_rechecks_every_rule(live):  # noqa: F811
 def test_stored_proposals_are_constrained(live):  # noqa: F811
     db, _, _, make_event, _ = live
     event = make_event()
-    for bad in ({"requested_changes": {"event_datetime": "2099-01-01T00:00:00Z"}},
+    # organiser_id is not a changeable field (SCRUM-48 allows event_datetime, so it is no
+    # longer a rejection case).
+    for bad in ({"requested_changes": {"organiser_id": 9}},
                 {"requested_changes": {}}, {"requested_changes": ["title"]},
                 {"applied_changes": {}, "significant": False},
                 {"status": "Approved", "applied_changes": {}}):

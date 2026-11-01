@@ -40,6 +40,7 @@ file) in the *same PR as the fix*. Owner does a final sweep at freeze — any ro
 | 19 | Event change requests | Raise change post-submit/confirm | `change-requests.spec.ts` | ✅ | — |
 | 19 | Event change requests | **Significant change re-opens venue/equipment review + notifies** (SCRUM-47/62); attendance above a booked venue's capacity is flagged (SCRUM-152) | `change-request-apply.spec.ts`, `venue-too-small.spec.ts` | ✅ | Ernest |
 | 19 | Event change requests | **A date change that orphans an approved booking blocks confirmation** (SCRUM-159, NFR-d consistency) | `event-confirm.spec.ts` | ✅ | Marcus |
+| 19 | Event change requests | **Reschedule: Organiser requests a new date/time; approval applies it, flags re-review, notifies attendees** (SCRUM-48, US-10.3, S1 Q28) | `change-requests.spec.ts`, `change-request-apply.spec.ts` | ✅ | Marcus |
 | 20 | Notifications | **Fires on submit/decision/assignment/booking/registration/change/cancel** (SCRUM-51) | `notifications.spec.ts` (decision + pool feeds), `change-request-apply.spec.ts` (change re-review), `event-cancel.spec.ts` (attendees notified), `notification-links.spec.ts` (every recipient's link opens; attendee sees cancellation — SCRUM-155) | ✅ | Marcus |
 | — | Safety check | Gates preparation until passed | `event-safety-check.spec.ts`, `safety-officer.spec.ts` | ✅ | — |
 | — | Confirm / complete | Confirm + complete/close event | `event-confirm.spec.ts`, `event-complete.spec.ts` | ✅ | — |
