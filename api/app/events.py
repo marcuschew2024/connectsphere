@@ -587,6 +587,7 @@ def confirm_event(event_id):
 
     gate = EventConfirmation.from_arrangements(
         list_bookings_for_event(event_id), list_confirmation_requests(event_id),
+        event_datetime=event.get("event_datetime"),
     )
     if not gate.can_confirm:
         raise Conflict("This event cannot be confirmed yet. " + " ".join(gate.outstanding))

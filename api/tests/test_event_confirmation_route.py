@@ -7,6 +7,8 @@ supplied by monkeypatching the repository lookup, since the shared event DB fixt
 not model the venue_bookings table.
 """
 
+from datetime import datetime, timedelta
+
 import pytest
 
 from .conftest import ORIGIN, select_user
@@ -109,3 +111,50 @@ def test_confirm_rejected_when_not_in_planning(app, event_database, bookings):
 
     assert response.status_code == 409
     assert event["status"] == "Submitted"
+
+
+def _confirmed_booking_at(start, end):
+    return [{"status": "Confirmed", "start_at": start.isoformat(), "end_at": end.isoformat()}]
+
+
+# SCRUM-159: a reschedule that leaves an approved booking on its old slot blocks confirm (NFR-d).
+def test_confirm_blocked_when_booking_slot_no_longer_covers_event_datetime(
+    app, event_database, monkeypatch
+):
+    monkeypatch.setattr("app.events.list_confirmation_requests", lambda event_id: [])
+    event = _seed_planning_event(event_database, status="Planning")
+    event_dt = datetime.fromisoformat(event["event_datetime"])
+    # The approved booking still sits a day before the (rescheduled) event -> orphaned.
+    stale_start = event_dt - timedelta(days=1)
+    monkeypatch.setattr(
+        "app.events.list_bookings_for_event",
+        lambda event_id: _confirmed_booking_at(stale_start, stale_start + timedelta(hours=1)),
+    )
+    client = app.test_client()
+    select_user(client, 2)
+
+    response = client.post(f"/events/{event['id']}/confirm", headers=ORIGIN)
+
+    assert response.status_code == 409
+    assert "no longer match" in response.json["error"]
+    assert event["status"] == "Planning"
+
+
+# The approved booking still covers the event's date/time -> confirm succeeds.
+def test_confirm_allowed_when_booking_slot_covers_event_datetime(
+    app, event_database, monkeypatch
+):
+    monkeypatch.setattr("app.events.list_confirmation_requests", lambda event_id: [])
+    event = _seed_planning_event(event_database, status="Planning")
+    event_dt = datetime.fromisoformat(event["event_datetime"])
+    monkeypatch.setattr(
+        "app.events.list_bookings_for_event",
+        lambda event_id: _confirmed_booking_at(event_dt, event_dt + timedelta(hours=2)),
+    )
+    client = app.test_client()
+    select_user(client, 2)
+
+    response = client.post(f"/events/{event['id']}/confirm", headers=ORIGIN)
+
+    assert response.status_code == 200
+    assert response.json["event"]["status"] == "Confirmed"
