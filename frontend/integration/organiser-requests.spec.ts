@@ -24,7 +24,8 @@ test("INTEGRATED-03 Organiser rediscovers an unassigned submission after signing
     const setup = await otherContext.request.post(`${API}/events`, {
       headers: { Origin: ORIGIN }, data: {
         action: "submit", title: otherTitle, description: "Other workshop", purpose: "Private",
-        category: "Workshop", event_datetime: "2099-10-20T06:00:00Z", expected_attendance: 10,
+        category: "Workshop", event_datetime: "2099-10-20T06:00:00Z",
+        event_end_datetime: "2099-10-20T08:00:00Z", expected_attendance: 10,
       },
     });
     expect(setup.status()).toBe(201);
@@ -35,7 +36,9 @@ test("INTEGRATED-03 Organiser rediscovers an unassigned submission after signing
     await page.getByLabel("Description").fill("A campus workshop");
     await page.getByLabel("Purpose").fill("Learning together");
     await page.getByLabel("Category").fill("Workshop");
-    await page.getByLabel("Preferred date and time").fill("2099-10-20T14:00");
+    await page.getByLabel("Preferred date").fill("2099-10-20");
+    await page.getByLabel("Start time").fill("14:00");
+    await page.getByLabel("End time").fill("16:00");
     await page.getByLabel("Expected attendance").fill("10");
     const submitted = page.waitForResponse((r) => r.url() === `${API}/events` && r.request().method() === "POST");
     await page.getByRole("button", { name: "Submit request", exact: true }).click();
