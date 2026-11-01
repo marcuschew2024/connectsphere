@@ -256,18 +256,18 @@ def test_available_only_filters_before_pagination_and_checks_each_venue_once(mon
     assert more is False
 
 
-def test_suggestions_include_later_pages_deduplicate_and_exclude_retired(monkeypatch):
+def test_suggestions_include_custom_later_pages_deduplicate_and_exclude_retired(monkeypatch):
     monkeypatch.setattr("app.venue_search.list_venues", lambda page: (
         [{**details(), "facilities": ["Projector", " projectOR "]}], True,
     ) if page == 1 else (
-        [{**details(), "facilities": ["Stage"]},
+        [{**details(), "facilities": ["Stage", "Blinds"]},
          {**details(), "is_retired": True, "facilities": ["Retired-only feature"]}], False,
     ))
     assert filter_options() == {
-        "facilities": ["Microphone", "Podium", "Projector", "Sound system", "Stage",
+        "facilities": ["Blinds", "Microphone", "Podium", "Projector", "Sound system", "Stage",
                        "Whiteboard", "Wi-Fi"],
         "accessibility": ["Accessible toilet", "Elevator", "Hearing loop", "Ramp",
-                          "Wheelchair"],
+                          "Step-free access", "Wheelchair"],
     }
 
 

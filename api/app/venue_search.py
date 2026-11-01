@@ -195,9 +195,37 @@ def search_venues(page, filters, include_retired=True, listing=None):
 
 
 def filter_options():
-    """Return only predefined filter options; custom values belong in the Other fields."""
-    options = {
-        "facilities": CANONICAL_FACILITIES,
-        "accessibility": CANONICAL_ACCESSIBILITY,
+    """Return canonical options plus custom catalogue values for Other filters."""
+    values = {
+        "facilities": set(CANONICAL_FACILITIES),
+        "accessibility": set(CANONICAL_ACCESSIBILITY),
     }
-    return {key: sorted(values, key=_normalise) for key, values in options.items()}
+    page = 1
+    while True:
+        venues, has_more = list_venues(page)
+        for venue in venues:
+            if venue.get("is_retired"):
+                continue
+            for key in values:
+                values[key].update(venue.get(key) or [])
+        if not has_more:
+            break
+        page += 1
+
+    def unique_preserving_preferred(field_values):
+        by_normalised = {}
+        for value in field_values:
+            if not isinstance(value, str) or not value.strip():
+                continue
+            cleaned = value.strip()
+            normalised = _normalise(cleaned)
+            preferred = (
+                normalised in by_normalised
+                and cleaned.istitle()
+                and not by_normalised[normalised].istitle()
+            )
+            if normalised not in by_normalised or preferred:
+                by_normalised[normalised] = cleaned
+        return sorted(by_normalised.values(), key=_normalise)
+
+    return {key: unique_preserving_preferred(field_values) for key, field_values in values.items()}
