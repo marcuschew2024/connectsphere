@@ -161,10 +161,15 @@
           "lane": "integrated",
           "path": "frontend/integration/event-lifecycle.spec.ts",
           "test": "INTEGRATED-01"
+        },
+        {
+          "lane": "integrated",
+          "path": "frontend/integration/release-exits.spec.ts",
+          "test": "INTEGRATED-11"
         }
       ],
       "gaps": [
-        "Clarification source conflict J2 and section-specific acceptance still require owner confirmation. Real-browser clarification/rejection branches are not in the integrated lane."
+        "INTEGRATED-11 proves clarification, same-request resubmission and persisted rejection in the real browser/API/database lane. Clarification source conflict J2 and section-specific acceptance still require owner confirmation."
       ],
       "sql": []
     },
@@ -202,6 +207,11 @@
           "lane": "backend",
           "path": "api/tests/test_release_assignment_failures.py",
           "test": "test_assignment_rpc_refusals_preserve_safe_http_meaning"
+        },
+        {
+          "lane": "integrated",
+          "path": "frontend/integration/release-exits.spec.ts",
+          "test": "INTEGRATED-09"
         }
       ],
       "gaps": [],
@@ -265,6 +275,21 @@
           "lane": "backend",
           "path": "api/tests/test_status_transition_acceptance.py",
           "test": "test_every_nonassigned_role_is_denied_without_mutation_and_logged"
+        },
+        {
+          "lane": "integrated",
+          "path": "frontend/integration/release-exits.spec.ts",
+          "test": "INTEGRATED-06"
+        },
+        {
+          "lane": "integrated",
+          "path": "frontend/integration/release-exits.spec.ts",
+          "test": "INTEGRATED-07"
+        },
+        {
+          "lane": "integrated",
+          "path": "frontend/integration/release-exits.spec.ts",
+          "test": "INTEGRATED-09"
         }
       ],
       "gaps": [
@@ -314,10 +339,20 @@
           "lane": "backend",
           "path": "api/tests/test_change_request_apply_acceptance.py",
           "test": "test_a_failed_apply_leaves_the_event_and_request_unchanged"
+        },
+        {
+          "lane": "integrated",
+          "path": "frontend/integration/release-exits.spec.ts",
+          "test": "INTEGRATED-10"
+        },
+        {
+          "lane": "backend",
+          "path": "api/tests/test_change_request_apply_acceptance.py",
+          "test": "test_rescheduling_applies_the_new_date_and_flags_re_review"
         }
       ],
       "gaps": [
-        "SCRUM-138 now applies approved proposed fields atomically and flags affected arrangements for re-review without cancelling them. A structured re-approval workflow (SCRUM-47) and date/time rescheduling (SCRUM-48) remain outside that implemented slice."
+        "SCRUM-138/152/156 and SCRUM-48 apply significant changes, preserve existing resources and show re-review; INTEGRATED-10 proves approval through implementation with real persistence. Implementation relies on Coordinator attestation rather than enforced venue/technical re-approvals. Final acceptance of that re-review policy remains human-owned."
       ],
       "sql": []
     },
@@ -346,11 +381,19 @@
           "lane": "backend",
           "path": "api/tests/test_venue_acceptance.py",
           "test": "test_update_is_audited_searches_change_and_confirmed_booking_is_unchanged"
+        },
+        {
+          "lane": "integrated",
+          "path": "frontend/integration/release-exits.spec.ts",
+          "test": "INTEGRATED-08"
+        },
+        {
+          "lane": "backend",
+          "path": "api/tests/test_release_venue_blocks_acceptance.py",
+          "test": "test_venue_block_lists_only_overlaps_notifies_and_preserves_unblock_audit"
         }
       ],
-      "gaps": [
-        "SCRUM-60 now implements temporary venue unavailability. The real-browser/API/database replacement journey remains an evidence gap under W7-02."
-      ],
+      "gaps": [],
       "sql": [
         "supabase/tests/venues.sql",
         "supabase/tests/venue_updates.sql"
@@ -383,7 +426,7 @@
         }
       ],
       "gaps": [
-        "The calendar classifier uses published booking times; buffer-expanded calendar parity is not established. See W7-01."
+        "Application calendar classification uses the buffer-aware overlap engine, but complete database-enforced parity remains blocked by the SCRUM-137 migration/harness gap under W7-01."
       ],
       "sql": []
     },
@@ -413,7 +456,7 @@
         }
       ],
       "gaps": [
-        "Search uses raw overlap lookup; complete buffer-aware search/calendar/booking consistency is not established."
+        "Search uses buffer-aware overlap evaluation; this does not prove atomic buffer enforcement for competing database writes. See W7-01."
       ],
       "sql": [
         "supabase/tests/venues.sql"
@@ -473,6 +516,16 @@
           "lane": "integrated",
           "path": "frontend/integration/event-lifecycle.spec.ts",
           "test": "INTEGRATED-01"
+        },
+        {
+          "lane": "browser",
+          "path": "frontend/e2e/booking-edit-release.spec.ts",
+          "test": "Coordinator changes one Requested booking and the changes survive reopening"
+        },
+        {
+          "lane": "browser",
+          "path": "frontend/e2e/booking-edit-release.spec.ts",
+          "test": "direct edit URL is read-only"
         }
       ],
       "gaps": [
@@ -772,10 +825,20 @@
           "lane": "backend",
           "path": "api/tests/test_change_request_apply_acceptance.py",
           "test": "test_a_failed_apply_leaves_the_event_and_request_unchanged"
+        },
+        {
+          "lane": "integrated",
+          "path": "frontend/integration/release-exits.spec.ts",
+          "test": "INTEGRATED-10"
+        },
+        {
+          "lane": "backend",
+          "path": "api/tests/test_change_request_apply_acceptance.py",
+          "test": "test_rescheduling_applies_the_new_date_and_flags_re_review"
         }
       ],
       "gaps": [
-        "SCRUM-138 now applies approved proposed fields atomically and flags affected arrangements for re-review without cancelling them. A structured re-approval workflow (SCRUM-47) and date/time rescheduling (SCRUM-48) remain outside that implemented slice."
+        "SCRUM-138/152/156 and SCRUM-48 apply significant changes, preserve existing resources and show re-review; INTEGRATED-10 proves approval through implementation with real persistence. Implementation relies on Coordinator attestation rather than enforced venue/technical re-approvals. Final acceptance of that re-review policy remains human-owned."
       ],
       "sql": []
     },
@@ -818,10 +881,20 @@
           "lane": "backend",
           "path": "api/tests/test_venue_unavailability.py",
           "test": "test_venue_staff_can_create_block_and_notify_each_coordinator_once"
+        },
+        {
+          "lane": "integrated",
+          "path": "frontend/integration/release-exits.spec.ts",
+          "test": "INTEGRATED-06"
+        },
+        {
+          "lane": "integrated",
+          "path": "frontend/integration/release-exits.spec.ts",
+          "test": "INTEGRATED-08"
         }
       ],
       "gaps": [
-        "Cancellation and applied-change recipients now have database acceptance evidence; venue-unavailability notification wiring has route tests. A complete trigger-by-recipient matrix, persisted hold-expiry notices and full-stack replacement-venue notifications remain unproven."
+        "Cancellation, applied changes and venue-unavailability notices have real-database evidence; INTEGRATED-06/08 prove notification click-through. A complete trigger-by-recipient matrix and persisted hold-expiry notices remain unproven."
       ],
       "sql": []
     },
@@ -846,7 +919,7 @@
         }
       ],
       "gaps": [
-        "Pure overlap maths is covered. Search/calendar raw-time behaviour and database exclusion ranges do not prove consistent buffer enforcement across create/edit/approval or competing writes."
+        "Application search, calendar and booking paths use the buffer-aware overlap engine. The SCRUM-137 buffered exclusion migration has an IF terminated by END instead of END IF and is omitted from the SQL test harness. Buffered concurrent writes and migration replay must be verified after the separately owned migration correction; application tests alone cannot prove this requirement."
       ],
       "sql": [
         "supabase/tests/venue_buffers.sql"
@@ -875,10 +948,20 @@
           "lane": "browser",
           "path": "frontend/e2e/venue-calendar.spec.ts",
           "test": "Venue Staff can create and unblock a venue period"
+        },
+        {
+          "lane": "integrated",
+          "path": "frontend/integration/release-exits.spec.ts",
+          "test": "INTEGRATED-08"
+        },
+        {
+          "lane": "backend",
+          "path": "api/tests/test_release_venue_blocks_acceptance.py",
+          "test": "test_venue_block_lists_only_overlaps_notifies_and_preserves_unblock_audit"
         }
       ],
       "gaps": [
-        "SCRUM-60 is now implemented with blocks, affected-booking notices, search/calendar integration and a replacement link. The mapped API tests use controlled persistence and the browser test mocks HTTP; a real DB block-to-notification-to-replacement journey and competing-write/rollback evidence are still needed."
+        "Real-database acceptance plus INTEGRATED-08 now prove block persistence, affected-booking notification, click-through and replacement without deleting the event. Competing block/booking writes and rollback under concurrent database failures remain unproven."
       ],
       "sql": []
     },
@@ -906,6 +989,16 @@
           "lane": "integrated",
           "path": "frontend/integration/event-lifecycle.spec.ts",
           "test": "INTEGRATED-01"
+        },
+        {
+          "lane": "browser",
+          "path": "frontend/e2e/booking-edit-release.spec.ts",
+          "test": "Coordinator changes one Requested booking and the changes survive reopening"
+        },
+        {
+          "lane": "browser",
+          "path": "frontend/e2e/booking-edit-release.spec.ts",
+          "test": "direct edit URL is read-only"
         }
       ],
       "gaps": [],
@@ -966,6 +1059,11 @@
           "lane": "integrated",
           "path": "frontend/integration/event-lifecycle.spec.ts",
           "test": "INTEGRATED-01"
+        },
+        {
+          "lane": "integrated",
+          "path": "frontend/integration/release-exits.spec.ts",
+          "test": "INTEGRATED-09"
         }
       ],
       "gaps": [

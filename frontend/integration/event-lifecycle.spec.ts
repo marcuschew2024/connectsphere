@@ -1,7 +1,7 @@
 import { expect, test, type Browser, type BrowserContext, type Page } from "@playwright/test";
 
-const API = "http://localhost:5001";
-const ORIGIN = "http://localhost:3107";
+const API = process.env.QA_API_URL ?? "http://localhost:5001";
+const ORIGIN = process.env.QA_WEB_URL ?? "http://localhost:3107";
 const PASSWORD = "disposable-test-only-password";
 const START = "2099-10-20T06:00:00Z";
 const END = "2099-10-20T07:00:00Z";

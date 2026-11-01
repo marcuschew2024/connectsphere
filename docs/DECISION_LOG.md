@@ -1477,3 +1477,22 @@ auto-assign in D9) are recorded explicitly rather than left implicit.
 - **Owner / review.** Jerome owns SCRUM-161. The user authorised combined coverage.
   Human review should check counter compatibility, denominators, browser fixture imports,
   the added CI cost and the reported limitations. No hosted CI, push or merge is claimed.
+
+### D52 — Show booking edits only when the existing API permits them (SCRUM-161)
+
+- **Context.** Release 1 booking-edit tests found that a direct edit URL showed an
+  editable form for Confirmed bookings and another Coordinator's request. The API
+  already rejected both cases, leaving a misleading screen.
+- **Decision.** Render the form only for a Requested booking whose requester matches
+  the signed-in Coordinator. Other returned records show an explicit read-only message;
+  the submit handler checks the same condition. The API remains the authority.
+- **Constraints.** Mirror the existing `change_booking` permission/state rule. No new
+  API permission, reassignment policy, database migration or status transition is added.
+- **Verification.** Component cases cover owned Requested bookings, terminal/Held
+  bookings and another requester; controlled-browser regressions cover successful edits
+  and the direct-URL denials. Existing backend permission tests remain intact.
+- **Trade-off.** A stale tab can become non-editable after it loads; the API must still
+  reject a subsequent save. The UI condition does not replace that check.
+- **Owner / review.** Jerome owns SCRUM-161; Ernest owns the booking feature and Marcus
+  reviews access-policy alignment before merge. The user authorised fixing defects found
+  while improving Release 1 evidence. No independent human sign-off is claimed.

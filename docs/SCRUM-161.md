@@ -171,3 +171,111 @@ Reproduce with `npm run test:coverage:combined` from `frontend`. Open
 summaries and `sources.json` records source digests. CI generates and uploads these
 artifacts without replacing the normal unit report or its existing 100% shared-logic gate.
 Hosted CI, human review, push and merge remain pending.
+
+## Release 1 behaviour follow-up
+
+The user prioritised complete Release 1 behaviour evidence, with further progress toward
+100% where meaningful. This matches the freeze plan's distinction between proving release
+behaviour and increasing a dashboard percentage. The earlier combined figures above are
+baseline results, not the latest measurements.
+
+Added 50 frontend unit/component cases and three controlled-browser booking scenarios.
+They exercise role-switch loading/failure/races, availability and reservation validation,
+booking queue fallbacks, booking edits and failed saves, access-denial rendering and
+accessible UI controls. Test-only React Testing Library renders real components with
+mocked I/O; no application source is excluded from coverage. Direct rendering also measures
+server-page functions in the unit lane; it does not measure Next server execution.
+
+Six additional real browser/API/database journeys now cover:
+
+- Cancellation, persisted closure, venue/equipment release and attendee notification links.
+- Safety approval through completion, audit notes and released resources.
+- Venue blocking, Coordinator notification links and replacement while preserving the event.
+- Lead reassignment, denied old-Coordinator access and permitted new-Coordinator access.
+- Significant change approval, persisted re-review, preserved resources and implementation.
+- Clarification, same-request resubmission and rejection with the reason visible to the Organiser.
+
+All eleven integrated journeys passed together on the disposable local stack. Setup uses
+real APIs; the named user actions, reloads and notification links use real browsers and
+password sessions. No HTTP responses are mocked in this lane. Existing four integrated
+specifications only gain optional local URL environment variables; their default addresses,
+names and assertions are unchanged. This supersedes the earlier note that only journey 05
+was rerun. The full SQL harness also passed; its missing buffered-exclusion migration is
+explicitly retained as an evidence gap below.
+
+The new tests exposed one UI defect: direct booking-edit URLs offered edits the existing
+API would reject. The page now shows only an owned Requested booking as editable. D52
+records the existing permission rule, regression evidence and human review ownership.
+
+### Release limits that tests cannot declare complete
+
+- **Jessica / Ernest:** the SCRUM-137 buffered-exclusion migration has an incorrect
+  `END` for an `IF` and is omitted from the SQL harness. Application overlap tests do
+  not prove database protection against concurrent buffered bookings. The separately
+  owned migration correction, replay and concurrency evidence remain necessary.
+- **Jessica:** persisted automatic hold expiry and its notification workflow remain
+  missing (W7-04 / SCRUM-79); an expired value object's overlap behaviour is insufficient.
+- **Marcus with story owners:** accept or resolve the clarification source conflict,
+  own/view-all Coordinator policy, advisory suitability versus booking capacity, and
+  Coordinator-attested re-review versus independently enforced re-approvals.
+- **Registration owners / Marcus:** waiting-list creation and promotion remain deferred
+  SCRUM-80. Registration-period editing (SCRUM-42) and acceptance of closing registration
+  at Preparation need release-scope resolution; reminders (SCRUM-50) need verify-or-defer.
+- **Release owner:** final HTTPS/session-expiry/deployment checks, complete notification
+  recipient matrix, clean-clone freeze smoke run, hosted CI and human review remain open.
+
+`docs/testing/requirements.json` now maps the new evidence and removes stale claims that
+venue replacement and rescheduling are absent. Rescheduling already has backend acceptance
+coverage; this does not automatically accept the surrounding re-review policy. The 26
+mapping rows validate; a mapped passing test is not acceptance of an entire requirement.
+
+### Reviewer hand-off for this increment
+
+1. **Delegated:** fill the freeze-plan journey and booking-edit evidence gaps; pursue useful
+   frontend coverage and fix defects the new tests reveal.
+2. **Constraints:** release acceptance criteria, unchanged backend permission rules,
+   existing test assertions and complete-source coverage denominators; disposable data only.
+3. **Evidence:** eleven real integrated journeys, 50 new component cases, three new browser
+   cases, SQL harness, lint/build, coverage instrumentation checks and traceability validation.
+   Final measured suite totals are recorded below after the full run.
+4. **Human review:** Ernest/Marcus review D52's API/UI alignment; Jerome reviews test intent,
+   the optional integration URL changes and the release gaps. Hosted CI remains required.
+5. **Accountability:** Jerome owns SCRUM-161. Feature/policy owners above own acceptance
+   decisions; agent-generated passing results do not constitute their approval.
+
+### Final local results for this increment — 1 November 2026
+
+| Same-source Istanbul report | Statements | Branches | Functions | Lines |
+|---|---:|---:|---:|---:|
+| Unit only | 17.42% | 13.40% | 17.56% | 18.24% |
+| Browser only | 82.67% | 76.49% | 81.33% | 85.20% |
+| **Combined union** | **89.10%** | **82.78%** | **87.37%** | **91.82%** |
+
+Combined totals: 2,495/2,800 statements, 2,328/2,812 branches, 796/911 functions and
+2,079/2,264 lines across the same 95 source files. The small denominator increase comes
+from the new booking access condition; no source exclusions were added. Compared with the
+first combined report, statement coverage rose 7.47 percentage points and branches 6.04.
+
+- **198 unit/component tests** pass, including the existing 100% V8 `src/lib` gate.
+- **323 ordinary browser scenarios** pass against the normal production build.
+- **324 instrumented browser scenarios** pass (323 application scenarios plus the collector probe).
+- **11 real browser/API/database journeys** pass together on the isolated disposable stack.
+- Normal/instrumented builds, ESLint, three coverage-merger tests, six traceability-report
+  tests, 26 mapping validations and `git diff --check` pass.
+- Backend source is unchanged by this increment. Its recorded **2,259 passing tests**, with
+  **100% statements (3,907/3,907) and branches (1,434/1,434)**, remain the applicable evidence.
+
+Remaining combined measurement: 305 statements, 484 branch outcomes and 115 functions.
+The largest statement gaps are venue-request creation (59), venue details (34), venue
+catalogue/search (16), event browsing (12), withdrawal-policy editing (12), event editing
+(11) and event status (11). These include error, cancellation/race and alternate-form paths;
+they remain visible and are not claimed as tested merely because the main journeys pass.
+The existing draft workspace is exercised; it is no longer a leading unmeasured area.
+
+Generated local evidence is under `frontend/coverage-combined/` and
+`frontend/test-results/release-checklist/`; the latter joins current unit/browser/integrated
+JUnit with the unchanged backend evidence. Every mapped check passed; acceptance is still
+explicitly incomplete because the recorded scope, implementation and deployment gaps remain.
+CI regenerates the artifacts. Only durable implementation, tests, mappings and this review
+record belong in the commit. This work is local; push, merge, hosted CI and human acceptance
+remain pending. Disposable test services were removed after verification.

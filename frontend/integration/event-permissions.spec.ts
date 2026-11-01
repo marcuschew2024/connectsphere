@@ -2,8 +2,8 @@ import { expect, test } from "@playwright/test";
 
 // Optional addresses let this new journey run on a second disposable stack locally.
 // CI uses the standard integrated stack. No HTTP responses are mocked.
-const WEB = process.env.QA_PERMISSION_WEB_URL ?? "http://localhost:3107";
-const API = process.env.QA_PERMISSION_API_URL ?? "http://localhost:5001";
+const WEB = process.env.QA_PERMISSION_WEB_URL ?? process.env.QA_WEB_URL ?? "http://localhost:3107";
+const API = process.env.QA_PERMISSION_API_URL ?? process.env.QA_API_URL ?? "http://localhost:5001";
 const PASSWORD = "disposable-test-only-password";
 
 test("INTEGRATED-05 non-management roles cannot open unrelated event details or mutate lifecycle", async ({ browser }) => {
