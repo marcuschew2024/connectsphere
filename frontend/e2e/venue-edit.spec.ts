@@ -5,7 +5,7 @@ const ID = "11111111-1111-4111-8111-111111111111";
 const path = `/venues/${ID}/edit`;
 const initial = {
   id: ID, name: "Seminar Room A", location: "Building B", capacity: 100,
-  facilities: ["Projector", "Wi-Fi"], accessibility: ["Lift"],
+  facilities: ["Projector", "Wi-Fi"],   accessibility: ["Elevator"],
   supported_layouts: ["Classroom", "Custom layout"],
   operating_hours: Object.fromEntries(["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"].map(day => [day, {opens: "09:00", closes: "18:00"}])),
   timezone: "Asia/Singapore", created_by: 3, created_at: "2026-09-24T06:00:00Z", revision: 1,
@@ -37,11 +37,15 @@ test("staff opens a prefilled form, saves all five fields, and sees updated cata
   await page.getByRole("link", {name: "Edit venue", exact: true}).click();
   await expect(page.getByLabel("Venue name")).toHaveValue(initial.name);
   await expect(page.getByLabel("Venue name")).toHaveAttribute("readonly", "");
-  await expect(page.getByLabel("Facilities", {exact: true})).toHaveValue("Projector, Wi-Fi");
-  await expect(page.getByRole("checkbox", {name: "Custom layout", exact: true})).toBeChecked();
+  await expect(page.getByRole("checkbox", {name: "Projector", exact: true})).toBeChecked();
+  await expect(page.getByRole("checkbox", {name: "Wi-Fi", exact: true})).toBeChecked();
+  await expect(page.getByRole("checkbox", {name: "Supported layouts Other", exact: true})).toBeChecked();
   await page.getByLabel("Capacity").fill("80");
-  await page.getByLabel("Facilities", {exact: true}).fill("Whiteboard");
-  await page.getByLabel("Accessibility features").fill("Ramp");
+  await page.getByRole("checkbox", {name: "Projector", exact: true}).uncheck();
+  await page.getByRole("checkbox", {name: "Wi-Fi", exact: true}).uncheck();
+  await page.getByRole("checkbox", {name: "Whiteboard", exact: true}).check();
+  await page.getByRole("checkbox", {name: "Elevator", exact: true}).uncheck();
+  await page.getByRole("checkbox", {name: "Ramp", exact: true}).check();
   await page.getByRole("checkbox", {name: "Classroom", exact: true}).uncheck();
   await page.getByLabel("monday opens").fill("10:00");
   await page.screenshot({path: testInfo.outputPath("edit-desktop.png"), fullPage: true});

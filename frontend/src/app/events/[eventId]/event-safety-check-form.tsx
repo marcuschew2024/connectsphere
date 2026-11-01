@@ -80,7 +80,8 @@ export default function EventSafetyCheckForm({
 
       <dl className="grid gap-x-6 gap-y-3 text-sm sm:grid-cols-2">
         <div><dt className="text-xs text-muted-foreground">Expected attendance</dt><dd>{event.expected_attendance ?? "Not provided"}</dd></div>
-        <div><dt className="text-xs text-muted-foreground">Venue requirements</dt><dd className="whitespace-pre-wrap break-words">{event.venue_requirements || "Not provided"}</dd></div>
+        <div><dt className="text-xs text-muted-foreground">Layout requirements</dt><dd className="whitespace-pre-wrap break-words">{event.venue_requirements || "Not provided"}</dd></div>
+        <div><dt className="text-xs text-muted-foreground">Facility requirements</dt><dd className="whitespace-pre-wrap break-words">{event.facility_requirements || "Not provided"}</dd></div>
         <div><dt className="text-xs text-muted-foreground">Accessibility requirements</dt><dd className="whitespace-pre-wrap break-words">{event.accessibility_requirements || "Not provided"}</dd></div>
         <div><dt className="text-xs text-muted-foreground">Equipment requirements</dt><dd className="whitespace-pre-wrap break-words">{event.equipment_requirements || "Not provided"}</dd></div>
       </dl>

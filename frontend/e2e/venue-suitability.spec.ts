@@ -103,7 +103,7 @@ test("Coordinator sees all advisory suitability flags and can still submit", asy
     await expect(page.getByText(flag, { exact: true })).toBeVisible();
   }
 
-  await page.getByLabel("Layout").fill("Banquet");
+  await page.getByLabel("Layout").selectOption("Banquet");
   await page.getByLabel("Start").fill("2099-10-20T14:00");
   await page.getByLabel("End", { exact: true }).fill("2099-10-20T16:00");
   await page.getByRole("button", { name: "Submit booking request" }).click();

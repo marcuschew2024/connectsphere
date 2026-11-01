@@ -1000,6 +1000,7 @@ IMPORTANT_FIELDS = {
     "expected_attendance",
     "category",
     "venue_requirements",
+    "facility_requirements",
     "equipment_requirements",
     "accessibility_requirements",
 }

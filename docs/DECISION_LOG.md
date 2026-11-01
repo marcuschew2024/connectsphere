@@ -14,6 +14,23 @@ reviewer) can understand *why* the system is built the way it is, not just *what
 
 ---
 
+## SCRUM-158 - Separate event layout and facility requirements
+
+- **Context:** `venue_requirements` stored both layouts and facilities, so legacy UI
+  and custom values could not be classified reliably. "Blinds" remains a custom facility rather than a preset.
+- **Decision:** add `facility_requirements` to `events`; keep `venue_requirements`
+  for layouts and store facilities in the new column. Existing rows are backfilled
+  from canonical facilities, with unmatched values retained as venue layout/custom
+  values unless a human review places them elsewhere.
+- **Constraints:** preserve API compatibility, comma-separated custom values,
+  accessibility separation, change-request approval, venue suitability matching,
+  and the existing 2000-character limits.
+- **Verification:** backend validation/suitability tests, API/change-request tests,
+  frontend unit tests, and Playwright workflows for create/edit/resubmit/booking.
+- **Trade-off:** an additional schema column and one-time migration replace heuristic
+  classification and avoid repeated misclassification.
+- **Owner:** SCRUM-158 implementer / project owner to assign before merge.
+
 ## AI usage policy
 
 ConnectSphere is built with AI coding assistants as part of the team's normal workflow.

@@ -223,7 +223,6 @@ FACILITY_VOCABULARY: list[str] = [
 ACCESSIBILITY_VOCABULARY: list[str] = [
     "wheelchair",
     "elevator",
-    "lift",
     "ramp",
     "accessible toilet",
     "hearing loop",
@@ -301,7 +300,7 @@ class FacilityRule(SuitabilityRule):
     """Rule 3: requested facilities against the venue's facilities."""
 
     def evaluate(self, event: dict[str, Any], venue: dict[str, Any]) -> str | None:
-        v_req = event.get("venue_requirements") or ""
+        v_req = event.get("facility_requirements") or event.get("venue_requirements") or ""
         e_req = event.get("equipment_requirements") or ""
         req_text = (v_req + " " + e_req)
         if not _normalise(req_text):

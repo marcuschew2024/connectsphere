@@ -131,7 +131,7 @@ test("coordinator submits a venue request with timing and requirements", async (
   // Options load asynchronously and initialise attendance; wait before editing it.
   await expect(page.getByRole("combobox", { name: "Venue", exact: true })).toHaveValue(REQUEST_VENUE.id);
   await page.getByLabel("Expected attendance").fill("120");
-  await page.getByLabel("Layout").fill("Theatre");
+  await page.getByLabel("Layout").selectOption("Theatre");
   await page.getByLabel("Special requirements").fill("Step-free access");
   await page.getByLabel("Start").fill("2099-10-20T14:00");
   await page.getByLabel("End", { exact: true }).fill("2099-10-20T16:00");
@@ -166,7 +166,7 @@ test("venue overlap rejection preserves the booking form", async ({ page }) => {
   // Options load asynchronously and initialise attendance; wait before editing it.
   await expect(page.getByRole("combobox", { name: "Venue", exact: true })).toHaveValue(REQUEST_VENUE.id);
   await page.getByLabel("Expected attendance").fill("120");
-  await page.getByLabel("Layout").fill("Theatre");
+  await page.getByLabel("Layout").selectOption("Theatre");
   await page.getByLabel("Start").fill("2099-10-20T14:00");
   await page.getByLabel("End", { exact: true }).fill("2099-10-20T16:00");
   await page.getByRole("button", { name: "Submit booking request" }).click();
@@ -193,7 +193,7 @@ test("buffered adjacent slot conflicts for a second coordinator", async ({ page 
 
   await page.goto("/venues/bookings/new");
   await page.getByLabel("Expected attendance").fill("120");
-  await page.getByLabel("Layout").fill("Theatre");
+  await page.getByLabel("Layout").selectOption("Theatre");
   await page.getByLabel("Start").fill("2099-10-20T16:15");
   await page.getByLabel("End", { exact: true }).fill("2099-10-20T18:15");
   await page.getByRole("button", { name: "Submit booking request" }).click();
@@ -227,7 +227,7 @@ test("booking form shows over-capacity as advisory and still allows the request"
   // Options load asynchronously and initialise attendance; wait before editing it.
   await expect(page.getByRole("combobox", { name: "Venue", exact: true })).toHaveValue(REQUEST_VENUE.id);
   await page.getByLabel("Expected attendance").fill("51");
-  await page.getByLabel("Layout").fill("Theatre");
+  await page.getByLabel("Layout").selectOption("Theatre");
   await page.getByLabel("Start").fill("2099-10-20T14:00");
   await page.getByLabel("End", { exact: true }).fill("2099-10-20T16:00");
   await expect(page.getByRole("region", { name: "Venue suitability advisory" })).toBeVisible();
@@ -247,7 +247,7 @@ test("booking form blocks an end time before the start time", async ({ page }) =
   // Options load asynchronously and initialise attendance; wait before editing it.
   await expect(page.getByRole("combobox", { name: "Venue", exact: true })).toHaveValue(REQUEST_VENUE.id);
   await page.getByLabel("Expected attendance").fill("120");
-  await page.getByLabel("Layout").fill("Theatre");
+  await page.getByLabel("Layout").selectOption("Theatre");
   await page.getByLabel("Start").fill("2099-10-20T16:00");
   await page.getByLabel("End", { exact: true }).fill("2099-10-20T14:00");
   await page.getByRole("button", { name: "Submit booking request" }).click();

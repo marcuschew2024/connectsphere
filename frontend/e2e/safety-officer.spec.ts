@@ -6,7 +6,8 @@ const event = {
   id: ID, title: "Campus open day", status: "Confirmed", request_status: "Confirmed",
   event_datetime: "2099-10-20T06:00:00Z", expected_attendance: 300,
   venue_requirements: "Main hall", accessibility_requirements: "Step-free access",
-  equipment_requirements: "PA system", organiser_id: 1, coordinator_id: 2,
+  facility_requirements: "Projector, Microphone", equipment_requirements: "PA system",
+  organiser_id: 1, coordinator_id: 2,
 };
 
 async function session(page: Page, role = "Safety Officer") {
@@ -39,6 +40,8 @@ test("Safety Officer can navigate from home to the queue and approve without cla
   await page.setViewportSize({ width: 390, height: 844 });
   await page.screenshot({ path: "test-results/safety-queue-mobile.png", fullPage: true });
   await page.getByRole("link", { name: /Campus open day/ }).click();
+  await expect(page.getByText("Projector, Microphone")).toBeVisible();
+  await expect(page.getByText("PA system").first()).toBeVisible();
   await page.getByRole("button", { name: "Approve for preparation" }).click();
   await expect(page.getByTestId("event-status-badge")).toHaveText("Preparation");
   expect(clarificationRequests).toBe(0);

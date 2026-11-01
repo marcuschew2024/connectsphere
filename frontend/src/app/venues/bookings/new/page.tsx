@@ -5,10 +5,11 @@ import { useEffect, useState, type FormEvent } from "react";
 import { ChevronDown } from "lucide-react";
 import { ApiError, apiRequest } from "@/lib/api";
 import type { CoordinatorEventRecord } from "@/lib/events";
-import { VENUE_DAYS, type Venue } from "@/lib/venues";
+import { VENUE_ACCESSIBILITY_FEATURES, VENUE_DAYS, VENUE_FACILITIES, VENUE_LAYOUTS, type Venue } from "@/lib/venues";
 import { AppShell } from "@/components/app-shell";
 import { useActingRole } from "@/lib/use-acting-role";
 import { eventVenueRequirements } from "@/lib/event-venue-requirements";
+import OtherValuesInput from "@/components/other-values-input";
 
 const INPUT =
   "w-full rounded-md border border-input bg-background px-3 py-2.5 text-sm text-foreground focus:border-ring focus:outline-none focus:ring-2 focus:ring-ring/30";
@@ -44,8 +45,15 @@ export default function NewBookingPage() {
   const [selectedEventId, setSelectedEventId] = useState("");
   const [selectedVenueId, setSelectedVenueId] = useState("");
   const [attendance, setAttendance] = useState("");
-  const [layout, setLayout] = useState("");
-  const [specialRequirements, setSpecialRequirements] = useState("");
+  const [layoutOther, setLayoutOther] = useState("");
+  const [layouts, setLayouts] = useState<string[]>([]);
+  const [layoutOtherEnabled, setLayoutOtherEnabled] = useState(false);
+  const [facilities, setFacilities] = useState<string[]>([]);
+  const [facilityOther, setFacilityOther] = useState("");
+  const [accessibility, setAccessibility] = useState<string[]>([]);
+  const [accessibilityOther, setAccessibilityOther] = useState("");
+  const [facilityOtherEnabled, setFacilityOtherEnabled] = useState(false);
+  const [accessibilityOtherEnabled, setAccessibilityOtherEnabled] = useState(false);
   const [startAt, setStartAt] = useState("");
   const [endAt, setEndAt] = useState("");
   const [error, setError] = useState("");
@@ -81,8 +89,15 @@ export default function NewBookingPage() {
       // Default the attendance to the chosen event's expected headcount.
       const requirements = eventVenueRequirements(planning[0]);
       setAttendance(requirements.attendance);
-      setLayout(requirements.layout);
-      setSpecialRequirements(requirements.specialRequirements);
+      setLayouts(requirements.layouts);
+      setLayoutOther(requirements.customLayouts.join(", "));
+      setLayoutOtherEnabled(requirements.customLayouts.length > 0);
+      setFacilities([...requirements.facilities]);
+      setFacilityOther(requirements.customFacilities.join(", "));
+      setAccessibility(requirements.accessibility);
+      setFacilityOtherEnabled(requirements.customFacilities.length > 0);
+      setAccessibilityOther(requirements.customAccessibility.join(", "));
+      setAccessibilityOtherEnabled(requirements.customAccessibility.length > 0);
       setStartAt(requirements.date && requirements.startTime ? `${requirements.date}T${requirements.startTime}` : "");
       setEndAt(requirements.date && requirements.endTime ? `${requirements.date}T${requirements.endTime}` : "");
       setSelectedVenueId(allVenues[0]?.id ?? "");
@@ -126,8 +141,15 @@ export default function NewBookingPage() {
     const chosen = events.find((event) => event.id === eventId);
     const requirements = eventVenueRequirements(chosen);
     setAttendance(requirements.attendance);
-    setLayout(requirements.layout);
-    setSpecialRequirements(requirements.specialRequirements);
+    setLayouts(requirements.layouts);
+    setLayoutOther(requirements.customLayouts.join(", "));
+    setLayoutOtherEnabled(requirements.customLayouts.length > 0);
+    setFacilities([...requirements.facilities]);
+    setFacilityOther(requirements.customFacilities.join(", "));
+    setAccessibility(requirements.accessibility);
+    setFacilityOtherEnabled(requirements.customFacilities.length > 0);
+    setAccessibilityOther(requirements.customAccessibility.join(", "));
+    setAccessibilityOtherEnabled(requirements.customAccessibility.length > 0);
     setStartAt(requirements.date && requirements.startTime ? `${requirements.date}T${requirements.startTime}` : "");
     setEndAt(requirements.date && requirements.endTime ? `${requirements.date}T${requirements.endTime}` : "");
   }
@@ -189,6 +211,13 @@ export default function NewBookingPage() {
       setBusy(false);
       return;
     }
+    const submittedLayouts = [...layouts.map((value) => VENUE_LAYOUTS.find((option) => option.toLowerCase() === value.toLowerCase()) ?? value), ...layoutOther.split(",").map((value) => value.trim()).filter(Boolean)];
+    const submittedLayout = submittedLayouts.join(", ");
+    if (!submittedLayout) {
+      setError("Enter a layout.");
+      setBusy(false);
+      return;
+    }
     try {
       const result = await apiRequest<{ booking: { id: string } }>("/venues/bookings", {
         method: "POST",
@@ -198,8 +227,8 @@ export default function NewBookingPage() {
           start_at: start.toISOString(),
           end_at: end.toISOString(),
           expected_attendance: attendanceValue,
-          layout: data.get("layout"),
-          special_requirements: data.get("special_requirements"),
+          layout: submittedLayout,
+          special_requirements: [...facilities, ...facilityOther.split(",").map((value) => value.trim()).filter(Boolean), ...accessibility, ...accessibilityOther.split(",").map((value) => value.trim()).filter(Boolean)].join(", "),
         }),
       });
       if (result.booking.id) setSaved(true);
@@ -214,6 +243,7 @@ export default function NewBookingPage() {
       setBusy(false);
     }
   }
+
 
   return (
     <AppShell actingRole={role}>
@@ -283,9 +313,25 @@ export default function NewBookingPage() {
                 Expected attendance <span className="font-normal text-muted-foreground">(from the event — editable)</span>
                 <input name="expected_attendance" type="number" min="1" required value={attendance} onChange={(e) => setAttendance(e.target.value)} className={`${INPUT} mt-2`} />
               </label>
-              <label className="block text-sm font-medium">Layout<input name="layout" required maxLength={100} placeholder="Theatre, Classroom..." value={layout} onChange={(event) => setLayout(event.target.value)} className={`${INPUT} mt-2`} /></label>
+              <fieldset>
+                <legend className="mb-2 text-sm font-medium">Layout *</legend>
+                <div className="grid gap-2 sm:grid-cols-2">
+                  {VENUE_LAYOUTS.map((option) => <label key={option} className="flex items-center gap-2 rounded-lg border border-border px-3 py-2 text-sm"><input type="checkbox" checked={layouts.some((value) => value.toLowerCase() === option.toLowerCase())} onChange={(event) => setLayouts(event.target.checked ? [...layouts, option] : layouts.filter((value) => value.toLowerCase() !== option.toLowerCase()))} />{option}</label>)}
+                  <label className="flex items-center gap-2 rounded-lg border border-border px-3 py-2 text-sm"><input type="checkbox" checked={layoutOtherEnabled} onChange={(event) => { setLayoutOtherEnabled(event.target.checked); if (!event.target.checked) setLayoutOther(""); }} />Other</label>
+                </div>
+                {layoutOtherEnabled && <OtherValuesInput id="other-layouts" label="Other layouts" value={layoutOther} onChange={setLayoutOther} placeholder="Enter one or more layouts separated by commas" />}
+              </fieldset>
             </div>
-            <label className="block text-sm font-medium">Special requirements<textarea name="special_requirements" maxLength={2000} rows={5} value={specialRequirements} onChange={(event) => setSpecialRequirements(event.target.value)} className={`${INPUT} mt-2`} placeholder="Accessibility, equipment, setup, or other requirements" /></label>
+            <div className="grid gap-4 sm:grid-cols-2">
+              <fieldset className="space-y-2"><legend className="text-sm font-medium">Facilities</legend>{VENUE_FACILITIES.map((option) => <label key={option} className="flex items-center gap-2 text-sm"><input type="checkbox" checked={facilities.includes(option)} onChange={(event) => setFacilities(event.target.checked ? [...facilities, option] : facilities.filter((value) => value !== option))} />{option}</label>)}
+                <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={facilityOtherEnabled} onChange={(event) => { setFacilityOtherEnabled(event.target.checked); if (!event.target.checked) setFacilityOther(""); }} />Other</label>
+                {facilityOtherEnabled && <OtherValuesInput id="other-facilities" label="Other facilities" value={facilityOther} onChange={setFacilityOther} placeholder="Enter one or more facilities separated by commas" />}
+              </fieldset>
+              <fieldset className="space-y-2"><legend className="text-sm font-medium">Accessibility</legend>{VENUE_ACCESSIBILITY_FEATURES.map((option) => <label key={option} className="flex items-center gap-2 text-sm"><input type="checkbox" checked={accessibility.includes(option)} onChange={(event) => setAccessibility(event.target.checked ? [...accessibility, option] : accessibility.filter((value) => value !== option))} />{option}</label>)}
+                <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={accessibilityOtherEnabled} onChange={(event) => { setAccessibilityOtherEnabled(event.target.checked); if (!event.target.checked) setAccessibilityOther(""); }} />Other</label>
+                {accessibilityOtherEnabled && <OtherValuesInput id="other-accessibility-features" label="Other accessibility features" value={accessibilityOther} onChange={setAccessibilityOther} placeholder="Enter one or more features separated by commas" />}
+              </fieldset>
+            </div>
 
             <div className="flex flex-wrap gap-3">
               <button type="submit" disabled={busy} className="rounded-md bg-primary px-5 py-3 text-sm font-semibold text-primary-foreground disabled:opacity-50">{busy ? "Submitting..." : "Submit booking request"}</button>

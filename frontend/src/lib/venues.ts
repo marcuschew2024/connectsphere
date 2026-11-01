@@ -1,5 +1,7 @@
 export const VENUE_DAYS = ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"] as const;
 export const VENUE_LAYOUTS = ["Theatre", "Classroom", "Boardroom", "U-shape", "Banquet", "Standing"];
+export const VENUE_FACILITIES = ["Projector", "Stage", "Sound system", "Microphone", "Wi-Fi", "Whiteboard", "Podium"];
+export const VENUE_ACCESSIBILITY_FEATURES = ["Wheelchair", "Elevator", "Ramp", "Accessible toilet", "Hearing loop"];
 export type VenueDay = typeof VENUE_DAYS[number];
 export type OpeningHours = Record<VenueDay, { opens: string; closes: string } | null>;
 

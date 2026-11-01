@@ -6,6 +6,7 @@ export const CHANGE_FIELDS = [
   { name: "title", label: "Title" },
   { name: "expected_attendance", label: "Expected attendance" },
   { name: "venue_requirements", label: "Venue requirements" },
+  { name: "facility_requirements", label: "Facility requirements" },
   { name: "category", label: "Category" },
   { name: "purpose", label: "Purpose" },
   { name: "description", label: "Event description" },

@@ -3,13 +3,12 @@
 import { useState, type FormEvent } from "react";
 import { ApiError, apiRequest } from "@/lib/api";
 import type { EventClarification, EventRecord } from "@/lib/events";
+import EventVenueOptions from "@/components/event-venue-options";
 
 const TEXT_FIELDS = [
   ["title", "Event name"], ["description", "Description"], ["purpose", "Purpose"], ["category", "Category"],
 ] as const;
 const REQUIREMENT_FIELDS = [
-  ["venue_requirements", "Venue requirements"],
-  ["accessibility_requirements", "Accessibility requirements"],
   ["equipment_requirements", "Equipment requirements"],
   ["registration_requirements", "Registration requirements"],
 ] as const;
@@ -92,6 +91,7 @@ export default function EventResubmitForm({
           <label className="font-medium">Date and time *<input name="event_datetime" type="datetime-local" defaultValue={toLocalInput(event.event_datetime)} className={`${INPUT_STYLE} mt-2`} /></label>
           <label className="font-medium">Expected attendance *<input name="expected_attendance" type="number" min="1" step="1" defaultValue={event.expected_attendance ?? ""} className={`${INPUT_STYLE} mt-2`} /></label>
         </div>
+        <EventVenueOptions venueRequirements={event.venue_requirements} facilityRequirements={event.facility_requirements} accessibilityRequirements={event.accessibility_requirements} />
         {REQUIREMENT_FIELDS.map(([name, label]) => (
           <label key={name} className="block font-medium">{label}<textarea name={name} defaultValue={event[name] ?? ""} rows={2} maxLength={2000} className={`${INPUT_STYLE} mt-2`} /></label>
         ))}

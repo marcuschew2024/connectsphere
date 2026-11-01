@@ -23,8 +23,10 @@ async function fillVenue(page: Page) {
   await page.getByLabel("Venue name").fill(venue.name);
   await page.getByLabel("Location", {exact:false}).fill(venue.location);
   await page.getByLabel("Capacity", {exact:false}).fill("100");
-  await page.getByLabel("Facilities", {exact:true}).fill("Projector, Wi-Fi");
-  await page.getByLabel("Accessibility features", {exact:true}).fill("Step-free access");
+  await page.getByRole("checkbox", {name:"Projector", exact:true}).check();
+  await page.getByRole("checkbox", {name:"Wi-Fi", exact:true}).check();
+  await page.getByRole("checkbox", {name:"Accessibility features Other", exact:true}).check();
+  await page.getByLabel("Other accessibility features", {exact:true}).fill("Step-free access");
   await page.getByRole("checkbox", {name:"Classroom", exact:true}).check();
 }
 

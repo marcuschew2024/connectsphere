@@ -3,7 +3,8 @@
 import Link from "next/link";
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import { ApiError, apiRequest } from "@/lib/api";
-import { defaultOpeningHours, VENUE_DAYS, VENUE_LAYOUTS, type OpeningHours, type Venue } from "@/lib/venues";
+import { defaultOpeningHours, VENUE_ACCESSIBILITY_FEATURES, VENUE_DAYS, VENUE_FACILITIES, VENUE_LAYOUTS, type OpeningHours, type Venue } from "@/lib/venues";
+import OtherValuesInput from "@/components/other-values-input";
 
 const INPUT = "w-full rounded-md border border-input bg-background px-3 py-2.5 text-sm text-foreground focus:border-ring focus:outline-none focus:ring-2 focus:ring-ring/30";
 const CARD = "space-y-5 rounded-2xl border border-border bg-card p-5 shadow-sm sm:p-6";
@@ -11,6 +12,16 @@ const CARD = "space-y-5 rounded-2xl border border-border bg-card p-5 shadow-sm s
 export default function VenueForm({ venue }: { venue?: Venue }) {
   const editing = !!venue;
   const layouts = Array.from(new Set([...VENUE_LAYOUTS, ...(venue?.supported_layouts ?? [])]));
+  const isKnown = (values: string[], value: string) =>
+    values.some((known) => known.toLowerCase() === value.toLowerCase());
+  const customValues = (values: string[], known: string[]) =>
+    values.filter((value) => !isKnown(known, value));
+  const [facilityOther, setFacilityOther] = useState(customValues(venue?.facilities ?? [], VENUE_FACILITIES).join(", "));
+  const [accessibilityOther, setAccessibilityOther] = useState(customValues(venue?.accessibility ?? [], VENUE_ACCESSIBILITY_FEATURES).join(", "));
+  const [layoutOther, setLayoutOther] = useState(customValues(venue?.supported_layouts ?? [], VENUE_LAYOUTS).join(", "));
+  const [showFacilityOther, setShowFacilityOther] = useState(customValues(venue?.facilities ?? [], VENUE_FACILITIES).length > 0);
+  const [showAccessibilityOther, setShowAccessibilityOther] = useState(customValues(venue?.accessibility ?? [], VENUE_ACCESSIBILITY_FEATURES).length > 0);
+  const [showLayoutOther, setShowLayoutOther] = useState(customValues(venue?.supported_layouts ?? [], VENUE_LAYOUTS).length > 0);
   const [hours, setHours] = useState<OpeningHours>(() => venue?.operating_hours ?? defaultOpeningHours());
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
@@ -27,7 +38,14 @@ export default function VenueForm({ venue }: { venue?: Venue }) {
     if (busy) return;
     const form = new FormData(event.currentTarget);
     setBusy(true); setError(""); setFields({});
-    const features = (key: string) => String(form.get(key) ?? "").split(",").map((value) => value.trim()).filter(Boolean);
+    const selected = (key: string) => form.getAll(key).map(String);
+    const selectedWithOther = (key: string, value: string) => {
+      const choices = selected(key);
+      return [
+        ...choices.filter((choice) => choice !== "Other"),
+        ...(choices.includes("Other") ? value.split(",").map((item) => item.trim()).filter(Boolean) : []),
+      ];
+    };
     try {
       const result = await apiRequest<{ venue: Venue }>(editing ? `/venues/${venue.id}` : "/venues", {
         method: editing ? "PUT" : "POST",
@@ -35,8 +53,10 @@ export default function VenueForm({ venue }: { venue?: Venue }) {
           ...(editing ? { revision: venue.revision } : { name: form.get("name"), location: form.get("location") }), capacity: Number(form.get("capacity")),
           setup_time_minutes: Number(form.get("setup_time_minutes") ?? 0),
           turnaround_time_minutes: Number(form.get("turnaround_time_minutes") ?? 0),
-          facilities: features("facilities"), accessibility: features("accessibility"),
-          supported_layouts: form.getAll("supported_layouts"), operating_hours: hours,
+          facilities: selectedWithOther("facilities", facilityOther),
+          accessibility: selectedWithOther("accessibility", accessibilityOther),
+          supported_layouts: selectedWithOther("supported_layouts", layoutOther),
+          operating_hours: hours,
         }),
       });
       setSaved(result.venue);
@@ -92,14 +112,30 @@ export default function VenueForm({ venue }: { venue?: Venue }) {
         </section>
         <section className={CARD}>
           <h2 className="font-semibold">Facilities & layouts</h2>
-          {([['facilities', 'Facilities', 'Projector, Wi-Fi, whiteboard'], ['accessibility', 'Accessibility features', 'Step-free access, accessible toilet']] as const).map(([key, label, placeholder]) => <div key={key}>
-            <label htmlFor={key} className="mb-2 block text-sm font-medium">{label}</label>
-            <textarea id={key} name={key} defaultValue={venue?.[key].join(", ")} rows={2} maxLength={1640} placeholder={placeholder} className={INPUT} aria-invalid={!!fields[key]} aria-describedby={`${key}-help${fields[key] ? ` ${key}-error` : ""}`} />
-            <p id={`${key}-help`} className="mt-1 text-xs text-muted-foreground">Separate features with commas. Leave blank if none.</p>{fieldError(key)}
-          </div>)}
+          <fieldset>
+            <legend className="mb-3 text-sm font-medium">Facilities</legend>
+            <div className="grid grid-cols-2 gap-2">
+              {VENUE_FACILITIES.map((facility) => <label key={facility} className="flex cursor-pointer items-center gap-2 rounded-lg border border-border px-3 py-2.5 text-sm text-foreground has-checked:border-primary/50 has-checked:bg-primary/5"><input type="checkbox" name="facilities" value={facility} defaultChecked={venue?.facilities.some((value) => value.toLowerCase() === facility.toLowerCase())} className="h-4 w-4 accent-primary" />{facility}</label>)}
+              <label className="flex cursor-pointer items-center gap-2 rounded-lg border border-border px-3 py-2.5 text-sm text-foreground has-checked:border-primary/50 has-checked:bg-primary/5"><input type="checkbox" name="facilities" value="Other" aria-label="Facilities Other" checked={showFacilityOther} onChange={(event) => setShowFacilityOther(event.target.checked)} className="h-4 w-4 accent-primary" />Other</label>
+            </div>
+            {showFacilityOther && <OtherValuesInput id="facility-other" label="Other facilities" value={facilityOther} onChange={setFacilityOther} placeholder="e.g. Video conferencing" />}
+            {fieldError("facilities")}
+          </fieldset>
+          <fieldset>
+            <legend className="mb-3 text-sm font-medium">Accessibility features</legend>
+            <div className="grid grid-cols-2 gap-2">
+              {VENUE_ACCESSIBILITY_FEATURES.map((feature) => <label key={feature} className="flex cursor-pointer items-center gap-2 rounded-lg border border-border px-3 py-2.5 text-sm text-foreground has-checked:border-primary/50 has-checked:bg-primary/5"><input type="checkbox" name="accessibility" value={feature} defaultChecked={venue?.accessibility.some((value) => value.toLowerCase() === feature.toLowerCase())} className="h-4 w-4 accent-primary" />{feature}</label>)}
+              <label className="flex cursor-pointer items-center gap-2 rounded-lg border border-border px-3 py-2.5 text-sm text-foreground has-checked:border-primary/50 has-checked:bg-primary/5"><input type="checkbox" name="accessibility" value="Other" aria-label="Accessibility features Other" checked={showAccessibilityOther} onChange={(event) => setShowAccessibilityOther(event.target.checked)} className="h-4 w-4 accent-primary" />Other</label>
+            </div>
+            {showAccessibilityOther && <OtherValuesInput id="accessibility-other" label="Other accessibility features" value={accessibilityOther} onChange={setAccessibilityOther} placeholder="e.g. Tactile wayfinding" />}
+            {fieldError("accessibility")}
+          </fieldset>
           <fieldset aria-describedby={fields.supported_layouts ? "supported_layouts-error" : undefined}>
             <legend className="mb-3 text-sm font-medium">Supported layouts *</legend>
-            <div className="grid grid-cols-2 gap-2">{layouts.map((layout) => <label key={layout} className="flex cursor-pointer items-center gap-2 rounded-lg border border-border px-3 py-2.5 text-sm text-foreground has-checked:border-primary/50 has-checked:bg-primary/5"><input type="checkbox" name="supported_layouts" value={layout} defaultChecked={venue?.supported_layouts.includes(layout)} className="h-4 w-4 accent-primary" />{layout}</label>)}</div>
+            <div className="grid grid-cols-2 gap-2">{layouts.filter((layout) => VENUE_LAYOUTS.some((known) => known.toLowerCase() === layout.toLowerCase())).map((layout) => <label key={layout} className="flex cursor-pointer items-center gap-2 rounded-lg border border-border px-3 py-2.5 text-sm text-foreground has-checked:border-primary/50 has-checked:bg-primary/5"><input type="checkbox" name="supported_layouts" value={layout} defaultChecked={venue?.supported_layouts.some((value) => value.toLowerCase() === layout.toLowerCase())} className="h-4 w-4 accent-primary" />{layout}</label>)}
+              <label className="flex cursor-pointer items-center gap-2 rounded-lg border border-border px-3 py-2.5 text-sm text-foreground has-checked:border-primary/50 has-checked:bg-primary/5"><input type="checkbox" name="supported_layouts" value="Other" aria-label="Supported layouts Other" checked={showLayoutOther} onChange={(event) => setShowLayoutOther(event.target.checked)} className="h-4 w-4 accent-primary" />Other</label>
+            </div>
+            {showLayoutOther && <OtherValuesInput id="layout-other" label="Other supported layouts" value={layoutOther} onChange={setLayoutOther} placeholder="e.g. Cabaret" />}
             {fieldError("supported_layouts")}
           </fieldset>
         </section>
