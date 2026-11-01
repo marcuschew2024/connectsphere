@@ -64,6 +64,11 @@
           "lane": "backend",
           "path": "api/tests/test_role_accounts_acceptance.py",
           "test": "test_account_locks_after_real_consecutive_failures_then_recovers"
+        },
+        {
+          "lane": "integrated",
+          "path": "frontend/integration/event-permissions.spec.ts",
+          "test": "INTEGRATED-05"
         }
       ],
       "gaps": [
@@ -250,10 +255,20 @@
           "lane": "backend",
           "path": "api/tests/test_event_cancellation_acceptance.py",
           "test": "test_a_cancelled_event_is_read_only_but_still_visible"
+        },
+        {
+          "lane": "integrated",
+          "path": "frontend/integration/event-permissions.spec.ts",
+          "test": "INTEGRATED-05"
+        },
+        {
+          "lane": "backend",
+          "path": "api/tests/test_status_transition_acceptance.py",
+          "test": "test_every_nonassigned_role_is_denied_without_mutation_and_logged"
         }
       ],
       "gaps": [
-        "SCRUM-135 remains partial: the generic route still needs a complete human-designed forward-only role/state matrix for Submitted, Planning and Rejected states. SCRUM-69 now provides dedicated atomic cancellation and a read-only Cancelled state; those previous gaps are closed by the mapped database tests."
+        "The SCRUM-135 role/state matrix is implemented and real-database tested. SCRUM-161 adds browser evidence for read-only controls and unrelated-role denial. Related venue/technical staff retain existing planning read permissions; attendee public projection and no internal payload in denied mutation responses are separate assertions. Final policy acceptance remains human-owned."
       ],
       "sql": []
     },
@@ -634,6 +649,11 @@
           "lane": "integrated",
           "path": "frontend/integration/event-lifecycle.spec.ts",
           "test": "INTEGRATED-01"
+        },
+        {
+          "lane": "backend",
+          "path": "api/tests/test_release_equipment_failures_acceptance.py",
+          "test": "test_invalid_reservations_do_not_consume_real_stock"
         }
       ],
       "gaps": [],
@@ -693,6 +713,11 @@
           "lane": "browser",
           "path": "frontend/e2e/event-registration-roster.spec.ts",
           "test": "sees names, references and event-wide totals across pages and filters"
+        },
+        {
+          "lane": "backend",
+          "path": "api/tests/test_release_registration_errors.py",
+          "test": "test_failed_registration_operation_never_returns_success_or_private_details"
         }
       ],
       "gaps": [
@@ -988,5 +1013,5 @@
       ]
     }
   ],
-  "reviewed_against": "Updated for main 8445c7b and the combined testing branch on 31 October 2026."
+  "reviewed_against": "SCRUM-161 permission/failure-path mappings updated against main 3acb2b5 on 1 November 2026; other rows retain their prior scope review and recorded gaps."
 }

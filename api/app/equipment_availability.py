@@ -25,6 +25,16 @@ def _as_utc(value: str | datetime) -> datetime:
     return value.astimezone(UTC)
 
 
+def equipment_window(
+    start_at: str | datetime, end_at: str | datetime,
+) -> tuple[datetime, datetime]:
+    """Validate a query window before it reaches persistence or availability rules."""
+    start, end = _as_utc(start_at), _as_utc(end_at)
+    if end <= start:
+        raise ValueError("Query end time must be strictly after start time.")
+    return start, end
+
+
 @dataclass(frozen=True)
 class EquipmentReservationInterval:
     """Value object representing an active equipment reservation window."""
@@ -114,10 +124,7 @@ class EquipmentAvailabilityEngine(AvailabilityCalculator):
         requested_quantity: int = 1,
         exclude_reservation_id: str | None = None,
     ) -> EquipmentAvailabilityResult:
-        start = _as_utc(start_at)
-        end = _as_utc(end_at)
-        if end <= start:
-            raise ValueError("Query end time must be strictly after start time.")
+        start, end = equipment_window(start_at, end_at)
         if requested_quantity < 0:
             raise ValueError("Requested quantity must be non-negative.")
 

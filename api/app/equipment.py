@@ -109,9 +109,10 @@ def equipment_availability(equipment_id):
         raise BadRequest("Quantity must be a non-negative integer.") from err
 
     try:
-        from .equipment_availability import EquipmentAvailabilityEngine
+        from .equipment_availability import EquipmentAvailabilityEngine, equipment_window
         from .equipment_repository import get_reservations_for_window
 
+        equipment_window(start_at, end_at)
         reservations = get_reservations_for_window(start_at, end_at, str(equipment_id))
         engine = EquipmentAvailabilityEngine()
         result = engine.check_availability(
@@ -162,23 +163,23 @@ def reserve_equipment(equipment_id):
     end_at = data.get("end_at")
     event_id = data.get("event_id")
 
-    try:
-        quantity = int(data.get("quantity", 0))
-        if quantity <= 0 or quantity > MAX_QUANTITY:
-            raise ValueError
-    except (ValueError, TypeError) as err:
-        raise BadRequest("Quantity must be a positive integer.") from err
+    quantity = data["quantity"]
+    if type(quantity) is not int or not 1 <= quantity <= MAX_QUANTITY:
+        raise BadRequest("Quantity must be a positive integer.")
+    if not isinstance(start_at, str) or not isinstance(end_at, str):
+        raise BadRequest("start_at and end_at must be date/time strings with a time zone.")
 
-    from .equipment_availability import EquipmentReservationEngine
+    from .equipment_availability import EquipmentReservationEngine, equipment_window
     from .equipment_repository import (
         create_equipment_reservation,
         get_reservations_for_window,
     )
 
-    existing = get_reservations_for_window(start_at, end_at, str(equipment_id))
     engine = EquipmentReservationEngine()
 
     try:
+        equipment_window(start_at, end_at)
+        existing = get_reservations_for_window(start_at, end_at, str(equipment_id))
         decision = engine.evaluate_reservation(
             row,
             start_at,

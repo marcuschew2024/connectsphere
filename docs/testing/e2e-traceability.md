@@ -15,7 +15,7 @@ file) in the *same PR as the fix*. Owner does a final sweep at freeze — any ro
 | # | Feature | Key scenario (incl. conflict/failure) | e2e spec | Status | Owner |
 |---|---------|----------------------------------------|----------|--------|-------|
 | 1 | Auth / RBAC | Login + role switch | `login-entry.spec.ts` | ✅ | — |
-| 1 | Auth / RBAC | **Attendee/Venue/Tech CANNOT change status or see internal fields** (SCRUM-135) | `event-status.spec.ts` (extend) | ❌ | Jerome |
+| 1 | Auth / RBAC | **Attendee/Venue/Tech cannot change lifecycle; denied/status responses expose no internal fields; attendee reads are public** (SCRUM-135/161) | `event-permissions.spec.ts`; real `INTEGRATED-05`; API membership/projection tests | ✅ | Jerome |
 | 2 | Event request creation | Organiser creates + submits | `events.spec.ts` | ✅ | — |
 | 3 | Draft requests | Save + resume + submit draft | `drafts.spec.ts` | ✅ | — |
 | 4 | Review & approval | Coordinator approve / reject (+ reason required on reject) | `event-decision.spec.ts` | ✅ | Marcus |

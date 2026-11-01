@@ -1419,3 +1419,29 @@ auto-assign in D9) are recorded explicitly rather than left implicit.
   and SCRUM-80 dependency before merge. The user authorised push and merge on 1 November 2026 after manual
   verification and disclosure of the SCRUM-80 dependency. Independent third-party
   review is not claimed; hosted CI remains a required merge gate. The existing integrated lifecycle test gains assertions; none are removed.
+
+### D50 — Reject coerced equipment reservation quantities (SCRUM-161)
+
+- **Context.** Intent-based failure tests reproduced `true` and `1.5` being accepted
+  by the reservation endpoint as one unit because `int(...)` coerced them. Non-string
+  reservation times could also escape date parsing as unhandled type errors.
+  A real-database test also found malformed date strings reached the query before
+  validation, returning a misleading database-unavailable error.
+- **Decision.** Apply the existing positive whole-number quantity rule at the JSON
+  boundary using an integer type check (excluding booleans), bounded by MAX_QUANTITY.
+  Reservation timestamps must be strings; the existing availability engine continues
+  to validate timezone and interval ordering through a shared pure `equipment_window`
+  helper. Routes invoke that same helper before querying reservations. Refusals return
+  400 before persistence; no overlap rule or valid interval behaviour changes.
+- **Constraints.** Existing successful integer reservations, role guards, stock/overlap
+  rules and database schema remain unchanged. No existing test is weakened or excluded.
+- **Verification.** New tests first reproduced boolean/fractional acceptance (201),
+  then assert 400 and no write. Missing/invalid fields, non-text dates, stock lookup,
+  read-role restrictions and registration error mapping receive additional tests.
+  Executed suite results are recorded in docs/SCRUM-161.md.
+- **Trade-off.** Numeric strings and integral JSON floats are refused instead of
+  silently coerced. The browser sends integer numbers. Clients must send the documented
+  whole-number JSON quantity; reviewers should check any external callers.
+- **Owner / review.** Jerome owns SCRUM-161. The user authorised meaningful testing
+  and fixing defects it exposes. A human must review the input-contract clarification
+  before merge; no merge or independent teammate approval is claimed here.
