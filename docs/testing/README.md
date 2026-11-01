@@ -23,11 +23,13 @@ workflows and unresolved policy decisions even when related tests pass.
 | Controlled browser tests | `frontend/e2e/` | Real browser and production Next.js with prepared HTTP responses. Useful UI evidence; not browser-to-database evidence. |
 | Integrated journeys | `frontend/integration/` | Real password sessions, Flask and disposable database. One event crosses all seven roles through Preparation. Real HTTP resource setup proves API behaviour, not every catalogue/booking form. Completion, change, rejection, expiry and temporary-unavailability branches are not all in this browser lane. |
 
-The existing backend floor remains 80%, now measured with branches as well as lines.
-It is a regression gate, not the rubric's excellent target. Frontend coverage is
-reported without imposing a misleading new threshold. V8's branch/function counts
-do not prove branches inside unexecuted UI files. Neither 100% numeric coverage nor
-a passing mapped test automatically accepts a customer requirement.
+SCRUM-161 raises the backend regression gate to 100% with branches enabled. Run the
+complete suite against the disposable database: a unit-only run cannot satisfy this
+gate. Frontend `src/lib` runtime code has a 100% statement/branch/function/line gate;
+the whole-source report still includes all pages and components. V8’s branch/function
+counts do not prove branches inside unexecuted UI files. Neither 100% numeric coverage
+nor a passing mapped test automatically accepts a customer requirement. See
+[SCRUM-161](../SCRUM-161.md) for measured scopes and review evidence.
 
 ## Run verification locally
 

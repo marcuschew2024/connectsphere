@@ -91,16 +91,12 @@ def find_requested(canonical: str, request_text: str) -> tuple[bool, str | None]
     #    produce a misleading "did you mean" hint. Real typos like "projrctor",
     #    "banqet" and "microfone" (distance 1, length diff <= 1) are still caught.
     if " " not in canonical_norm and len(canonical_norm) >= 5:
-        best = None
         for word in _tokens(request_text):
             if len(word) < 5:
                 continue
             dist = _levenshtein(word, canonical_norm)
             if dist == 1 and abs(len(word) - len(canonical_norm)) <= 1:
-                if best is None or word < best:
-                    best = word
-        if best:
-            return False, f"Did you mean '{_display(canonical)}'?"
+                return False, f"Did you mean '{_display(canonical)}'?"
     return False, None
 
 

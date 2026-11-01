@@ -156,7 +156,8 @@ def search_venues(page, filters, include_retired=True, listing=None):
     matched_count = 0
     checked = {}
     listing = listing or list_venues
-    while len(matches) <= PAGE_SIZE:
+    # Exhaustion and the look-ahead match below are the two loop exit conditions.
+    while True:
         rows, has_more = listing(source_page)
         for venue in rows:
             if not include_retired and venue.get("is_retired"):

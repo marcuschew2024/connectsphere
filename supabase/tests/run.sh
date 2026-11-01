@@ -197,3 +197,6 @@ for pass in 1 2; do
   psql -v ON_ERROR_STOP=1 -f /sql/migrations/20261101120000_scrum_48_reschedule_change_request.sql > /tmp/migration-output.txt
   echo "Reschedule change request migration pass $pass: PASS"
 done
+
+# SCRUM-161: clean up real venue-block acceptance fixtures (never a production grant).
+psql -v ON_ERROR_STOP=1 -c "grant delete on public.venue_unavailability to service_role;"
