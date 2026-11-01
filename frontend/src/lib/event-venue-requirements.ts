@@ -29,6 +29,7 @@ export function eventVenueRequirements(event: CoordinatorEventRecord | undefined
   const allFacilities = [...new Set([...storedFacilities, ...facilities, ...legacyFacilityValues])];
   const accessibility = (event?.accessibility_requirements ?? "").split(",").map((value) => value.trim()).filter(Boolean);
   const singaporeStart = singaporeDateTime(event?.event_datetime);
+  const singaporeEnd = singaporeDateTime(event?.event_end_datetime);
 
   return {
     attendance: event?.expected_attendance != null ? String(event.expected_attendance) : "",
@@ -53,7 +54,8 @@ export function eventVenueRequirements(event: CoordinatorEventRecord | undefined
     customAccessibility: accessibility.filter((value) => !VENUE_ACCESSIBILITY_FEATURES.some((feature) => feature.toLowerCase() === value.toLowerCase())),
     date: singaporeStart.date,
     startTime: singaporeStart.time,
-    endTime: "",
+    // The Organiser's end time; the Coordinator can still adjust before booking.
+    endTime: singaporeEnd.time,
   };
 }
 

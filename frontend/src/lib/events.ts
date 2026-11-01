@@ -10,6 +10,8 @@ export type EventRecord = {
   purpose: string | null;
   category: string | null;
   event_datetime: string | null;
+  // The event's end. The Coordinator's venue/equipment bookings pre-fill their end from this.
+  event_end_datetime: string | null;
   expected_attendance: number | null;
   // Optional while older deployments are upgraded; null keeps signup closed.
   registration_capacity?: number | null;

@@ -47,6 +47,7 @@ def validate_event(data: dict, *, submitting: bool) -> tuple[dict, dict]:
 
     value = data.get("event_datetime")
     fields["event_datetime"] = None
+    start_time = None
     if value is None or value == "":
         if submitting:
             errors["event_datetime"] = "Choose a preferred date and time."
@@ -61,8 +62,29 @@ def validate_event(data: dict, *, submitting: bool) -> tuple[dict, dict]:
             if event_time < datetime.now(UTC):
                 errors["event_datetime"] = "Choose a date and time that is not in the past."
             else:
+                start_time = event_time
                 fields["event_datetime"] = event_time.isoformat()
         except (ValueError, OverflowError):
             errors["event_datetime"] = "Enter a valid date and time including its time zone."
+
+    value = data.get("event_end_datetime")
+    fields["event_end_datetime"] = None
+    if value is None or value == "":
+        if submitting:
+            errors["event_end_datetime"] = "Choose an end time."
+    else:
+        try:
+            if not isinstance(value, str):
+                raise ValueError()
+            end_time = datetime.fromisoformat(value)
+            if end_time.tzinfo is None or end_time.utcoffset() is None:
+                raise ValueError()
+            end_time = end_time.astimezone(UTC)
+            if start_time is not None and end_time <= start_time:
+                errors["event_end_datetime"] = "Choose an end time after the start time."
+            else:
+                fields["event_end_datetime"] = end_time.isoformat()
+        except (ValueError, OverflowError):
+            errors["event_end_datetime"] = "Enter a valid end time including its time zone."
 
     return fields, errors
