@@ -38,6 +38,19 @@ def test_combined_filters_match_case_whitespace_and_inclusive_capacity():
     assert venue == original
 
 
+def test_multiple_canonical_and_custom_layouts_must_all_match():
+    venue = details()
+    venue["supported_layouts"] = ["Classroom", "Theatre", "Seminar Room"]
+
+    query = filters(layout="classroom, Theatre, Seminar Room")
+
+    assert matches_filters(venue, query)
+    assert not matches_filters(
+        {**venue, "supported_layouts": ["Classroom", "Seminar Room"]},
+        query,
+    )
+
+
 @pytest.mark.parametrize("values", [
     {"location": "Building C"}, {"attendance": "101"}, {"capacity": "101"},
     {"layout": "Theatre"}, {"facilities": "Projector, Stage"},
@@ -243,15 +256,19 @@ def test_available_only_filters_before_pagination_and_checks_each_venue_once(mon
     assert more is False
 
 
-def test_suggestions_include_later_pages_deduplicate_and_exclude_retired(monkeypatch):
+def test_suggestions_include_custom_later_pages_deduplicate_and_exclude_retired(monkeypatch):
     monkeypatch.setattr("app.venue_search.list_venues", lambda page: (
         [{**details(), "facilities": ["Projector", " projectOR "]}], True,
     ) if page == 1 else (
-        [{**details(), "facilities": ["Stage"]},
+        [{**details(), "facilities": ["Stage", "Blinds"]},
          {**details(), "is_retired": True, "facilities": ["Retired-only feature"]}], False,
     ))
-    assert filter_options() == {"facilities": ["Projector", "Stage"],
-                                "accessibility": ["Step-free access"]}
+    assert filter_options() == {
+        "facilities": ["Blinds", "Microphone", "Podium", "Projector", "Sound system", "Stage",
+                       "Whiteboard", "Wi-Fi"],
+        "accessibility": ["Accessible toilet", "Elevator", "Hearing loop", "Ramp",
+                          "Step-free access", "Wheelchair"],
+    }
 
 
 @pytest.mark.parametrize("user_id,status", [(1, 403), (2, 200), (3, 200), (4, 403), (5, 403)])
@@ -260,7 +277,10 @@ def test_suggestions_require_catalogue_permissions(search_api, user_id, status):
     response = search_api.get("/venues/filter-options", headers=ORIGIN)
     assert response.status_code == status
     if status == 200:
-        assert response.json["facilities"] == ["Projector", "Wi-Fi"]
+        assert response.json["facilities"] == [
+            "Microphone", "Podium", "Projector", "Sound system", "Stage",
+            "Whiteboard", "Wi-Fi",
+        ]
 
 
 def test_availability_returns_blocked_when_unavailability_blocks_exist(monkeypatch):

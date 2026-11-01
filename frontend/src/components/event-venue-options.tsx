@@ -82,7 +82,7 @@ export default function EventVenueOptions({ venueRequirements, facilityRequireme
   const [accessibilityOther, setAccessibilityOther] = useState(otherValues(accessibility, VENUE_ACCESSIBILITY_FEATURES).join(", "));
 
   return (
-    <div className="space-y-5">
+    <div className="grid gap-5 sm:grid-cols-2">
       <OptionGroup label="Layouts" options={VENUE_LAYOUTS} name="" selected={layouts} onChange={setLayouts} other={layoutOther} onOtherChange={setLayoutOther} />
       <input type="hidden" name="venue_requirements" value={[
         ...layouts.filter((value) => value !== "__other__"),
@@ -90,7 +90,9 @@ export default function EventVenueOptions({ venueRequirements, facilityRequireme
       ].join(", ")} />
       <OptionGroup label="Facilities" options={VENUE_FACILITIES} name="" selected={facilities} onChange={setFacilities} other={facilityOther} onOtherChange={setFacilityOther} />
       <input type="hidden" name="facility_requirements" value={[...facilities.filter((value) => VENUE_FACILITIES.some((option) => option.toLowerCase() === value.toLowerCase()) && value !== "__other__"), ...parse(facilityOther)].join(", ")} />
-      <OptionGroup label="Accessibility features" options={VENUE_ACCESSIBILITY_FEATURES} name="accessibility_requirements" selected={accessibility} onChange={setAccessibility} other={accessibilityOther} onOtherChange={setAccessibilityOther} />
+      <div className="sm:col-span-2">
+        <OptionGroup label="Accessibility features" options={VENUE_ACCESSIBILITY_FEATURES} name="accessibility_requirements" selected={accessibility} onChange={setAccessibility} other={accessibilityOther} onOtherChange={setAccessibilityOther} />
+      </div>
     </div>
   );
 }

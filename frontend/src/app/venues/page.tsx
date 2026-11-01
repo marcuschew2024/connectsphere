@@ -7,7 +7,9 @@ import Link from "next/link";
 import { Building2, CheckCircle2, CircleHelp, CircleX, MapPin, TriangleAlert, Users } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { apiRequest } from "@/lib/api";
-import { VENUE_DAYS, VENUE_LAYOUTS, type Venue } from "@/lib/venues";
+import { VENUE_DAYS, type Venue } from "@/lib/venues";
+import { eventVenueRequirements } from "@/lib/event-venue-requirements";
+import type { CoordinatorEventRecord } from "@/lib/events";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import VenueWorkspace from "./venue-workspace";
@@ -55,19 +57,12 @@ type SearchValues = {
 };
 
 function requirementsForEvent(event: PlanningEvent | undefined): SearchValues {
-  const venueRequirements = (event?.venue_requirements ?? "")
-    .split(",")
-    .map((value) => value.trim())
-    .filter(Boolean);
-  const layouts = venueRequirements.filter((value) =>
-    VENUE_LAYOUTS.some((layout) => layout.toLowerCase() === value.toLowerCase()),
-  );
-  const facilities = venueRequirements.filter((value) => !layouts.includes(value));
+  const requirements = eventVenueRequirements(event as CoordinatorEventRecord | undefined);
   const timing = singaporeDateTime(event?.event_datetime);
   return {
     attendance: event?.expected_attendance != null ? String(event.expected_attendance) : "",
-    layout: layouts[0] ?? "",
-    facilities: facilities.join(", "),
+    layout: [...requirements.layouts, ...requirements.customLayouts].join(", "),
+    facilities: [...requirements.facilities, ...requirements.customFacilities].join(", "),
     accessibility: event?.accessibility_requirements ?? "",
     date: timing.date,
     start_time: timing.time,

@@ -42,7 +42,6 @@ const NAV_BY_ROLE: Record<string, NavItem[]> = {
     { label: "New request", href: "/events/new", icon: FilePlus2 },
     { label: "My requests", href: "/events/mine", icon: ClipboardCheck },
     { label: "Drafts", href: "/events/drafts", icon: FileText },
-    { label: "Venues", href: "/venues", icon: Building2 },
   ],
   Coordinator: [
     { label: "Home", href: "/", icon: Home },

@@ -14,6 +14,13 @@ from .venue_validation import DAYS
 
 FILTERS = {"location", "attendance", "capacity", "layout", "facilities", "accessibility",
            "date", "start_time", "end_time", "available_only"}
+CANONICAL_FACILITIES = (
+    "Projector", "Stage", "Sound system", "Microphone", "Wi-Fi",
+    "Whiteboard", "Podium",
+)
+CANONICAL_ACCESSIBILITY = (
+    "Wheelchair", "Elevator", "Ramp", "Accessible toilet", "Hearing loop",
+)
 
 
 def _normalise(value):
@@ -38,11 +45,16 @@ def parse_filters(args):
                 or not 1 <= int(value) <= 2_147_483_647):
             raise BadRequest(f"Enter a positive whole number for {key} (up to 2147483647).")
         filters[key] = int(value)
-    for key, limit in (("location", 300), ("layout", 80)):
+    for key, limit in (("location", 300),):
         if key in filters:
             if len(filters[key]) > limit:
                 raise BadRequest(f"Keep {key} within {limit} characters.")
             filters[key] = _normalise(filters[key])
+    if "layout" in filters:
+        values = [_normalise(value) for value in filters["layout"].split(",")]
+        if len(values) > 20 or any(not value or len(value) > 80 for value in values):
+            raise BadRequest("Enter up to 20 comma-separated layouts, each 1–80 characters.")
+        filters["layout"] = set(values)
     for key in ("facilities", "accessibility"):
         if key in filters:
             values = [_normalise(value) for value in filters[key].split(",")]
@@ -83,7 +95,7 @@ def matches_filters(venue, filters):
     if filters.get("location", "") not in _normalise(venue["location"]):
         return False
     layouts = {_normalise(value) for value in venue["supported_layouts"]}
-    if "layout" in filters and filters["layout"] not in layouts:
+    if "layout" in filters and not filters["layout"] <= layouts:
         return False
     for key in ("facilities", "accessibility"):
         available = {_normalise(value) for value in venue[key]}
@@ -184,18 +196,37 @@ def search_venues(page, filters, include_retired=True, listing=None):
 
 
 def filter_options():
-    """Suggest actual catalogue vocabulary, including features on later pages."""
-    options = {key: {} for key in ("facilities", "accessibility")}
+    """Return canonical options plus custom catalogue values for Other filters."""
+    values = {
+        "facilities": set(CANONICAL_FACILITIES),
+        "accessibility": set(CANONICAL_ACCESSIBILITY),
+    }
     page = 1
     while True:
-        rows, has_more = list_venues(page)
-        for venue in rows:
+        venues, has_more = list_venues(page)
+        for venue in venues:
             if venue.get("is_retired"):
                 continue
-            for key in options:
-                for value in venue[key]:
-                    options[key].setdefault(_normalise(value), value)
+            for key in values:
+                values[key].update(venue.get(key) or [])
         if not has_more:
             break
         page += 1
-    return {key: sorted(values.values(), key=_normalise) for key, values in options.items()}
+
+    def unique_preserving_preferred(field_values):
+        by_normalised = {}
+        for value in field_values:
+            if not isinstance(value, str) or not value.strip():
+                continue
+            cleaned = value.strip()
+            normalised = _normalise(cleaned)
+            preferred = (
+                normalised in by_normalised
+                and cleaned.istitle()
+                and not by_normalised[normalised].istitle()
+            )
+            if normalised not in by_normalised or preferred:
+                by_normalised[normalised] = cleaned
+        return sorted(by_normalised.values(), key=_normalise)
+
+    return {key: unique_preserving_preferred(field_values) for key, field_values in values.items()}

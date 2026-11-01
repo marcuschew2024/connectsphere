@@ -30,6 +30,35 @@ async function fillVenue(page: Page) {
   await page.getByRole("checkbox", {name:"Classroom", exact:true}).check();
 }
 
+test("custom catalogue values stay under the Other filters", async ({page}) => {
+  await page.route(API + "/venues/filter-options", (route) => route.fulfill({json:{
+    facilities:["Projector", "Blinds", "Camera"],
+    accessibility:["Wheelchair", "Escalator", "Wheelchair access"],
+  }}));
+  await page.goto("/venues");
+  await page.getByText("More requirements", {exact:true}).click();
+
+  await expect(page.getByRole("checkbox", {name:"Blinds", exact:true})).toHaveCount(0);
+  await expect(page.getByRole("checkbox", {name:"Camera", exact:true})).toHaveCount(0);
+  await expect(page.getByRole("checkbox", {name:"Escalator", exact:true})).toHaveCount(0);
+  await expect(page.getByRole("checkbox", {name:"Other", exact:true}).first()).toBeVisible();
+  await expect(page.getByRole("group", {name:"Layouts", exact:true})
+    .getByRole("checkbox", {name:"Other", exact:true})).not.toBeChecked();
+  await expect(page.getByLabel("Other layouts", {exact:true})).toHaveCount(0);
+});
+
+test("multiple layouts can be selected and combined in the venue search", async ({page}) => {
+  await page.goto("/venues");
+  await page.getByText("More requirements", {exact:true}).click();
+  await page.getByRole("checkbox", {name:"Classroom", exact:true}).check();
+  await page.getByRole("checkbox", {name:"Theatre", exact:true}).check();
+  await page.getByRole("group", {name:"Layouts", exact:true})
+    .getByRole("checkbox", {name:"Other", exact:true}).check();
+  await page.getByLabel("Other layouts", {exact:true}).fill("Seminar Room");
+  await page.getByLabel("Other layouts", {exact:true}).press("Enter");
+  await expect(page.locator('input[name="layout"]')).toHaveValue("Classroom, Theatre, Seminar Room");
+});
+
 test("Venue Staff can create a venue and reopen it in the shared catalogue", async ({page}) => {
   let saved = false;
   await page.route(API + "/venues", (route) => {
@@ -183,7 +212,7 @@ test("Coordinator can combine filters, paginate results and clear back to page o
   await page.getByLabel("Location", {exact:true}).fill("Building B");
   await page.getByLabel("Expected attendance", {exact:true}).fill("80");
   await page.getByLabel("Minimum capacity", {exact:true}).fill("100");
-  await page.getByLabel("Layout", {exact:true}).selectOption("Classroom");
+  await page.getByRole("checkbox", {name:"Classroom", exact:true}).check();
   await page.getByRole("checkbox", {name:"Projector", exact:true}).check();
   await page.getByRole("checkbox", {name:"Wi-Fi", exact:true}).check();
   await page.getByRole("group", {name:"Accessibility features", exact:true})
