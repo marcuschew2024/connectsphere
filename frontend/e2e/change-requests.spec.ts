@@ -75,6 +75,31 @@ test("organiser raises a change request on a confirmed event without editing it 
   await expect(page.getByRole("button", { name: "Approve change" })).toHaveCount(0);
 });
 
+test("organiser proposes a new date/time, sent as an ISO instant (SCRUM-48)", async ({ page }) => {
+  await openEvent(page, "Organiser");
+  let sent: { description?: string; changes?: Record<string, string> } = {};
+  await page.route(`${API_ORIGIN}/events/${EVENT_ID}/change-requests`, async (route) => {
+    if (route.request().method() === "GET") {
+      await route.fulfill({ json: { change_requests: [] } });
+      return;
+    }
+    sent = route.request().postDataJSON();
+    await route.fulfill({ status: 201, json: { change_request: PENDING_REQUEST } });
+  });
+
+  await page.goto(`/events/${EVENT_ID}`);
+  await page.getByLabel("Describe the desired change").fill("Reschedule this event");
+  await page.locator("summary", { hasText: "Propose new values" }).click();
+  await page.locator("#change-event_datetime").fill("2026-11-18T11:30");
+  await page.getByRole("button", { name: "Request a change" }).click();
+
+  await expect(page.getByTestId("change-request-status-badge")).toHaveText("Pending");
+  expect(sent.description).toBe("Reschedule this event");
+  // datetime-local (no zone) is converted to an ISO instant; exact UTC is unit-tested in lib.
+  expect(sent.changes?.event_datetime).toMatch(/T.*Z$/);
+  expect(Number.isNaN(Date.parse(sent.changes?.event_datetime ?? ""))).toBe(false);
+});
+
 test("coordinator reviews and approves a pending change request", async ({ page }) => {
   await openEvent(page, "Coordinator");
   const reviews: unknown[] = [];

@@ -22,6 +22,17 @@ describe("change request proposals (SCRUM-138)", () => {
     expect(proposedChanges({ expected_attendance: "lots" })).toEqual({ expected_attendance: "lots" });
   });
 
+  it("converts a picked date/time to an ISO instant, passing an invalid one through (SCRUM-48)", () => {
+    expect(proposedChanges({ event_datetime: "2026-11-18T11:30:00Z" }))
+      .toEqual({ event_datetime: "2026-11-18T11:30:00.000Z" });
+    // A browser datetime-local value (no zone) becomes an ISO instant in the browser's zone.
+    expect(proposedChanges({ event_datetime: "2026-11-18T11:30" }))
+      .toEqual({ event_datetime: new Date("2026-11-18T11:30").toISOString() });
+    // An unparseable value is left as typed so the API explains the problem.
+    expect(proposedChanges({ event_datetime: "not-a-date" }))
+      .toEqual({ event_datetime: "not-a-date" });
+  });
+
   it("labels fields and empty values for people", () => {
     expect(changeFieldLabel("expected_attendance")).toBe("Expected attendance");
     expect(changeFieldLabel("unknown_field")).toBe("unknown_field");

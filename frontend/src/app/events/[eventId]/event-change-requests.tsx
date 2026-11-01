@@ -124,12 +124,15 @@ export default function EventChangeRequests({
             {proposing && <>
             <p className="mt-2 text-xs text-muted-foreground">Fill in only what should change. Approved values are applied to the event. For a new date or time, describe it above.</p>
             <div className="mt-3 grid gap-3 sm:grid-cols-2">
-              {CHANGE_FIELDS.map(({ name, label }) => <div key={name} className="space-y-1">
+              {CHANGE_FIELDS.map((field) => {
+                const { name, label } = field;
+                const kind = "kind" in field ? field.kind : "text";
+                return <div key={name} className="space-y-1">
                 <label htmlFor={`change-${name}`} className="block text-xs font-medium">New {label.toLowerCase()}</label>
                 <input
                   id={`change-${name}`}
-                  type={name === "expected_attendance" ? "number" : "text"}
-                  min={name === "expected_attendance" ? 1 : undefined}
+                  type={kind === "datetime" ? "datetime-local" : kind === "number" ? "number" : "text"}
+                  min={kind === "number" ? 1 : undefined}
                   value={drafts[name] ?? ""}
                   placeholder={`Currently: ${changeValue(current[name])}`}
                   onChange={(e) => setDrafts((values) => ({ ...values, [name]: e.target.value }))}
@@ -138,7 +141,8 @@ export default function EventChangeRequests({
                   className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
                 />
                 {fieldErrors[name] && <p id={`change-${name}-error`} className="text-xs text-destructive">{fieldErrors[name]}</p>}
-              </div>)}
+              </div>;
+              })}
             </div>
             </>}
           </details>

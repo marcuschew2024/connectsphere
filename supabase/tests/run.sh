@@ -189,3 +189,11 @@ done
 
 # SCRUM-45: local-only attendee fixtures for event-roster pagination.
 psql -v ON_ERROR_STOP=1 -f /sql/tests/registration_roster_fixtures.sql
+
+# SCRUM-48: date/time is a requestable, significant change field (rescheduling). Replaces the
+# SCRUM-156 approve_change_request, preserving its re-review + too-small logic. Applied twice
+# to prove the drop/recreate CHECK constraint and create-or-replace function are replay-safe.
+for pass in 1 2; do
+  psql -v ON_ERROR_STOP=1 -f /sql/migrations/20261101120000_scrum_48_reschedule_change_request.sql > /tmp/migration-output.txt
+  echo "Reschedule change request migration pass $pass: PASS"
+done

@@ -41,9 +41,9 @@ def test_changes_must_list_at_least_one_value(changes):
         ChangeRequestProposal.from_payload(changes, EVENT)
 
 
-# Rescheduling is SCRUM-48; status, ownership and audit fields are never requestable.
+# SCRUM-48 made date/time requestable; status, ownership and audit fields are never requestable.
 @pytest.mark.parametrize("field", [
-    "event_datetime", "status", "organiser_id", "coordinator_id", "registration_capacity",
+    "status", "organiser_id", "coordinator_id", "registration_capacity",
     "updated_at",
 ])
 def test_only_changeable_event_details_can_be_proposed(field):
@@ -82,18 +82,26 @@ def test_problems_in_details_not_being_changed_are_ignored():
 @pytest.mark.parametrize(("changes", "significant"), [
     ({"expected_attendance": 80}, True),
     ({"venue_requirements": "Lecture theatre"}, True),
+    ({"event_datetime": "2099-12-20T06:00:00Z"}, True),  # SCRUM-48: a reschedule is significant
     ({"title": "New title", "expected_attendance": 80}, True),
     ({"title": "New title"}, False),
     ({"equipment_requirements": "Projector", "category": "Talk"}, False),
 ])
-def test_pax_and_venue_are_the_significant_changes(changes, significant):
+def test_pax_venue_and_datetime_are_the_significant_changes(changes, significant):
     assert ChangeRequestProposal.from_payload(changes, EVENT).is_significant() is significant
+
+
+def test_a_new_date_time_can_be_proposed_as_a_reschedule():
+    # SCRUM-48: date/time is a requestable field, and changing it is significant.
+    proposal = ChangeRequestProposal.from_payload({"event_datetime": "2099-12-20T06:00:00Z"}, EVENT)
+    assert "event_datetime" in proposal.changes
+    assert proposal.is_significant() is True
 
 
 def test_field_lists_match_the_database_contract():
     assert CHANGEABLE_FIELDS == {
         "title", "description", "purpose", "category", "expected_attendance",
         "venue_requirements", "accessibility_requirements", "equipment_requirements",
-        "registration_requirements",
+        "registration_requirements", "event_datetime",
     }
-    assert SIGNIFICANT_FIELDS == {"expected_attendance", "venue_requirements"}
+    assert SIGNIFICANT_FIELDS == {"expected_attendance", "venue_requirements", "event_datetime"}
