@@ -44,7 +44,7 @@ it("leaving the catalogue discards late events, venues and feature suggestions",
 it("search sends custom layout and facilities, and clears deselected custom filters", async () => {
   const search = vi.fn(); render(<Form initialValues={initial} busy={false} onSearch={search} />);
   await act(async () => {}); fireEvent.click(screen.getByText("More requirements").closest("summary")!);
-  fireEvent.change(screen.getByRole("combobox", { name: "Layout" }), { target: { value: "__other" } }); fireEvent.change(screen.getByLabelText("Other layout"), { target: { value: "Circle" } });
+  fireEvent.click(within(screen.getByRole("group", { name: "Layouts" })).getByRole("checkbox", { name: "Other" })); fireEvent.change(screen.getByLabelText("Other layouts"), { target: { value: "Circle" } }); fireEvent.keyDown(screen.getByLabelText("Other layouts"), { key: "Enter" });
   for (const [groupName, key] of [["Required facilities", "facilities"], ["Accessibility features", "accessibility"]]) {
     const group = screen.getByRole("group", { name: groupName }); const other = within(group).getByRole("checkbox", { name: "Other" }); fireEvent.click(other);
     const input = screen.getByLabelText(`Other ${key}`); fireEvent.change(input, { target: { value: "Custom filter" } }); fireEvent.keyDown(input, { key: "Enter" });
@@ -73,4 +73,12 @@ it("search preserves and labels a submitted filter whose display label is not re
   // The search boundary accepts FormData keys; future controls must remain visible as active filters.
   const control = document.createElement("input"); control.type = "hidden"; control.name = "zone"; control.value = "North"; form.append(control); fireEvent.submit(form);
   await screen.findByText("zone: North"); expect(api.mock.calls.some(([path]) => path.includes("zone=North"))).toBe(true);
+});
+it("layout filters can combine presets and custom layouts, then remove each without stale values", async () => {
+  const search = vi.fn(); render(<Form initialValues={initial} busy={false} onSearch={search} />); fireEvent.click(screen.getByText("More requirements").closest("summary")!);
+  const layouts = screen.getByRole("group", { name: "Layouts" });
+  fireEvent.click(within(layouts).getByRole("checkbox", { name: "Classroom" })); fireEvent.click(within(layouts).getByRole("checkbox", { name: "Theatre" }));
+  fireEvent.click(within(layouts).getByRole("checkbox", { name: "Other" })); fireEvent.change(screen.getByLabelText("Other layouts"), { target: { value: "Cabaret" } }); fireEvent.keyDown(screen.getByLabelText("Other layouts"), { key: "Enter" });
+  const form = screen.getByRole("form", { name: "Venue search" }); fireEvent.submit(form); expect(new URLSearchParams(search.mock.lastCall![0]).get("layout")).toBe("Classroom, Theatre, Cabaret");
+  fireEvent.click(within(layouts).getByRole("checkbox", { name: "Classroom" })); fireEvent.click(within(layouts).getByRole("checkbox", { name: "Other" })); fireEvent.submit(form); expect(new URLSearchParams(search.mock.lastCall![0]).get("layout")).toBe("Theatre");
 });
