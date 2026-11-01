@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { ApiError, apiRequest } from "@/lib/api";
 import type { EventClarification, EventRecord } from "@/lib/events";
 
@@ -12,17 +12,19 @@ export default function EventClarificationForm({
   onRequested: (clarification: EventClarification) => void;
 }) {
   const [note, setNote] = useState("");
+  const submitting = useRef(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
 
   if (event.status !== "Submitted") return null;
 
   async function requestClarification() {
-    if (busy) return;
+    if (submitting.current) return;
     if (!note.trim()) {
       setError("Explain what the organiser needs to clarify.");
       return;
     }
+    submitting.current = true;
     setBusy(true);
     setError("");
     try {
@@ -35,6 +37,7 @@ export default function EventClarificationForm({
     } catch (requestError) {
       setError(requestError instanceof ApiError ? requestError.message : "Could not request clarification.");
     } finally {
+      submitting.current = false;
       setBusy(false);
     }
   }

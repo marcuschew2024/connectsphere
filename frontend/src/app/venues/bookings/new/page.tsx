@@ -99,7 +99,8 @@ export default function NewBookingPage() {
       setAccessibilityOther(requirements.customAccessibility.join(", "));
       setAccessibilityOtherEnabled(requirements.customAccessibility.length > 0);
       setStartAt(requirements.date && requirements.startTime ? `${requirements.date}T${requirements.startTime}` : "");
-      setEndAt(requirements.date && requirements.endTime ? `${requirements.date}T${requirements.endTime}` : "");
+      // Events specify a start only; the Coordinator must choose the booking end.
+      setEndAt("");
       setSelectedVenueId(allVenues[0]?.id ?? "");
     }
     loadOptions().catch((requestError) =>
@@ -151,7 +152,8 @@ export default function NewBookingPage() {
     setAccessibilityOther(requirements.customAccessibility.join(", "));
     setAccessibilityOtherEnabled(requirements.customAccessibility.length > 0);
     setStartAt(requirements.date && requirements.startTime ? `${requirements.date}T${requirements.startTime}` : "");
-    setEndAt(requirements.date && requirements.endTime ? `${requirements.date}T${requirements.endTime}` : "");
+    // Do not carry the previous event’s booking end into a new request.
+    setEndAt("");
   }
 
   function onVenueChange(venueId: string) {
@@ -211,7 +213,9 @@ export default function NewBookingPage() {
       setBusy(false);
       return;
     }
-    const submittedLayouts = [...layouts.map((value) => VENUE_LAYOUTS.find((option) => option.toLowerCase() === value.toLowerCase()) ?? value), ...layoutOther.split(",").map((value) => value.trim()).filter(Boolean)];
+    // layouts contains preset matches only (eventVenueRequirements or preset checkboxes).
+    // Custom layouts are kept separately in layoutOther. Preserve preset spelling.
+    const submittedLayouts = [...layouts.map((value) => VENUE_LAYOUTS.find((option) => option.toLowerCase() === value.toLowerCase())!), ...layoutOther.split(",").map((value) => value.trim()).filter(Boolean)];
     const submittedLayout = submittedLayouts.join(", ");
     if (!submittedLayout) {
       setError("Enter a layout.");

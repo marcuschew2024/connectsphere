@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { ApiError, apiRequest } from "@/lib/api";
 import type { EventRecord } from "@/lib/events";
 
@@ -27,19 +27,21 @@ export default function EventSafetyCheckForm({
   onSaved: (event: EventRecord) => void;
 }) {
   const [reason, setReason] = useState("");
+  const submitting = useRef(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
 
   if (event.status !== "Confirmed") return null;
 
   async function decide(decision: SafetyAction) {
-    if (busy) return;
+    if (submitting.current) return;
 
     if (decision !== "approve" && !reason.trim()) {
       setError("A reason is required when requesting changes or rejecting.");
       return;
     }
 
+    submitting.current = true;
     setBusy(true);
     setError("");
 
@@ -64,6 +66,7 @@ export default function EventSafetyCheckForm({
           : "Could not record the safety decision.",
       );
     } finally {
+      submitting.current = false;
       setBusy(false);
     }
   }

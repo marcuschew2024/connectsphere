@@ -40,3 +40,15 @@ test('unexecuted runtime files stay in the denominator and only test/type declar
   assert.equal(eligible(path.resolve('src/env.d.ts')), false);
   assert.equal(eligible(path.resolve('node_modules/example.ts')), false);
 });
+
+test('the combined gate requires every counter, even if a percentage rounds to 100', () => {
+  const { assertCompleteCoverage } = require('./report.cjs');
+  const complete = Object.fromEntries(['statements', 'branches', 'functions', 'lines']
+    .map(metric => [metric, { covered: 100000, total: 100000, pct: 100 }]));
+  assert.doesNotThrow(() => assertCompleteCoverage(complete));
+  for (const metric of Object.keys(complete)) {
+    const missing = structuredClone(complete);
+    missing[metric].covered--;
+    assert.throws(() => assertCompleteCoverage(missing), new RegExp(`Combined ${metric} coverage must be 100%`));
+  }
+});

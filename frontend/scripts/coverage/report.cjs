@@ -15,6 +15,12 @@ function mergeChecked(map, baseline, snapshot) {
     map.addFileCoverage(value);
   }
 }
+function assertCompleteCoverage(summary) {
+  for (const metric of ['statements', 'branches', 'functions', 'lines']) {
+    const { covered, total } = summary[metric];
+    assert.equal(covered, total, `Combined ${metric} coverage must be 100% (${covered}/${total})`);
+  }
+}
 function read(file) { return JSON.parse(fs.readFileSync(file, 'utf8')); }
 function report() {
   const baseline = read(path.join(dataDir, 'baseline.json'));
@@ -54,7 +60,8 @@ function report() {
   console.table(Object.fromEntries(Object.entries(comparison).map(([name, metrics]) => [name,
     Object.fromEntries(['statements', 'branches', 'functions', 'lines'].map(key => [key, metrics[key].pct]))])));
   console.log(`Combined HTML: ${path.join(output, 'combined/index.html')}`);
+  assertCompleteCoverage(comparison.combined);
   return result;
 }
-module.exports = { mergeChecked, report };
+module.exports = { mergeChecked, assertCompleteCoverage, report };
 if (require.main === module) report();

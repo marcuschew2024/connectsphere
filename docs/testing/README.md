@@ -19,14 +19,15 @@ workflows and unresolved policy decisions even when related tests pass.
 | Backend pure rules and HTTP tests | `api/tests/` | Pytest, including failure injection at I/O boundaries; mocks do not establish database persistence. |
 | Backend database acceptance | `api/tests/*acceptance.py` | Real Flask, PostgREST and disposable PostgreSQL, including concurrency and rollback. Without `POSTGREST_TEST_URL`, these tests skip and cannot establish a release pass. |
 | SQL contracts | `supabase/tests/` | The harness bootstraps and replays migrations twice, then runs assertion scripts. A path in the checklist is an assertion reference; retain a successful harness exit and log separately. Never run this harness on shared Supabase. |
-| Frontend unit tests | `frontend/src/**/*.test.ts` | Vitest/V8 covers all `src` TS/TSX files, including unimported UI. Test files and declaration files are excluded. Browser execution is not added to this denominator. |
+| Frontend unit tests | `frontend/src/**/*.test.{ts,tsx}` | Vitest/V8 covers all `src` TS/TSX files, including unimported UI. Test files and declaration files are excluded. Browser execution is not added to this denominator. |
 | Combined frontend source coverage | `npm run test:coverage:combined` | Identical original-source Istanbul counters for units and the controlled browser suite; merged by source location with untouched files retained. Excludes server-render execution, not server-only files. |
 | Controlled browser tests | `frontend/e2e/` | Real browser and production Next.js with prepared HTTP responses. Useful UI evidence; not browser-to-database evidence. |
-| Integrated journeys | `frontend/integration/` | Real password sessions, Flask and disposable database. One event crosses all seven roles through Preparation. Real HTTP resource setup proves API behaviour, not every catalogue/booking form. Completion, change, rejection, expiry and temporary-unavailability branches are not all in this browser lane. |
+| Integrated journeys | `frontend/integration/` | Real password sessions, Flask and disposable database. One event crosses all seven roles through Preparation. Real HTTP resource setup proves API behaviour, not every catalogue/booking form. Cancellation, completion, changes, rejection and venue replacement also have real journeys. Automatic hold expiry remains an explicit gap. |
 
 SCRUM-161 raises the backend regression gate to 100% with branches enabled. Run the
 complete suite against the disposable database: a unit-only run cannot satisfy this
-gate. Frontend `src/lib` runtime code has a 100% statement/branch/function/line gate;
+gate. Frontend combined unit/browser coverage and `src/lib` unit runtime code each have a
+100% statement/branch/function/line gate;
 the whole-source report still includes all pages and components. V8’s branch/function
 counts do not prove branches inside unexecuted UI files. Neither 100% numeric coverage
 nor a passing mapped test automatically accepts a customer requirement. See
@@ -114,7 +115,7 @@ and rerun verification before replacing the saved checklist.
 ## Combined frontend coverage
 
 From `frontend`, run `npm run test:coverage:combined` (set `PLAYWRIGHT_PORT` if 3000
-is occupied). This runs collector checks, 148 existing units, a separate instrumented
+is occupied). This runs collector checks, the complete unit/component suite, a separate instrumented
 production build, the complete controlled browser suite and a reload-capture probe.
 It then writes `coverage-combined/combined/index.html`, `comparison.json`, per-file
 JSON summaries and LCOV. The adjacent `unit/` and `browser/` reports use exactly the
@@ -125,10 +126,11 @@ artifact for frontend unit-plus-browser percentages.
 
 The existing `npm run test:coverage` remains the V8 unit-only report and enforces
 100% for `src/lib`. Its counting model differs from Istanbul's; do not compare its
-5.78% whole-source figure directly with the combined percentage. Original source
-hashes and counter-map checks prevent merging stale or incompatible evidence. A failed
-command cannot publish a fresh combined report. Existing test bodies are unchanged;
-41 browser spec imports now use the opt-in automatic fixture.
+historical whole-source figure directly with the combined percentage. Original source
+hashes and counter-map checks prevent merging stale or incompatible evidence. A fresh combined report requires successful unit, build and browser commands.
+The report then enforces 100% statements, branches, functions and lines using exact
+covered/total counts, retaining diagnostic artifacts if the gate fails. Existing
+application test bodies are preserved; browser specs use the opt-in automatic fixture.
 
 No shared database is needed: browser responses remain controlled fixtures. This report
 measures frontend code execution, not backend enforcement, full end-to-end integration,

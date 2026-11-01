@@ -1496,3 +1496,35 @@ auto-assign in D9) are recorded explicitly rather than left implicit.
 - **Owner / review.** Jerome owns SCRUM-161; Ernest owns the booking feature and Marcus
   reviews access-policy alignment before merge. The user authorised fixing defects found
   while improving Release 1 evidence. No independent human sign-off is claimed.
+
+### D53 — Preserve form intent and enforce complete combined coverage (SCRUM-161)
+
+- **Context.** The user explicitly requested 100% combined frontend coverage. New
+  intent-based cases reproduced stale custom values after Other was unchecked and two
+  lifecycle writes before React committed the busy state. An unstructured venue-editor
+  rejection also left no useful error. Remaining branches included duplicate date
+  formatting and conditions impossible under the current preset-only layout state.
+- **Decision.** Clear custom values when deselected. Use an immediate in-flight ref for
+  the eight tested action buttons, resetting it in `finally` while retaining busy UI.
+  Explain unexpected venue-load failures. Reuse the existing Singapore time helper,
+  explicitly clear the booking end on event selection, and canonicalise only known
+  presets while keeping custom layouts separate. Enforce exact covered/total equality
+  for combined statements, branches, functions and lines after writing diagnostic reports.
+- **Constraints.** Existing tests, source inclusion rules, backend permissions, status
+  transitions and APIs remain intact. No coverage ignore annotations are added. Known
+  layouts enter preset state only through matching event requirements or preset controls;
+  mixed-case and custom layouts must retain the same submitted meaning. No server-side
+  idempotency or new database guarantee is implied by the in-flight UI guard.
+- **Verification.** The two UI regressions failed before their fixes. Tests now assert
+  cleared serialized values and one write for two queued activations. Existing normal
+  and instrumented browser suites, units, build/lint and exact source counters are
+  recorded in `docs/SCRUM-161.md`. A gate test rejects a single missing counter even when
+  its percentage rounds to 100. The full run includes all 95 eligible source files.
+- **Trade-off.** The stricter gate requires every future change to supply corresponding
+  unit or browser evidence and increases test cost. It cannot establish every input,
+  permission policy, integration or release acceptance criterion. State invariants must
+  be revisited if preset handling or the event timing contract changes.
+- **Owner / review.** Jerome owns SCRUM-161. The user authorised pursuing 100% and fixing
+  exposed defects. Jerome reviews test intent and UI concurrency; Ernest/Marcus review
+  booking assumptions and API/UI alignment. Human review and green hosted CI remain
+  required before merge; no push, merge or independent approval is claimed.
