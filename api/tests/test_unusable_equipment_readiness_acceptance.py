@@ -5,6 +5,7 @@ Tech Support marks the item Damaged or Under Maintenance, and count again once r
 """
 
 import os
+from datetime import datetime, timedelta
 
 import pytest
 
@@ -30,9 +31,13 @@ def set_condition(users, equipment_id, status):
 
 
 def approved_booking(db, event, venue):
+    # The booking's slot must cover the event's date/time, or the confirmation gate
+    # treats it as a reschedule orphan and blocks (SCRUM-159). Derive it from the event
+    # so this equipment-readiness test exercises the equipment rule, not a date mismatch.
+    start = datetime.fromisoformat(event["event_datetime"].replace("Z", "+00:00"))
     db.table("venue_bookings").insert({
         "venue_id": venue["id"], "event_id": event["id"], "requested_by": 2,
-        "start_at": "2099-12-01T06:00:00Z", "end_at": "2099-12-01T07:00:00Z",
+        "start_at": start.isoformat(), "end_at": (start + timedelta(hours=1)).isoformat(),
         "expected_attendance": 20, "layout": "Classroom", "status": "Confirmed",
     }).execute()
 
