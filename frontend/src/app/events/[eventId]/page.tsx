@@ -248,9 +248,9 @@ export default function EventStatusPage() {
 
           {actingRole === "Organiser" && clarification && <EventResubmitForm event={event} clarification={clarification} onSaved={(updated) => { setEvent(updated); setClarification(null); }} />}
           {event.registration_capacity !== undefined && (actingRole === "Organiser" || actingRole === "Coordinator") && (
-            <EventCapacityPanel key={event.id} event={event} actingRole={actingRole} onSaved={setEvent} />
+            <EventCapacityPanel key={`capacity-${event.id}`} event={event} actingRole={actingRole} onSaved={setEvent} />
           )}
-          {actingRole === "Organiser" && event.withdrawal_closes_at !== undefined && <EventWithdrawalPolicy key={event.id} eventId={event.id} />}
+          {actingRole === "Organiser" && event.withdrawal_closes_at !== undefined && <EventWithdrawalPolicy key={`withdrawal-${event.id}`} eventId={event.id} />}
           {(actingRole === "Organiser" || actingRole === "Coordinator") && (
             <EventChangeRequests
               event={event}
