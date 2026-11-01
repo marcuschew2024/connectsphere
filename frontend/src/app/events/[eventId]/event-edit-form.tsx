@@ -27,6 +27,13 @@ function toLocalInput(iso: string | null): string {
   const local = new Date(date.getTime() - date.getTimezoneOffset() * 60000);
   return local.toISOString().slice(0, 16);
 }
+// The event is same-day, so split the stored start/end into date + time inputs.
+function localDatePart(iso: string | null): string {
+  return toLocalInput(iso).slice(0, 10);
+}
+function localTimePart(iso: string | null): string {
+  return toLocalInput(iso).slice(11, 16);
+}
 
 export default function EventEditForm({
   event,
@@ -69,14 +76,26 @@ export default function EventEditForm({
       return;
     }
     const form = new FormData(formEvent.currentTarget);
-    const localTime = String(form.get("event_datetime") ?? "");
-    const date = localTime ? new Date(localTime) : null;
-    if (date && Number.isNaN(date.getTime())) {
-      setFieldErrors({ event_datetime: "Choose a valid date and time." });
+    const eventDate = String(form.get("event_date") ?? "");
+    const startValue = String(form.get("event_start_time") ?? "");
+    const endValue = String(form.get("event_end_time") ?? "");
+    const start = eventDate && startValue ? new Date(`${eventDate}T${startValue}`) : null;
+    const end = eventDate && endValue ? new Date(`${eventDate}T${endValue}`) : null;
+    const timeErrors: Record<string, string> = {};
+    if (start && Number.isNaN(start.getTime())) timeErrors.event_datetime = "Choose a valid date and time.";
+    if (end && Number.isNaN(end.getTime())) timeErrors.event_end_datetime = "Choose a valid end time.";
+    if (start && end && !Number.isNaN(start.getTime()) && !Number.isNaN(end.getTime()) && end <= start) {
+      timeErrors.event_end_datetime = "Choose an end time after the start time.";
+    }
+    if (Object.keys(timeErrors).length > 0) {
+      setFieldErrors(timeErrors);
       return;
     }
     const attendance = String(form.get("expected_attendance") ?? "");
     const details = Object.fromEntries(form.entries());
+    delete details.event_date;
+    delete details.event_start_time;
+    delete details.event_end_time;
     setBusy(true);
     try {
       const result = await apiRequest<{
@@ -87,8 +106,9 @@ export default function EventEditForm({
         method: "PATCH",
         body: JSON.stringify({
           ...details,
-          // Convert the user's local time to an explicit UTC time for Flask.
-          event_datetime: date ? date.toISOString() : null,
+          // Convert the user's local times to explicit UTC times for Flask.
+          event_datetime: start && !Number.isNaN(start.getTime()) ? start.toISOString() : null,
+          event_end_datetime: end && !Number.isNaN(end.getTime()) ? end.toISOString() : null,
           expected_attendance: attendance === "" ? null : Number(attendance),
         }),
       });
@@ -147,13 +167,13 @@ export default function EventEditForm({
         ))}
         <div className="grid gap-5 sm:grid-cols-2">
           <div>
-            <label htmlFor="edit-event_datetime" className="mb-2 block font-medium">Date and time *</label>
-            <input id="edit-event_datetime" name="event_datetime" type="datetime-local"
-              defaultValue={toLocalInput(event.event_datetime)}
+            <label htmlFor="edit-event_date" className="mb-2 block font-medium">Date *</label>
+            <input id="edit-event_date" name="event_date" type="date"
+              defaultValue={localDatePart(event.event_datetime)}
               aria-invalid={!!fieldErrors.event_datetime}
               aria-describedby={fieldErrors.event_datetime ? "edit-time-help event_datetime-error" : "edit-time-help"}
               className={INPUT_STYLE} />
-            <p id="edit-time-help" className="mt-1 text-sm text-muted-foreground">Uses your device&apos;s time zone.</p>
+            <p id="edit-time-help" className="mt-1 text-sm text-muted-foreground">Uses your device&apos;s time zone. The event starts and ends on this day.</p>
             {fieldError("event_datetime")}
           </div>
           <div>
@@ -163,6 +183,22 @@ export default function EventEditForm({
               aria-describedby={fieldErrors.expected_attendance ? "expected_attendance-error" : undefined}
               className={INPUT_STYLE} />
             {fieldError("expected_attendance")}
+          </div>
+          <div>
+            <label htmlFor="edit-event_start_time" className="mb-2 block font-medium">Start time *</label>
+            <input id="edit-event_start_time" name="event_start_time" type="time"
+              defaultValue={localTimePart(event.event_datetime)}
+              aria-invalid={!!fieldErrors.event_datetime}
+              className={INPUT_STYLE} />
+          </div>
+          <div>
+            <label htmlFor="edit-event_end_time" className="mb-2 block font-medium">End time *</label>
+            <input id="edit-event_end_time" name="event_end_time" type="time"
+              defaultValue={localTimePart(event.event_end_datetime)}
+              aria-invalid={!!fieldErrors.event_end_datetime}
+              aria-describedby={fieldErrors.event_end_datetime ? "event_end_datetime-error" : undefined}
+              className={INPUT_STYLE} />
+            {fieldError("event_end_datetime")}
           </div>
         </div>
         <fieldset className="space-y-5 border-t border-border pt-4">

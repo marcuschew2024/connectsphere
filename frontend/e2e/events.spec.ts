@@ -57,7 +57,9 @@ async function fillRequiredFields(page: Page) {
   await page.getByLabel("Description").fill("Learn together.");
   await page.getByLabel("Purpose").fill("Share skills");
   await page.getByLabel("Category").fill("Workshop");
-  await page.getByLabel("Preferred date and time").fill("2099-10-20T14:00");
+  await page.getByLabel("Preferred date").fill("2099-10-20");
+  await page.getByLabel("Start time").fill("14:00");
+  await page.getByLabel("End time").fill("16:00");
   await page.getByLabel("Expected attendance").fill("50");
 }
 
@@ -80,6 +82,7 @@ test("submission sends details and shows the saved reference", async ({ page }) 
     expect(body).not.toHaveProperty("organiser_id");
     expect(body).not.toHaveProperty("status");
     expect(body.event_datetime).toBe("2099-10-20T06:00:00.000Z");
+    expect(body.event_end_datetime).toBe("2099-10-20T08:00:00.000Z");
     await route.fulfill({ status: 201, json: { event: {
       ...body, id: EVENT_ID, status: "Submitted", created_at: "2026-09-20T04:00:00Z",
     } } });

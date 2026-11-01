@@ -20,6 +20,13 @@ function toLocalInput(value: string | null) {
   const local = new Date(date.getTime() - date.getTimezoneOffset() * 60000);
   return Number.isNaN(date.getTime()) ? "" : local.toISOString().slice(0, 16);
 }
+// The event is same-day, so split the stored start/end into date + time inputs.
+function localDatePart(value: string | null) {
+  return toLocalInput(value).slice(0, 10);
+}
+function localTimePart(value: string | null) {
+  return toLocalInput(value).slice(11, 16);
+}
 
 export default function EventResubmitForm({
   event,
@@ -41,16 +48,34 @@ export default function EventResubmitForm({
     setError("");
     setFieldErrors({});
     const form = new FormData(formEvent.currentTarget);
-    const dateValue = String(form.get("event_datetime") ?? "");
-    const date = dateValue ? new Date(dateValue) : null;
+    const eventDate = String(form.get("event_date") ?? "");
+    const startValue = String(form.get("event_start_time") ?? "");
+    const endValue = String(form.get("event_end_time") ?? "");
+    const start = eventDate && startValue ? new Date(`${eventDate}T${startValue}`) : null;
+    const end = eventDate && endValue ? new Date(`${eventDate}T${endValue}`) : null;
+    const timeErrors: Record<string, string> = {};
+    if (start && Number.isNaN(start.getTime())) timeErrors.event_datetime = "Choose a valid date and time.";
+    if (end && Number.isNaN(end.getTime())) timeErrors.event_end_datetime = "Choose a valid end time.";
+    if (start && end && !Number.isNaN(start.getTime()) && !Number.isNaN(end.getTime()) && end <= start) {
+      timeErrors.event_end_datetime = "Choose an end time after the start time.";
+    }
+    if (Object.keys(timeErrors).length > 0) {
+      setFieldErrors(timeErrors);
+      setBusy(false);
+      return;
+    }
     const attendance = String(form.get("expected_attendance") ?? "");
     const details = Object.fromEntries(form.entries());
+    delete details.event_date;
+    delete details.event_start_time;
+    delete details.event_end_time;
     try {
       const result = await apiRequest<{ event: EventRecord }>(`/events/${event.id}/resubmit`, {
         method: "POST",
         body: JSON.stringify({
           ...details,
-          event_datetime: date ? date.toISOString() : null,
+          event_datetime: start && !Number.isNaN(start.getTime()) ? start.toISOString() : null,
+          event_end_datetime: end && !Number.isNaN(end.getTime()) ? end.toISOString() : null,
           expected_attendance: attendance === "" ? null : Number(attendance),
         }),
       });
@@ -88,8 +113,21 @@ export default function EventResubmitForm({
           </div>
         ))}
         <div className="grid gap-5 sm:grid-cols-2">
-          <label className="font-medium">Date and time *<input name="event_datetime" type="datetime-local" defaultValue={toLocalInput(event.event_datetime)} className={`${INPUT_STYLE} mt-2`} /></label>
+          <div>
+            <label className="font-medium" htmlFor="resubmit-event_date">Date *</label>
+            <input id="resubmit-event_date" name="event_date" type="date" defaultValue={localDatePart(event.event_datetime)} className={`${INPUT_STYLE} mt-2`} />
+            {fieldErrors.event_datetime && <p className="mt-1 text-sm text-destructive">{fieldErrors.event_datetime}</p>}
+          </div>
           <label className="font-medium">Expected attendance *<input name="expected_attendance" type="number" min="1" step="1" defaultValue={event.expected_attendance ?? ""} className={`${INPUT_STYLE} mt-2`} /></label>
+          <div>
+            <label className="font-medium" htmlFor="resubmit-event_start_time">Start time *</label>
+            <input id="resubmit-event_start_time" name="event_start_time" type="time" defaultValue={localTimePart(event.event_datetime)} className={`${INPUT_STYLE} mt-2`} />
+          </div>
+          <div>
+            <label className="font-medium" htmlFor="resubmit-event_end_time">End time *</label>
+            <input id="resubmit-event_end_time" name="event_end_time" type="time" defaultValue={localTimePart(event.event_end_datetime)} className={`${INPUT_STYLE} mt-2`} />
+            {fieldErrors.event_end_datetime && <p className="mt-1 text-sm text-destructive">{fieldErrors.event_end_datetime}</p>}
+          </div>
         </div>
         <EventVenueOptions venueRequirements={event.venue_requirements} facilityRequirements={event.facility_requirements} accessibilityRequirements={event.accessibility_requirements} />
         {REQUIREMENT_FIELDS.map(([name, label]) => (

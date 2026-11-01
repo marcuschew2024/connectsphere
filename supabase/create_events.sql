@@ -10,6 +10,9 @@ create table if not exists public.events (
     purpose text check (char_length(purpose) <= 2000),
     category text check (char_length(category) <= 100),
     event_datetime timestamptz,
+    -- The Organiser now supplies an end time too, so the Coordinator no longer
+    -- has to guess it when booking a venue or reserving equipment.
+    event_end_datetime timestamptz,
     expected_attendance integer check (expected_attendance > 0),
     venue_requirements text check (char_length(venue_requirements) <= 2000),
     facility_requirements text check (char_length(facility_requirements) <= 2000),
@@ -47,7 +50,14 @@ create table if not exists public.events (
 
 alter table public.events
     add column if not exists last_status_changed_by integer references public.app_users(id),
-    add column if not exists last_status_changed_at timestamptz;
+    add column if not exists last_status_changed_at timestamptz,
+    add column if not exists event_end_datetime timestamptz;
+
+-- End-after-start and required-on-submit are enforced in the app layer
+-- (event_validation.py). No DB CHECK on the order: an existing reschedule
+-- (approve_change_request, SCRUM-48) moves event_datetime without touching the end,
+-- so a hard constraint could reject a valid reschedule. See HANDOFF for the
+-- duration-preserving follow-up.
 
 alter table public.events drop constraint if exists events_status_check;
 alter table public.events add constraint events_status_check check (
@@ -158,6 +168,7 @@ begin
         purpose = p_details ->> 'purpose',
         category = p_details ->> 'category',
         event_datetime = (p_details ->> 'event_datetime')::timestamptz,
+        event_end_datetime = (p_details ->> 'event_end_datetime')::timestamptz,
         expected_attendance = (p_details ->> 'expected_attendance')::integer,
         venue_requirements = p_details ->> 'venue_requirements',
         facility_requirements = p_details ->> 'facility_requirements',

@@ -20,7 +20,8 @@ test("INTEGRATED-04 readable references survive reload and retain UUID routes", 
       headers: { Origin: ORIGIN }, data: {
         action: "submit", title: "Campus Welcome Workshop", description: "Meet fellow students",
         purpose: "Welcome students", category: "Workshop",
-        event_datetime: "2099-11-01T08:00:00Z", expected_attendance: 10,
+        event_datetime: "2099-11-01T08:00:00Z",
+        event_end_datetime: "2099-11-01T10:00:00Z", expected_attendance: 10,
       },
     });
     expect(response.status()).toBe(201);
