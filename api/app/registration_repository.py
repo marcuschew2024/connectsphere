@@ -165,6 +165,37 @@ def get_registration_confirmations(attendee_id: int) -> list[dict]:
         ) from error
 
 
+def list_event_registrations(event_id: str, page: int, status: str | None) -> dict:
+    """Bounded roster plus exact event-wide counts, independent of the selected page."""
+    try:
+        client = get_supabase_client()
+        if client is None:
+            raise ServiceUnavailable("The database is not configured. Contact the team.")
+        # Only a display name is needed to identify a signup. Never select credentials,
+        # contact details or the attendee's free-text registration information.
+        query = client.table("event_registrations").select(
+            "id,reference,status,registered_at,withdrawn_at,attendee:app_users(display_name)"
+        ).eq("event_id", event_id)
+        if status is not None:
+            query = query.eq("status", status)
+        start = (page - 1) * 25
+        rows = (query.order("registered_at", desc=True).order("id")
+                .range(start, start + 25).execute().data or [])
+        counts = {}
+        for state in ("Registered", "Waitlisted", "Withdrawn"):
+            count = (client.table("event_registrations").select("id", count="exact")
+                     .eq("event_id", event_id).eq("status", state).limit(0).execute().count)
+            if not isinstance(count, int) or count < 0:
+                raise ServiceUnavailable("Could not load registration counts. Please try again.")
+            counts[f"{state.lower()}_count"] = count
+        return {"registrations": rows[:25], "page": page,
+                "has_more": len(rows) > 25, "counts": counts}
+    except ServiceUnavailable:
+        raise
+    except Exception as error:
+        raise ServiceUnavailable("Could not load event registrations. Please try again.") from error
+
+
 def withdraw_attendee(event_id: str, attendee_id: int) -> dict:
     return _rpc("withdraw_event_attendee", {
         "p_event_id": event_id, "p_attendee_id": attendee_id,

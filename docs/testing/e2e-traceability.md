@@ -36,7 +36,7 @@ file) in the *same PR as the fix*. Owner does a final sweep at freeze — any ro
 | 16 | Equipment availability | **Unavailable/damaged excluded from available** (SCRUM-63); reserved units on stock later damaged stop counting (SCRUM-153) | `equipment.spec.ts`, `unusable-equipment.spec.ts` | ✅ | Ernest |
 | 17 | Equipment reservation | Reserve reduces availability; **confirm blocked while equipment pending** (SCRUM-136) | `event-confirm.spec.ts`, `event-confirm-equipment.spec.ts` | ✅ | Ernest |
 | 18 | Attendee registration | Register / withdraw / view own status | `attendee-registration.spec.ts` + 3 | ✅ | — |
-| 18 | Attendee registration | **Organiser/Coordinator view event registrations** (SCRUM-45) | NEW / extend | ❌ | Jerome |
+| 18 | Attendee registration | **Organiser/Coordinator view event registrations** (SCRUM-45) | `event-registration-roster.spec.ts`; integrated lifecycle | ✅ roster; SCRUM-80 waitlist deferred | Jerome |
 | 19 | Event change requests | Raise change post-submit/confirm | `change-requests.spec.ts` | ✅ | — |
 | 19 | Event change requests | **Significant change re-opens venue/equipment review + notifies** (SCRUM-47/62); attendance above a booked venue's capacity is flagged (SCRUM-152) | `change-request-apply.spec.ts`, `venue-too-small.spec.ts` | ✅ | Ernest |
 | 19 | Event change requests | **A date change that orphans an approved booking blocks confirmation** (SCRUM-159, NFR-d consistency) | `event-confirm.spec.ts` | ✅ | Marcus |

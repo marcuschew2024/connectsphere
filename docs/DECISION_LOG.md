@@ -1423,3 +1423,47 @@ auto-assign in D9) are recorded explicitly rather than left implicit.
   weakening the exclusion constraint.
 - **Owner.** Jessica (Venue Staff/Safety Officer stream), with Ernest as technical
   implementation reviewer.
+
+### D49 — Private event registration rosters (SCRUM-45)
+
+- **Context.** SCRUM-45 requires the Organiser/Coordinator to see who registered and
+  registered versus waitlisted totals against capacity. General event membership includes
+  attendees and former coordinators, so it is insufficient for individual roster access.
+- **Decision.** `GET /events/{uuid}/registrations` requires a signed session, trusted
+  frontend origin, Organiser/Coordinator role, existing event access, and exact ownership
+  or current coordinator assignment. The pure `RegistrationRosterAccess` policy makes
+  that final boundary explicit. Drafts retain private 404 behaviour. No automatic access
+  is added for the Lead, Safety Officer, venue/technical staff, or event participants.
+- **Contract.** Return the public event projection, nullable capacity, event-wide exact
+  Registered/Waitlisted/Withdrawn counts, and a 25-row page with `has_more`. Each row
+  contains registration UUID/reference, status, signup/withdrawal timestamps and attendee
+  display name only. Names can repeat; REG references distinguish registrations. Email,
+  account ID, credentials and free-text supplementary answers are not exposed. Optional
+  status filters affect rows only; stable ordering is signup time descending then UUID.
+  Invalid/duplicate query parameters are rejected; failed reads are errors, never empty
+  success. Responses are `no-store`. The UI clears old data before refreshing and rechecks
+  on return and every 30 visible seconds, including assignment-related access loss.
+- **Constraints.** Read-only, existing tables and service-role repository pattern. No new
+  database grants, migrations, registration writes, status transitions or signup policy.
+  Cancelled/completed events retain private historical rosters. Remaining places means
+  capacity minus Registered, not eligibility to sign up for a closed event.
+- **Waitlist boundary.** The existing schema only stores Registered and Withdrawn and
+  full events refuse signup. Count/filter/display support Waitlisted, which currently
+  yields zero. SCRUM-80 owns creating and promoting waitlisted entries. The UI says
+  waiting-list signup is unavailable. Non-zero waitlist UI tests are explicitly controlled
+  responses; they are not evidence of a real waitlist workflow.
+- **Verification.** Policy/route tests, isolated Postgres/PostgREST tests of ownership,
+  reassignment, projections, withdrawals, pagination and totals; browser error/filter/
+  mobile tests; real password-authenticated signup → roster → withdrawal journey. See
+  `docs/SCRUM-45.md` for executed results and review instructions.
+- **Trade-off.** Roster and exact count queries are separate reads; concurrent signups or
+  withdrawals can briefly change totals between reads. This is a monitoring view, not an
+  atomic export or admission decision. Existing transactional signup capacity enforcement
+  remains authoritative. Permission is checked per request; previously returned data
+  cannot be recalled. Refresh rechecks current assignment. Larger rosters remain bounded.
+- **Review and owner.** Jerome (SCRUM-45 assignee/implementation owner); Marcus
+  (product/access-policy reviewer). The user authorised implementation on 31 October
+  2026. Human review must confirm the contract, current-assignment boundary, data fields
+  and SCRUM-80 dependency before merge. The user authorised push and merge on 1 November 2026 after manual
+  verification and disclosure of the SCRUM-80 dependency. Independent third-party
+  review is not claimed; hosted CI remains a required merge gate. The existing integrated lifecycle test gains assertions; none are removed.

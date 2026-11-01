@@ -11,12 +11,23 @@ export default function NewEventPage() {
   const canCreate = actingRole === "Organiser" && !loading;
   return (
     <AppShell actingRole={actingRole}>
-      <div className="mx-auto max-w-3xl space-y-7 px-5 py-8 sm:px-8 sm:py-10">
+      <div className="mx-auto max-w-4xl space-y-7 px-5 py-8 sm:px-8 sm:py-10">
+        {canCreate && <Link href="/events/mine" className="inline-flex text-sm text-primary hover:underline">← Back to my requests</Link>}
         <header className="space-y-3 pb-2">
           <p className="text-xs font-medium uppercase tracking-[0.18em] text-primary">Event requests</p>
           <h1 className="text-3xl font-semibold tracking-tight sm:text-4xl">Create an event request</h1>
-          <p className="max-w-lg text-sm leading-relaxed text-muted-foreground sm:text-base">A space to plan your next event, from the first idea to submission.</p>
+          <p className="max-w-2xl text-sm leading-relaxed text-muted-foreground sm:text-base">Tell us what you want to organise. Save an idea privately, or submit it for a Coordinator to review and arrange.</p>
         </header>
+        {canCreate && <ol aria-label="Request process" className="grid gap-4 rounded-2xl border border-border bg-muted/30 p-5 sm:grid-cols-3">
+          {[
+            ["Describe your event", "Add the essentials and any requirements."],
+            ["Submit for review", "The Lead assigns a Coordinator to your request."],
+            ["Track your request", "Follow decisions and arrangements in My requests."],
+          ].map(([title, description], index) => <li key={title} className="flex gap-3">
+            <span aria-hidden="true" className="flex size-7 shrink-0 items-center justify-center rounded-full bg-primary/10 text-xs font-semibold text-primary">{index + 1}</span>
+            <div><p className="text-sm font-semibold">{title}</p><p className="mt-1 text-xs leading-relaxed text-muted-foreground">{description}</p></div>
+          </li>)}
+        </ol>}
         {process.env.NODE_ENV === "development" && <DevRoleSwitcher compact onRoleChange={updateRole} />}
 
         <div>
