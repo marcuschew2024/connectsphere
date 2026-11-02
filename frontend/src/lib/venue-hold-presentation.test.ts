@@ -1,7 +1,8 @@
 // SCRUM-79 + SCRUM-129: the wording the hold and buffer-conflict screens depend on.
 // These are pure so each fallback is asserted directly rather than through a rendered page.
 import { describe, expect, it } from "vitest";
-import { holdDeadlineClause } from "./bookings";
+import { bookingChangeRefusal, canCancelBooking, canChangeBooking, holdDeadlineClause,
+  type BookingRecord, type BookingStatus } from "./bookings";
 import { conflictCountLabel, conflictEventLabel } from "./venues";
 
 describe("holdDeadlineClause", () => {
@@ -37,5 +38,64 @@ describe("conflictEventLabel", () => {
     [undefined, "another booking"],
   ])("falls back to the caller's stand-in for %s", (title, fallback) => {
     expect(conflictEventLabel(title, fallback)).toBe(fallback);
+  });
+});
+
+describe("bookingChangeRefusal", () => {
+  const mine = { isCoordinator: true, canManage: true };
+
+  it("permits a change to the assigned Coordinator on a Requested booking", () => {
+    expect(bookingChangeRefusal("Requested", mine)).toBeNull();
+  });
+
+  it("names the assignment when the Coordinator does not hold the event", () => {
+    const refusal = bookingChangeRefusal("Requested", { isCoordinator: true, canManage: false });
+    expect(refusal).toContain("Coordinator assigned to this event");
+  });
+
+  it.each(["Confirmed", "Held", "Rejected", "Cancelled", "Expired", "Blocked", "Pending"] as const)(
+    "names the state, not the assignment, for a %s booking",
+    (status) => {
+      const refusal = bookingChangeRefusal(status, mine)!;
+      // The old wording blamed the assignment for every refusal, which sent a Coordinator
+      // looking at permissions when the real reason was that the booking was decided.
+      expect(refusal).toContain(status.toLowerCase());
+      expect(refusal).not.toContain("Coordinator assigned");
+    },
+  );
+
+  it("refuses a non-Coordinator outright", () => {
+    const refusal = bookingChangeRefusal("Requested", { isCoordinator: false, canManage: true });
+    expect(refusal).toContain("event's Coordinator");
+  });
+});
+
+describe("canChangeBooking / canCancelBooking", () => {
+  const booking = (status: BookingStatus, can_manage?: boolean) =>
+    ({ status, can_manage }) as BookingRecord;
+
+  it("offers a change only while the booking is Requested", () => {
+    expect(canChangeBooking(booking("Requested", true))).toBe(true);
+    // The API accepts no change once decided, so offering one strands the Coordinator on
+    // a read-only page -- which is exactly what happened before this gate existed.
+    expect(canChangeBooking(booking("Confirmed", true))).toBe(false);
+    expect(canChangeBooking(booking("Expired", true))).toBe(false);
+  });
+
+  it("offers a cancellation on a Requested or Confirmed booking", () => {
+    expect(canCancelBooking(booking("Requested", true))).toBe(true);
+    expect(canCancelBooking(booking("Confirmed", true))).toBe(true);
+    expect(canCancelBooking(booking("Held", true))).toBe(false);
+  });
+
+  it("offers nothing to a Coordinator who no longer holds the event", () => {
+    expect(canChangeBooking(booking("Requested", false))).toBe(false);
+    expect(canCancelBooking(booking("Confirmed", false))).toBe(false);
+  });
+
+  it("falls back to offering actions when the server did not say", () => {
+    // Older responses carry no can_manage; the server still refuses an unauthorised write.
+    expect(canChangeBooking(booking("Requested"))).toBe(true);
+    expect(canCancelBooking(booking("Confirmed"))).toBe(true);
   });
 });

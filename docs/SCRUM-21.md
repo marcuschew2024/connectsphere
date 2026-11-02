@@ -93,3 +93,10 @@ Two AC breaches followed:
 Both routes now call `require_related_user`, producing a recorded `403`. Tests:
 `api/tests/test_booking_lifecycle.py` (direct-API refusal, the audit row, and the inherited
 booking) and `api/tests/test_booking_persistence_acceptance.py` against the real database.
+
+### Follow-up from manual verification (D60)
+
+The event's venue panel offered **Change** on confirmed bookings, which the API never
+accepted, and decided its controls from the acting role rather than the event's assignment.
+Both endpoints now return `can_manage` and the panel offers an action only where the API
+would accept one. The read-only message names which rule refused the change.

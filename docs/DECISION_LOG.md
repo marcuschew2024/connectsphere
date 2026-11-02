@@ -1761,3 +1761,35 @@ auto-assign in D9) are recorded explicitly rather than left implicit.
   venue page that cannot open at all is worse, and the warning plus the open audit finding
   keep the gap visible to the team.
 - **Owner.** Jessica Ang for the fallback; R1 itself stays with SCRUM-137 / the release owner.
+
+### D60 — Booking actions are offered per booking, and a refusal names its own reason
+
+- **Context.** Manual verification of D57 found two presentation faults. The event's venue
+  panel offered **Change** on any `Requested` *or* `Confirmed` booking, but the API accepts a
+  change only while `Requested` — so a Coordinator clicking Change on a confirmed booking
+  always landed on a read-only page with no action available. D57 then made that page's
+  message name the *assignment* as the reason, which for a decided booking is simply wrong
+  and sends the reader looking at permissions instead of at the booking's state. The panel
+  also decided actions from the acting role alone, so a Coordinator who had lost the event
+  was still offered controls the API would refuse.
+- **Decision.** Each action is gated by what the API would accept for that booking:
+  `canChangeBooking` requires `Requested`, `canCancelBooking` allows `Requested` or
+  `Confirmed`, and both require the server's `can_manage`. `GET /venues/bookings/event/<id>`
+  now returns `can_manage` alongside `capacity_warning`, computed from the event's current
+  `coordinator_id`, so the list and the detail endpoint agree. The read-only message is
+  produced by `bookingChangeRefusal`, which distinguishes not-a-Coordinator, not-your-event
+  and already-decided.
+- **Constraints / guardrails.** Presentation only: no route, authorisation rule or status
+  transition changed. `can_manage` is additive to the response. Where an older response
+  omits it the UI still offers the action and the server remains the control (D52). The
+  refusal wording keeps the existing "This booking is read-only." sentence, so no existing
+  assertion needed changing.
+- **Verification.** `src/lib/venue-hold-presentation.test.ts` covers every refusal reason and
+  both action gates, including the absent-`can_manage` fallback.
+  `panels-coverage.test.tsx` asserts cancel-without-change on a confirmed booking, both
+  actions on a held event's requested booking, and no actions for a former Coordinator or a
+  decided booking. `test_booking_lifecycle.py` covers `can_manage` on the list endpoint for
+  the holding Coordinator, a former Coordinator who may still read, and an Organiser.
+- **Trade-off.** The panel now shows fewer controls than before on confirmed bookings. That
+  is the point: the removed control never worked.
+- **Owner.** Jessica Ang. Presentation fix to D57; no new authorisation decision.

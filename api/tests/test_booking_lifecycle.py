@@ -358,3 +358,56 @@ def test_the_receiving_coordinator_sees_the_events_existing_bookings(app, monkey
 
     assert response.status_code == 200
     assert [row["id"] for row in response.json["bookings"]] == ["booking-a"]
+
+
+def test_the_event_panel_is_told_who_may_act_on_each_booking(app, monkeypatch):
+    """D52: the panel's actions come from the server's verdict, not from requested_by.
+
+    Coordinator 2 holds the event; the booking was requested by someone else.
+    """
+    monkeypatch.setattr(
+        "app.bookings.get_event_by_id", lambda event_id: reassigned_event(coordinator_id=2),
+    )
+    monkeypatch.setattr(
+        "app.bookings.list_bookings_for_event_detail",
+        lambda event_id: [booking(booking_id="booking-a", requested_by=99)],
+    )
+    client = app.test_client()
+    select_user(client, 2)
+
+    assert client.get("/venues/bookings/event/event-1", headers=ORIGIN).json["bookings"][0][
+        "can_manage"
+    ] is True
+
+
+def test_the_event_panel_withholds_actions_from_a_former_coordinator(app, monkeypatch):
+    """Coordinator 2 requested the booking but the event moved to Coordinator 7."""
+    monkeypatch.setattr("app.bookings.get_event_by_id", lambda event_id: reassigned_event())
+    monkeypatch.setattr(
+        "app.bookings.list_bookings_for_event_detail",
+        lambda event_id: [booking(booking_id="booking-a", requested_by=2)],
+    )
+    monkeypatch.setattr("app.rbac.is_event_participant", lambda event_id, user_id: True)
+    client = app.test_client()
+    select_user(client, 2)
+
+    body = client.get("/venues/bookings/event/event-1", headers=ORIGIN)
+
+    assert body.status_code == 200, "a related user may still read the arrangements"
+    assert body.json["bookings"][0]["can_manage"] is False
+
+
+def test_an_organiser_is_never_told_they_may_manage_a_booking(app, monkeypatch):
+    monkeypatch.setattr(
+        "app.bookings.get_event_by_id", lambda event_id: reassigned_event(coordinator_id=2),
+    )
+    monkeypatch.setattr(
+        "app.bookings.list_bookings_for_event_detail",
+        lambda event_id: [booking(booking_id="booking-a")],
+    )
+    client = app.test_client()
+    select_user(client, 1)
+
+    assert client.get("/venues/bookings/event/event-1", headers=ORIGIN).json["bookings"][0][
+        "can_manage"
+    ] is False

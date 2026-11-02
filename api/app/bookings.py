@@ -294,11 +294,17 @@ def event_bookings(event_id):
     bookings = list_bookings_for_event_detail(event_id)
     # SCRUM-152 (SCRUM-47/62): re-check every active booking against the event's
     # current attendance, so a change after booking flags a now-too-small venue.
+    manages_event = (
+        user.get("role") == "Coordinator" and event.get("coordinator_id") == user["id"]
+    )
     for booking in bookings:
         active = booking.get("status") in ACTIVE_BOOKING_STATUSES
         booking["capacity_warning"] = (
             CapacityRule().evaluate(event, booking.get("venue") or {}) if active else None
         )
+        # D52 + SCRUM-21/130: the panel offers an action only where the API would accept
+        # one, and authority is the event's current Coordinator.
+        booking["can_manage"] = manages_event
     return jsonify({"bookings": bookings}), 200
 
 

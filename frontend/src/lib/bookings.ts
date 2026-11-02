@@ -56,6 +56,39 @@ export function BookingStatusBadge({ status }: { status: BookingStatus }) {
   );
 }
 
+// D52: the API permits a change only on a Requested booking, and only to the Coordinator
+// who currently holds the event (SCRUM-21/130). Where a change is refused, say which of
+// those two reasons applies — "not yours" and "already decided" are different problems and
+// a reader who is told the wrong one will go looking in the wrong place.
+export function bookingChangeRefusal(
+  status: BookingStatus,
+  options: { isCoordinator: boolean; canManage: boolean },
+): string | null {
+  if (!options.isCoordinator) {
+    return "Only the event's Coordinator can change a venue booking. This booking is read-only.";
+  }
+  if (!options.canManage) {
+    return "Only the Coordinator assigned to this event can change its Requested bookings. "
+      + "This booking is read-only.";
+  }
+  if (status !== "Requested") {
+    return `A ${status.toLowerCase()} booking can no longer be changed. `
+      + "This booking is read-only.";
+  }
+  return null;
+}
+
+/** Whether the event panel should offer a change: the API accepts one only while Requested. */
+export function canChangeBooking(booking: BookingRecord): boolean {
+  return booking.status === "Requested" && (booking.can_manage ?? true);
+}
+
+/** Whether the event panel should offer a cancellation (Requested or Confirmed). */
+export function canCancelBooking(booking: BookingRecord): boolean {
+  return (booking.status === "Requested" || booking.status === "Confirmed")
+    && (booking.can_manage ?? true);
+}
+
 // SCRUM-79: the deadline clause for a tentatively held booking. Older holds predate
 // expires_at, so the sentence has to read correctly without one.
 export function holdDeadlineClause(expiresAt: string | null | undefined): string {
