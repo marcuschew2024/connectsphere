@@ -110,7 +110,7 @@ cd ../frontend && npm run test:unit && npm run build && npm run test:e2e
 - **Unpaginated list:** the Lead's list is the existing `GET /events`, which has no
   pagination.
 
-## Release-1 gap closure (2 Nov 2026) — Decision Log D57
+## Release-1 gap closure (2 Nov 2026) — Decision Log D59
 
 AC4 held for event routes but not for the event's **venue bookings**. Booking edit and
 cancel authorised on the booking's `requested_by`, which reassignment does not move, so a

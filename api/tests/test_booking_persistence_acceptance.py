@@ -156,7 +156,7 @@ def test_a_coordinator_without_the_event_cannot_mutate_its_bookings(arrangements
     it is now the event's current `coordinator_id`, so the refusal is a 403 written to
     access_denied_log like every other record-level denial. The intent is unchanged and
     the guarantee is stronger: same actor, same arrangements untouched, plus an audit row.
-    Decision Log D57.
+    Decision Log D59.
     """
     db, users, event, bookings, _ = arrangements
     before = snapshot(db, event)

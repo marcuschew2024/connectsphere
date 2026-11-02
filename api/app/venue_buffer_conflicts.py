@@ -11,7 +11,7 @@ here mutates a booking.
 The report is computed on demand rather than stored. `problematic_venue_bookings` (the
 table SCRUM-137 introduces) is the durable home for the same facts; computing on demand
 keeps this report working whether or not that migration has been applied yet, and keeps
-the two from disagreeing. See Decision Log D58.
+the two from disagreeing. See Decision Log D60.
 """
 
 from .booking_repository import list_active_bookings_for_venue

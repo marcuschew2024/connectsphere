@@ -75,7 +75,7 @@ than a real login session. That is no longer the case: `require_acting_user` now
 `get_authenticated_user()` and falls back to the switcher only in development
 (`api/app/acting_user.py`), per SCRUM-139 and Decision Log D25.
 
-## Release-1 gap closure (2 Nov 2026) — Decision Log D57
+## Release-1 gap closure (2 Nov 2026) — Decision Log D59
 
 The audit (R3) found one path that bypassed these guards. `PATCH /venues/bookings/<id>` and
 `POST /venues/bookings/<id>/cancel` authorised on the booking's `requested_by` instead of
@@ -94,7 +94,7 @@ Both routes now call `require_related_user`, producing a recorded `403`. Tests:
 `api/tests/test_booking_lifecycle.py` (direct-API refusal, the audit row, and the inherited
 booking) and `api/tests/test_booking_persistence_acceptance.py` against the real database.
 
-### Follow-up from manual verification (D60)
+### Follow-up from manual verification (D62)
 
 The event's venue panel offered **Change** on confirmed bookings, which the API never
 accepted, and decided its controls from the acting role rather than the event's assignment.

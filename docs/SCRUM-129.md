@@ -33,7 +33,7 @@
 > caller** — it was exercised only by unit tests — and `problematic_venue_bookings` had no
 > reader, so AC3 ("existing bookings that become conflicting are IDENTIFIED/flagged") had
 > no runtime surface. The audit recorded this as R6. It is now wired up: see the section
-> below and Decision Log D58.
+> below and Decision Log D60.
 
 ---
 
@@ -56,7 +56,7 @@
 
 ---
 
-## 5. AC3 closure (2 Nov 2026) — Decision Log D58
+## 5. AC3 closure (2 Nov 2026) — Decision Log D60
 
 AC3 is now implemented end to end, computed on demand:
 

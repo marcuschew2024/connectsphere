@@ -62,7 +62,7 @@ test("an event lists all of its venue bookings with their own status and details
   await expect(card(page, "Breakout room")).toContainText("Requested");
   await expect(page.getByRole("link", { name: "Add another venue" }))
     .toHaveAttribute("href", `/venues/bookings/new?eventId=${EVENT_ID}`);
-  // D60: each card offers only what the API accepts for that booking. A change is accepted
+  // D62: each card offers only what the API accepts for that booking. A change is accepted
   // while Requested, so the Breakout room links to its edit page; the Confirmed auditorium
   // offers Cancel alone. This assertion previously expected a Change link on the Confirmed
   // booking, which always led to a read-only page the Coordinator could do nothing with.

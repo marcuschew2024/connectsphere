@@ -39,7 +39,7 @@
 - **TC-79-06:** Hold with valid custom expiry timestamp — `api/tests/test_booking_decision_route.py`
 - **TC-79-07:** Hold with past or post-start expiry is rejected (400) — `api/tests/test_booking_decision_route.py`
 
-## Release-1 gap closure (2 Nov 2026) — Decision Log D56
+## Release-1 gap closure (2 Nov 2026) — Decision Log D58
 
 The audit (R2) found the hold lifecycle incomplete. Four defects, now fixed:
 
