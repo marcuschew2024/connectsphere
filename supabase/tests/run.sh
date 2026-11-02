@@ -234,3 +234,10 @@ for pass in 1 2; do
 done
 psql -v ON_ERROR_STOP=1 -f /sql/tests/venue_hold_release.sql
 echo "Expired hold release database checks: PASS"
+
+# SCRUM-169: maintenance must cover physical occupation, with replay-safe deployment.
+for pass in 1 2; do
+  psql -v ON_ERROR_STOP=1 -f /sql/migrations/20261102165722_scrum_169_maintenance_occupied_windows.sql > /tmp/migration-output.txt
+  echo "Maintenance occupied-window migration pass $pass: PASS"
+done
+sh /sql/tests/maintenance_concurrency.sh

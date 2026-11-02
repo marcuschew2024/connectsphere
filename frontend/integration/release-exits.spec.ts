@@ -53,6 +53,78 @@ async function allocate(tech: Actor, coordinator: Actor, eventId: string) {
   return equipment;
 }
 
+for (const [part, blockStart, blockEnd, calendarCell] of [
+  ["setup", "13:45", "14:00", "Tue 1pm: Blocked"],
+  ["turnaround", "15:00", "15:30", "Tue 3pm: Blocked"],
+] as const) {
+  test(`INTEGRATED-R5 ${part}-only maintenance notifies and supports a replacement`, async ({ as }) => {
+    const { coordinator, staff, event, booking, room } = await setup(as);
+    await call(staff, "PUT", `/venues/${room.id}`, {
+      revision: room.revision, setup_time_minutes: 30, turnaround_time_minutes: 45,
+      capacity: room.capacity, facilities: room.facilities, accessibility: room.accessibility,
+      supported_layouts: room.supported_layouts, operating_hours: room.operating_hours,
+    });
+    const sibling = await venue(staff, `Unaffected ${event.reference}`);
+    const { booking: other } = await call(coordinator, "POST", "/venues/bookings", {
+      event_id: event.id, venue_id: sibling.id, start_at: START, end_at: END,
+      expected_attendance: 2, layout: "Classroom",
+    }, 201);
+    await call(staff, "POST", `/venues/bookings/${other.id}/decision`, { decision: "approve" });
+
+    await staff.page.goto(`/venues/${room.id}?date=2099-10-20`);
+    await staff.page.getByLabel("Start", { exact: true }).fill(`2099-10-20T${blockStart}`);
+    await staff.page.getByLabel("End", { exact: true }).fill(`2099-10-20T${blockEnd}`);
+    await staff.page.getByLabel("Reason", { exact: true }).selectOption("Maintenance");
+    const blocked = staff.page.waitForResponse(r => r.url().endsWith(`/venues/${room.id}/unavailability`) && r.request().method() === "POST");
+    await staff.page.getByRole("button", { name: "Block venue", exact: true }).click();
+    const response = await blocked;
+    expect(response.status()).toBe(201);
+    const result = await response.json();
+    expect(result.affected_booking_ids).toEqual([booking.id]);
+    await staff.page.reload();
+    await expect(staff.page.getByRole("cell", { name: calendarCell, exact: true })).toBeVisible();
+
+    const search = await call(coordinator, "GET", "/venues?date=2099-10-20&start_time=14:00&end_time=15:00&location=Release%20verification%20campus");
+    // Catalogue pages may contain earlier test venues: find this room across all pages.
+    let candidates = search.venues;
+    for (let page = 2, more = search.has_more; more; page++) {
+      const next = await call(coordinator, "GET", `/venues?date=2099-10-20&start_time=14:00&end_time=15:00&location=Release%20verification%20campus&page=${page}`);
+      candidates = candidates.concat(next.venues); more = next.has_more;
+    }
+    expect(candidates.find((v: { id: string }) => v.id === room.id).search_availability).toBe("blocked");
+    await coordinator.page.goto("/");
+    const notice = coordinator.page.getByRole("listitem").filter({ hasText: event.title }).filter({ hasText: "maintenance block" });
+    await expect(notice).toHaveCount(1);
+    await notice.getByRole("link", { name: "View request" }).click();
+    await expect(coordinator.page).toHaveURL(`${WEB}/events/${event.id}`);
+    expect((await call(staff, "GET", `/venues/bookings/${booking.id}`)).booking.status).toBe("Confirmed");
+
+    const replacement = await venue(staff, `Replacement R5 ${event.reference}`);
+    await coordinator.page.goto("/venues/bookings/new");
+    await coordinator.page.getByRole("combobox", { name: "Event", exact: true }).selectOption(event.id);
+    await coordinator.page.getByRole("combobox", { name: "Venue", exact: true }).selectOption(replacement.id);
+    await coordinator.page.getByLabel("Expected attendance").fill("2");
+    await coordinator.page.getByRole("checkbox", { name: "Classroom", exact: true }).check();
+    await coordinator.page.getByLabel("Start", { exact: true }).fill("2099-10-20T14:00");
+    await coordinator.page.getByLabel("End", { exact: true }).fill("2099-10-20T15:00");
+    const submitted = coordinator.page.waitForResponse(r => r.url() === `${API}/venues/bookings` && r.request().method() === "POST");
+    await coordinator.page.getByRole("button", { name: "Submit booking request" }).click();
+    const saved = await submitted; expect(saved.status()).toBe(201);
+    const { booking: replacementBooking } = await saved.json();
+    await staff.page.goto(`/venues/bookings/${replacementBooking.id}`);
+    await staff.page.getByRole("button", { name: "Approve", exact: true }).click();
+    await expect(staff.page.getByRole("heading", { name: "Booking confirmed" })).toBeVisible();
+    await call(coordinator, "POST", `/venues/bookings/${booking.id}/cancel`);
+    await coordinator.page.goto(`/events/${event.id}`);
+    await expect(coordinator.page.getByText(replacement.name, { exact: true })).toBeVisible();
+    expect((await call(staff, "GET", `/venues/bookings/${other.id}`)).booking.status).toBe("Confirmed");
+    const current = (await call(coordinator, "GET", `/events/${event.id}`)).event;
+    expect(current.title).toBe(event.title); expect(current.description).toBe(event.description);
+    expect(current.status).toBe("Planning");
+    await call(staff, "DELETE", `/venues/${room.id}/unavailability/${result.block.id}`);
+  });
+}
+
 test("INTEGRATED-06 cancellation releases resources and the attendee follows the real notification", async ({ as }) => {
   const { organiser, coordinator, staff, event, booking } = await setup(as);
   const tech = await as("tech-support", "Tech Support"), attendee = await as("attendee.a", "Attendee");

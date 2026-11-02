@@ -72,12 +72,16 @@ def unblock_venue(block_id: str, venue_id: str, actor_id: int) -> dict:
 def find_affected_bookings(venue_id: str, start_at: str, end_at: str) -> list[dict]:
     try:
         result = _client().table("venue_bookings").select(
-            "id,event_id,start_at,end_at,status,requested_by,"
+            "id,event_id,start_at,end_at,status,requested_by,expires_at,"
             "event:events(title,coordinator_id)"
         ).eq("venue_id", venue_id).in_("status", sorted(ACTIVE_BOOKING_STATUSES)).lt(
-            "start_at", end_at
-        ).gt("end_at", start_at).execute()
-        return result.data or []
+            "occupied_start", end_at
+        ).gt("occupied_end", start_at).execute()
+        now = datetime.now(UTC)
+        return [row for row in (result.data or []) if (
+            row.get("status") != "Held" or not row.get("expires_at")
+            or datetime.fromisoformat(row["expires_at"].replace("Z", "+00:00")) > now
+        )]
     except ServiceUnavailable:
         raise
     except Exception as error:
