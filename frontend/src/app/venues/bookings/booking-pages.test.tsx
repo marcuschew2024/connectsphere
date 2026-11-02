@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { beforeEach, expect, it, vi } from "vitest";
-import { act, deferred, fireEvent, render, screen } from "../../../../scripts/testing/dom";
+import { act, deferred, fireEvent, render, screen, within } from "../../../../scripts/testing/dom";
 import Queue from "./page";
 import Edit from "./[bookingId]/edit/page";
 import { ApiError, apiRequest } from "@/lib/api";
@@ -11,7 +11,9 @@ vi.mock("@/lib/api", async original => ({ ...await original<object>(), apiReques
 const api = vi.mocked(apiRequest);
 const booking = { id: "booking-1", event_id: "event-1", venue_id: "venue-1", status: "Requested", requested_by: 2, reference: "BKG-001",
   start_at: "2099-10-20T06:00:00Z", end_at: "2099-10-20T08:00:00Z", expected_attendance: 20,
-  layout: "Theatre", special_requirements: null as string | null, venue: { name: "Auditorium" }, event: { title: "Workshop" } };
+  layout: "Theatre", special_requirements: null as string | null, venue: { name: "Auditorium" }, event: { title: "Workshop" },
+  // SCRUM-21/130: the server's management verdict; absent on older responses.
+  can_manage: undefined as boolean | undefined };
 const venues = [{ id: "venue-1", name: "Auditorium", capacity: 100 }, { id: "venue-2", name: "Seminar room", capacity: 40 }];
 function load(record = booking, catalogue = venues) {
   api.mockImplementation(async path => path === "/venues?page=1" ? { venues: catalogue } : { booking: record });
@@ -48,7 +50,10 @@ it("cancels a queue lookup on navigation without showing a stale failure", async
 it("saves only the changed booking, prevents duplicate submission and returns to its event", async () => {
   render(<Edit />); await screen.findByLabelText("Venue");
   edit("Venue", "venue-2"); edit("Start", "2099-10-21T14:00"); edit("End", "2099-10-21T16:00");
-  edit("Expected attendance", "30"); edit("Layout", "Classroom"); edit("Special requirements", "Projector");
+  edit("Expected attendance", "30");
+  // The booking is stored as Theatre, so switching layout means unticking it.
+  fireEvent.click(screen.getByLabelText("Theatre")); fireEvent.click(screen.getByLabelText("Classroom"));
+  fireEvent.click(screen.getByLabelText("Projector"));
   const result = deferred<object>(); api.mockReturnValueOnce(result.promise); save(); save();
   const writes = api.mock.calls.filter(([, options]) => options?.method === "PATCH");
   expect(writes).toHaveLength(1);
@@ -73,15 +78,18 @@ it("handles missing catalogue choices and malformed legacy dates without an inva
   load({ ...booking, start_at: "unreadable", special_requirements: "Accessible route" }, []);
   render(<Edit />); const start = await screen.findByLabelText("Start");
   expect((start as HTMLInputElement).value).toBe("");
-  expect((screen.getByLabelText("Special requirements") as HTMLTextAreaElement).value).toBe("Accessible route");
+  // "Accessible route" matches no catalogue entry, so it is kept under Facilities > Other
+  // rather than dropped when the booking is reopened.
+  expect(within(screen.getByLabelText("Other facilities values")).getByText("Accessible route")).toBeTruthy();
   save(); expect(screen.getByRole("alert").textContent).toContain("Choose a venue");
   expect(navigation.push).not.toHaveBeenCalled();
 });
 it.each([new ApiError("Booking no longer editable", 409), new Error("offline")])("retains booking edits after a failed save: %s", async error => {
-  render(<Edit />); await screen.findByLabelText("Venue"); edit("Layout", "Boardroom");
+  render(<Edit />); await screen.findByLabelText("Venue");
+  fireEvent.click(screen.getByLabelText("Boardroom"));
   api.mockRejectedValueOnce(error); save();
   expect((await screen.findByRole("alert")).textContent).toBe(error instanceof ApiError ? error.message : "Could not change this booking.");
-  expect((screen.getByLabelText("Layout") as HTMLInputElement).value).toBe("Boardroom");
+  expect((screen.getByLabelText("Boardroom") as HTMLInputElement).checked).toBe(true);
   expect(navigation.push).not.toHaveBeenCalled();
 });
 it.each([new ApiError("Not your booking", 403), new Error("offline")])("shows load failures without offering an editable form: %s", async error => {
@@ -100,4 +108,25 @@ it("does not offer edits for another Coordinator's Requested booking", async () 
   load({ ...booking, requested_by: 7 }); render(<Edit />);
   expect(await screen.findByText(/This booking is read-only/)).toBeTruthy();
   expect(screen.queryByRole("button", { name: "Save booking change" })).toBeNull();
+});
+// SCRUM-21/130: the server decides who manages a booking, because after a reassignment
+// requested_by no longer identifies the Coordinator in charge.
+it("offers edits on an inherited booking the signed-in Coordinator did not request", async () => {
+  load({ ...booking, requested_by: 7, can_manage: true }); render(<Edit />);
+  expect(await screen.findByLabelText("Venue")).toBeTruthy();
+  expect(screen.queryByText(/This booking is read-only/)).toBeNull();
+});
+it("withholds edits from a Coordinator who requested the booking but lost the event", async () => {
+  load({ ...booking, requested_by: 2, can_manage: false }); render(<Edit />);
+  expect(await screen.findByText(/Only the Coordinator assigned to this event/)).toBeTruthy();
+  expect(screen.queryByRole("button", { name: "Save booking change" })).toBeNull();
+});
+it("refuses a booking change with no layout before writing", async () => {
+  render(<Edit />); await screen.findByLabelText("Venue");
+  // The stored layout is Theatre; unticking it leaves the booking with none, which the
+  // API rejects, so the form must catch it rather than send an invalid change.
+  fireEvent.click(screen.getByLabelText("Theatre"));
+  save();
+  expect(screen.getByRole("alert").textContent).toContain("at least one layout");
+  expect(api.mock.calls.some(([, options]) => options?.method === "PATCH")).toBe(false);
 });

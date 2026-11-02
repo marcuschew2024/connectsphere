@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import { ApiError, apiRequest } from "@/lib/api";
-import { defaultOpeningHours, VENUE_ACCESSIBILITY_FEATURES, VENUE_DAYS, VENUE_FACILITIES, VENUE_LAYOUTS, type OpeningHours, type Venue } from "@/lib/venues";
+import { conflictCountLabel, conflictEventLabel, defaultOpeningHours, VENUE_ACCESSIBILITY_FEATURES, VENUE_DAYS, VENUE_FACILITIES, VENUE_LAYOUTS, type BufferConflict, type OpeningHours, type Venue } from "@/lib/venues";
 import OtherValuesInput from "@/components/other-values-input";
 
 const INPUT = "w-full rounded-md border border-input bg-background px-3 py-2.5 text-sm text-foreground focus:border-ring focus:outline-none focus:ring-2 focus:ring-ring/30";
@@ -27,6 +27,8 @@ export default function VenueForm({ venue }: { venue?: Venue }) {
   const [error, setError] = useState("");
   const [fields, setFields] = useState<Record<string, string>>({});
   const [saved, setSaved] = useState<Venue | null>(null);
+  // SCRUM-129 AC3: bookings this save made conflicting. They are reported, never changed.
+  const [conflicts, setConflicts] = useState<BufferConflict[]>([]);
   const [formKey, setFormKey] = useState(0);
   const errorSummary = useRef<HTMLDivElement>(null);
   const successHeading = useRef<HTMLHeadingElement>(null);
@@ -47,7 +49,7 @@ export default function VenueForm({ venue }: { venue?: Venue }) {
       ];
     };
     try {
-      const result = await apiRequest<{ venue: Venue }>(editing ? `/venues/${venue.id}` : "/venues", {
+      const result = await apiRequest<{ venue: Venue; buffer_conflicts?: BufferConflict[] }>(editing ? `/venues/${venue.id}` : "/venues", {
         method: editing ? "PUT" : "POST",
         body: JSON.stringify({
           ...(editing ? { revision: venue.revision } : { name: form.get("name"), location: form.get("location") }), capacity: Number(form.get("capacity")),
@@ -60,6 +62,7 @@ export default function VenueForm({ venue }: { venue?: Venue }) {
         }),
       });
       setSaved(result.venue);
+      setConflicts(result.buffer_conflicts ?? []);
     } catch (error) {
       setError(error instanceof ApiError ? error.message : "Could not confirm the venue was saved. Check the catalogue before retrying.");
       if (error instanceof ApiError) setFields(error.fields);
@@ -75,6 +78,17 @@ export default function VenueForm({ venue }: { venue?: Venue }) {
     <h2 ref={successHeading} tabIndex={-1} className="text-2xl font-semibold outline-none">{editing ? "Venue updated" : "Venue added"}</h2>
     <p className="mt-3 break-words text-sm leading-relaxed text-muted-foreground"><strong className="text-foreground">{saved.name}</strong> {editing ? "has been updated. Future searches use these details. Confirmed bookings are unchanged." : "is now in the shared catalogue. Coordinators can see its details."}</p>
     <p className="mt-2 text-xs text-muted-foreground">{editing ? "Updated" : "Added"} {new Date(saved.updated_at ?? saved.created_at).toLocaleString()}</p>
+    {conflicts.length > 0 && <section aria-labelledby="buffer-conflicts-heading" className="mt-6 rounded-xl border border-destructive/30 bg-destructive/5 p-4">
+      <h3 id="buffer-conflicts-heading" className="text-sm font-semibold text-destructive">{conflictCountLabel(conflicts.length)}</h3>
+      <p className="mt-1 text-xs text-muted-foreground">The new setup and turnaround times make these bookings overlap. Nothing has been changed or cancelled — review them and decide what happens to each.</p>
+      <ul className="mt-3 space-y-3">
+        {conflicts.map((conflict) => <li key={conflict.booking_id} className="rounded-lg border border-border bg-background p-3 text-xs">
+          <p className="font-semibold text-foreground">{conflictEventLabel(conflict.event_title, "Untitled event")} <span className="font-normal text-muted-foreground">· {conflict.status}</span></p>
+          <p className="mt-1 text-muted-foreground">Occupies {new Date(conflict.occupied_start).toLocaleString()} – {new Date(conflict.occupied_end).toLocaleString()} (booked {new Date(conflict.start_at).toLocaleTimeString()} – {new Date(conflict.end_at).toLocaleTimeString()})</p>
+          <p className="mt-1 text-muted-foreground">Clashes with {conflict.conflicts_with.map((other) => conflictEventLabel(other.event_title, "another booking")).join(", ")}</p>
+        </li>)}
+      </ul>
+    </section>}
     <div className="mt-6 flex flex-wrap items-center gap-3">
       <Link href="/venues" className="rounded-md bg-primary px-5 py-3 text-sm font-semibold text-primary-foreground hover:bg-primary/90">View catalogue</Link>
       {!editing && <button type="button" onClick={() => { setSaved(null); setHours(defaultOpeningHours()); setFormKey(formKey + 1); }} className="rounded-md border border-border px-5 py-3 text-sm text-foreground hover:bg-muted">Add another venue</button>}

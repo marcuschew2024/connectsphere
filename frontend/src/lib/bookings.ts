@@ -23,6 +23,10 @@ export type BookingRecord = {
   decision_at: string | null;
   requested_by: number;
   requested_at: string;
+  // SCRUM-21/130: the server's answer to "may the signed-in user change this booking?".
+  // Authority follows the event's current Coordinator, so the UI must not re-derive it
+  // from requested_by -- a reassigned event moves its bookings with it.
+  can_manage?: boolean;
   expected_attendance: number;
   layout: string;
   special_requirements: string | null;
@@ -50,6 +54,70 @@ export function BookingStatusBadge({ status }: { status: BookingStatus }) {
     },
     status,
   );
+}
+
+// The booking form stores layout and requirements as comma-joined text, but is edited as
+// checkbox groups. These split a stored value back into "presets that are ticked" and
+// "anything else", so an existing booking round-trips without losing a custom entry.
+
+export function requirementValues(text: string | null | undefined): string[] {
+  return (text ?? "").split(",").map((value) => value.trim()).filter(Boolean);
+}
+
+/** The presets these values name, in the preset's own spelling. */
+export function presetValues(values: string[], presets: string[]): string[] {
+  return presets.filter((preset) =>
+    values.some((value) => value.toLowerCase() === preset.toLowerCase()));
+}
+
+/** Values matching none of the given preset groups, so a custom entry survives an edit. */
+export function extraValues(values: string[], ...presetGroups: string[][]): string[] {
+  const known = presetGroups.flat().map((preset) => preset.toLowerCase());
+  return values.filter((value) => !known.includes(value.toLowerCase()));
+}
+
+/** Rejoin selected groups into the stored comma-joined form, without duplicates. */
+export function joinRequirements(...groups: string[][]): string {
+  return [...new Set(groups.flat().map((value) => value.trim()).filter(Boolean))].join(", ");
+}
+
+// D59: the API permits a change only on a Requested booking, and only to the Coordinator
+// who currently holds the event (SCRUM-21/130) -- not its requester, as D52 had it. Where a
+// change is refused, say which of those two reasons applies (D62): "not yours" and "already
+// decided" are different problems, and the wrong one sends a reader looking in the wrong place.
+export function bookingChangeRefusal(
+  status: BookingStatus,
+  options: { isCoordinator: boolean; canManage: boolean },
+): string | null {
+  if (!options.isCoordinator) {
+    return "Only the event's Coordinator can change a venue booking. This booking is read-only.";
+  }
+  if (!options.canManage) {
+    return "Only the Coordinator assigned to this event can change its Requested bookings. "
+      + "This booking is read-only.";
+  }
+  if (status !== "Requested") {
+    return `A ${status.toLowerCase()} booking can no longer be changed. `
+      + "This booking is read-only.";
+  }
+  return null;
+}
+
+/** Whether the event panel should offer a change: the API accepts one only while Requested. */
+export function canChangeBooking(booking: BookingRecord): boolean {
+  return booking.status === "Requested" && (booking.can_manage ?? true);
+}
+
+/** Whether the event panel should offer a cancellation (Requested or Confirmed). */
+export function canCancelBooking(booking: BookingRecord): boolean {
+  return (booking.status === "Requested" || booking.status === "Confirmed")
+    && (booking.can_manage ?? true);
+}
+
+// SCRUM-79: the deadline clause for a tentatively held booking. Older holds predate
+// expires_at, so the sentence has to read correctly without one.
+export function holdDeadlineClause(expiresAt: string | null | undefined): string {
+  return expiresAt ? ` until ${new Date(expiresAt).toLocaleString()}` : "";
 }
 
 // Asia/Singapore-friendly slot label, e.g. "20 Oct 2026, 2:00 pm – 4:00 pm".

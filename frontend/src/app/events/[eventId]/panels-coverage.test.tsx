@@ -79,3 +79,31 @@ it("a change can add structured requirements when older event values are absent"
 it("booking arrangements display persisted human-readable references", async () => {
   api.mockResolvedValue({ bookings: [{ ...booking, reference: "BKG-007" }] }); render(<Bookings eventId="event" canManage={false} />); await screen.findByText(/BKG-007/);
 });
+// D52: the panel must offer only what the API would accept. Offering "Change" on a decided
+// booking sent the Coordinator to a read-only page with no way to act.
+it("offers cancel but not change on a confirmed booking", async () => {
+  api.mockResolvedValue({ bookings: [{ ...booking, status: "Confirmed", can_manage: true }] });
+  render(<Bookings eventId="event" canManage />);
+  expect(await screen.findByRole("button", { name: "Cancel" })).toBeTruthy();
+  expect(screen.queryByRole("link", { name: "Change" })).toBeNull();
+});
+it("offers both actions on a requested booking the Coordinator holds", async () => {
+  api.mockResolvedValue({ bookings: [{ ...booking, status: "Requested", can_manage: true }] });
+  render(<Bookings eventId="event" canManage />);
+  expect(await screen.findByRole("link", { name: "Change" })).toBeTruthy();
+  expect(screen.getByRole("button", { name: "Cancel" })).toBeTruthy();
+});
+it("offers no actions to a Coordinator who no longer holds the event", async () => {
+  api.mockResolvedValue({ bookings: [{ ...booking, status: "Requested", can_manage: false }] });
+  render(<Bookings eventId="event" canManage />);
+  await screen.findByRole("heading", { name: "Venue booking" });
+  expect(screen.queryByRole("link", { name: "Change" })).toBeNull();
+  expect(screen.queryByRole("button", { name: "Cancel" })).toBeNull();
+});
+it.each(["Held", "Expired", "Rejected"])("offers no actions on a %s booking", async status => {
+  api.mockResolvedValue({ bookings: [{ ...booking, status, can_manage: true }] });
+  render(<Bookings eventId="event" canManage />);
+  await screen.findByRole("heading", { name: "Venue booking" });
+  expect(screen.queryByRole("link", { name: "Change" })).toBeNull();
+  expect(screen.queryByRole("button", { name: "Cancel" })).toBeNull();
+});

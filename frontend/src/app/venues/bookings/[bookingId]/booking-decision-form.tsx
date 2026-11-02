@@ -2,7 +2,7 @@
 
 import { useRef, useState, type FormEvent } from "react";
 import { ApiError, apiRequest } from "@/lib/api";
-import type { BookingRecord } from "@/lib/bookings";
+import { holdDeadlineClause, type BookingRecord } from "@/lib/bookings";
 
 // Venue Staff approve/reject a submitted booking request (SCRUM-32 / SCRUM-122).
 // Mirrors EventDecisionForm; adds the optional "suggested alternative" the AC allows on
@@ -21,7 +21,10 @@ export default function BookingDecisionForm({
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
 
-  if (booking.status !== "Requested" && booking.status !== "Pending") return null;
+  // SCRUM-79: a held booking is still undecided — staff must be able to approve or reject
+  // it before its deadline — so the decision stays available while it is Held.
+  const held = booking.status === "Held";
+  if (booking.status !== "Requested" && booking.status !== "Pending" && !held) return null;
 
   async function makeDecision(decision: "approve" | "reject" | "hold") {
     if (submitting.current) return;
@@ -82,7 +85,15 @@ export default function BookingDecisionForm({
 
       {error && <p role="alert" className="rounded-md border border-destructive/30 bg-destructive/5 p-3 text-sm text-destructive">{error}</p>}
 
-      <div className="rounded-xl border border-border bg-muted/30 p-3.5">
+      {held && (
+        <p role="status" className="rounded-xl border border-border bg-muted/30 p-3.5 text-sm">
+          This booking is tentatively held{holdDeadlineClause(booking.expires_at)}.
+          Approve or reject it before the deadline — once it passes, the hold expires and
+          the venue is offered to other requests.
+        </p>
+      )}
+
+      {!held && <div className="rounded-xl border border-border bg-muted/30 p-3.5">
         <label htmlFor="hold-duration-select" className="block text-xs font-medium text-foreground">
           Hold duration
         </label>
@@ -99,9 +110,9 @@ export default function BookingDecisionForm({
         <p className="mt-1.5 text-xs text-muted-foreground">
           Tentative holds reserve the venue while details are finalised, then automatically expire.
         </p>
-      </div>
+      </div>}
 
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+      <div className={held ? "grid grid-cols-1 gap-3" : "grid grid-cols-1 gap-3 sm:grid-cols-2"}>
         <button
           type="button"
           disabled={busy}
@@ -110,14 +121,14 @@ export default function BookingDecisionForm({
         >
           Approve
         </button>
-        <button
+        {!held && <button
           type="button"
           disabled={busy}
           onClick={() => void makeDecision("hold")}
           className="w-full rounded-md bg-indigo-600 px-4 py-3 text-sm font-semibold text-white hover:bg-indigo-500 disabled:opacity-50"
         >
           Tentatively hold
-        </button>
+        </button>}
       </div>
 
       <form onSubmit={submitRejection} className="space-y-3 border-t border-border pt-4">

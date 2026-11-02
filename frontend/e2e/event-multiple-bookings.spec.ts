@@ -62,10 +62,26 @@ test("an event lists all of its venue bookings with their own status and details
   await expect(card(page, "Breakout room")).toContainText("Requested");
   await expect(page.getByRole("link", { name: "Add another venue" }))
     .toHaveAttribute("href", `/venues/bookings/new?eventId=${EVENT_ID}`);
-  await expect(card(page, "Main auditorium").getByRole("link", { name: "Change" }))
-    .toHaveAttribute("href", "/venues/bookings/a/edit");
+  // D62: each card offers only what the API accepts for that booking. A change is accepted
+  // while Requested, so the Breakout room links to its edit page; the Confirmed auditorium
+  // offers Cancel alone. This assertion previously expected a Change link on the Confirmed
+  // booking, which always led to a read-only page the Coordinator could do nothing with.
   await expect(card(page, "Breakout room").getByRole("link", { name: "Change" }))
     .toHaveAttribute("href", "/venues/bookings/b/edit");
+  await expect(card(page, "Main auditorium").getByRole("link", { name: "Change" })).toHaveCount(0);
+  await expect(card(page, "Main auditorium").getByRole("button", { name: "Cancel" })).toBeVisible();
+});
+
+test("a confirmed booking's edit URL explains that its state, not access, refuses the change", async ({ page }) => {
+  await openEvent(page, "Coordinator");
+  await page.route(`${API}/venues/bookings/a`, (r) => r.fulfill({ json: { booking: AUDITORIUM } }));
+  await page.route(`${API}/venues?page=1`, (r) => r.fulfill({ json: { venues: [] } }));
+
+  await page.goto("/venues/bookings/a/edit");
+
+  await expect(page.getByRole("status"))
+    .toHaveText("A confirmed booking can no longer be changed. This booking is read-only.");
+  await expect(page.getByRole("button", { name: "Save booking change" })).toHaveCount(0);
 });
 
 test("cancelling one venue booking leaves the other untouched", async ({ page }) => {

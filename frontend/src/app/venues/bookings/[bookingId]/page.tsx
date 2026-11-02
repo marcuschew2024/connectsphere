@@ -95,7 +95,11 @@ export default function BookingDecisionPage() {
     };
   }, [params.bookingId]);
 
-  const canReview = actingRole === "Venue Staff" && (booking?.status === "Requested" || booking?.status === "Pending");
+  // SCRUM-79: a tentative hold is still undecided, so Venue Staff keep the decision
+  // actions until it is approved, rejected or expires.
+  const canReview = actingRole === "Venue Staff"
+    && (booking?.status === "Requested" || booking?.status === "Pending"
+      || booking?.status === "Held");
 
   return (
     <AppShell actingRole={actingRole}>

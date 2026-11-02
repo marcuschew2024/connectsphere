@@ -15,6 +15,8 @@ from .auth import get_authenticated_user
 from .booking_repository import list_venue_bookings_in_range
 from .event_repository import create_notification, get_event_by_id
 from .rbac import require_role
+from .venue_buffer_conflicts import buffer_conflict_report, buffers_changed
+from .venue_hold_expiry import release_expired_holds
 from .venue_repository import (
     create_venue,
     get_display_name,
@@ -99,9 +101,15 @@ def edit_venue(venue_id):
     fields, errors = validate_venue({**venue, **{key: data[key] for key in keys}})
     if errors:
         return jsonify({"error": "Please check the highlighted fields.", "fields": errors}), 400
-    return jsonify({"venue": update_venue(
+    saved = update_venue(
         str(venue_id), {key: fields[key] for key in keys}, user["id"], data["revision"]
-    )}), 200
+    )
+    # SCRUM-129 AC3: raising a buffer can make existing bookings conflict. Report them so
+    # Venue Staff can resolve them; never rewrite or remove a booking to fit the new rule.
+    body = {"venue": saved}
+    if buffers_changed(venue, saved):
+        body["buffer_conflicts"] = buffer_conflict_report(saved)
+    return jsonify(body), 200
 
 
 @venues.get("")
@@ -154,6 +162,8 @@ def venue_bookings(venue_id):
     if not start_at or not end_at:
         raise BadRequest("Provide 'from' and 'to' timestamps.")
     venue = get_venue(venue_id)
+    # SCRUM-79: the calendar shows live holds, so release lapsed ones before the read.
+    release_expired_holds(venue_id)
     bookings = list_venue_bookings_in_range(
         venue_id,
         start_at,
@@ -167,6 +177,20 @@ def venue_bookings(venue_id):
         "status": "Blocked",
     } for block in blocks)
     return jsonify({"bookings": bookings}), 200
+
+
+@venues.get("/<venue_id>/buffer-conflicts")
+def venue_buffer_conflicts(venue_id):
+    """Bookings this venue's setup/turnaround buffers made conflicting (SCRUM-129 AC3).
+
+    Read-only and Venue Staff only: they own the catalogue and are the people who resolve
+    a conflict. Nothing here changes a booking.
+    """
+    _require_user("Venue Staff", action="view_venue_buffer_conflicts")
+    venue = get_venue(venue_id)
+    if venue is None:
+        raise NotFound("Venue not found.")
+    return jsonify({"buffer_conflicts": buffer_conflict_report(venue)}), 200
 
 
 @venues.get("/<venue_id>/unavailability")

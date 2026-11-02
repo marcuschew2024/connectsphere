@@ -31,6 +31,35 @@ export type Venue = {
   search_availability?: "not_checked" | "available" | "retired" | "closed" | "blocked" | "booked";
 };
 
+// SCRUM-129 AC3: one booking a venue's setup/turnaround buffers made conflicting. The
+// bookings are reported for a human to resolve, never changed or removed by the system.
+export type BufferConflictSlot = {
+  booking_id: string;
+  reference?: string | null;
+  event_id: string | null;
+  event_title?: string | null;
+  status: string;
+  start_at: string;
+  end_at: string;
+  occupied_start: string;
+  occupied_end: string;
+};
+
+export type BufferConflict = BufferConflictSlot & {
+  reason: string;
+  conflicts_with: BufferConflictSlot[];
+};
+
+/** Heading for the conflict report, e.g. "2 existing bookings now conflict". */
+export function conflictCountLabel(count: number): string {
+  return `${count} existing ${count === 1 ? "booking" : "bookings"} now conflict`;
+}
+
+/** A booking's event name, or a stated stand-in when the record does not name one. */
+export function conflictEventLabel(title: string | null | undefined, fallback: string): string {
+  return title ?? fallback;
+}
+
 export function defaultOpeningHours(): OpeningHours {
   return Object.fromEntries(VENUE_DAYS.map((day, index) => [day, index < 5 ? { opens: "09:00", closes: "18:00" } : null])) as OpeningHours;
 }

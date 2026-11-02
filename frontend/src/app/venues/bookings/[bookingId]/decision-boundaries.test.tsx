@@ -55,3 +55,32 @@ it.each(["Rejected", "Confirmed", "Held"] as const)("legacy %s booking without j
 it("booking history displays its persisted request date", async () => {
   api.mockResolvedValue({ booking }); render(<Page />); await screen.findByRole("heading", { name: "Venue booking" }); expect(screen.getByText(new Date(booking.requested_at).toLocaleDateString())).toBeTruthy();
 });
+// SCRUM-79: a held booking is still undecided, so staff can act on it until it expires.
+it("a held booking still offers approve and reject, and names its deadline", () => {
+  render(<Decision booking={{ ...booking, status: "Held", expires_at: "2099-10-02T00:00:00Z" }} onSaved={saved} />);
+  expect(screen.getByRole("button", { name: "Approve" })).toBeTruthy();
+  expect(screen.getByRole("button", { name: "Reject" })).toBeTruthy();
+  expect(screen.getByRole("status").textContent).toContain("tentatively held");
+  // Re-holding an existing hold is not an action the acceptance criteria describe.
+  expect(screen.queryByRole("button", { name: "Tentatively hold" })).toBeNull();
+  expect(screen.queryByLabelText("Hold duration")).toBeNull();
+});
+it("approving a held booking sends no new deadline", async () => {
+  api.mockResolvedValue({ booking: { ...booking, status: "Confirmed" } });
+  render(<Decision booking={{ ...booking, status: "Held", expires_at: "2099-10-02T00:00:00Z" }} onSaved={saved} />);
+  fireEvent.click(screen.getByRole("button", { name: "Approve" }));
+  await waitFor(() => expect(saved).toHaveBeenCalledTimes(1));
+  expect(JSON.parse(api.mock.calls[0][1]!.body as string)).toEqual({ decision: "approve" });
+});
+it("a held booking with no recorded deadline still explains its state", () => {
+  render(<Decision booking={{ ...booking, status: "Held", expires_at: null }} onSaved={saved} />);
+  expect(screen.getByRole("status").textContent).toContain("tentatively held");
+  expect(screen.getByRole("status").textContent).not.toContain("until");
+});
+// The page owns its own gate, so the form being willing to render is not enough.
+it("the booking page offers review actions on a held booking", async () => {
+  api.mockResolvedValue({ booking: { ...booking, status: "Held", expires_at: "2099-10-02T00:00:00Z" } });
+  render(<Page />);
+  expect(await screen.findByRole("button", { name: "Approve" })).toBeTruthy();
+  expect(screen.getByRole("button", { name: "Reject" })).toBeTruthy();
+});
