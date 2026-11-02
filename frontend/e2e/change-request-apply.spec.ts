@@ -49,7 +49,9 @@ test("organiser proposes new values with a change request", async ({ page }) => 
   await page.getByLabel("New title").fill("Robotics showcase 2026");
   await page.getByRole("button", { name: "Request a change" }).click();
 
-  expect(state.posts).toEqual([{
+  // The POST is async: poll until it lands instead of reading state synchronously
+  // right after the click (the former caused a flaky race — same fix pattern as #81).
+  await expect.poll(() => state.posts).toEqual([{
     description: "More students signed up",
     changes: { title: "Robotics showcase 2026", expected_attendance: 150 },
   }]);
