@@ -113,7 +113,11 @@ def test_rescheduling_applies_the_new_date_and_flags_re_review(live):  # noqa: F
     # Duration-preserving: the 2-hour event stays 2 hours, so the end shifts too.
     assert datetime.fromisoformat(after["event_end_datetime"]) == datetime.fromisoformat(
         "2099-12-20T08:00:00+00:00")
-    assert after["status"] == "Confirmed"
+    # SCRUM-166 (audit R4): a new date/time voids the confirmation given for the old one,
+    # so a Confirmed event returns to Planning to be re-confirmed; nothing is un-booked.
+    assert after["status"] == "Planning"
+    assert [h["action"] for h in _history(db, event["id"])].count(
+        "rescheduled_returned_to_planning") == 1
     stored = row(db, "event_change_requests", saved["id"])
     assert stored["significant"] is True
     assert "event_datetime" in stored["applied_changes"]

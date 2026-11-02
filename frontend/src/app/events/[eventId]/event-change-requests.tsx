@@ -114,8 +114,8 @@ export default function EventChangeRequests({
         <div role="status" className="rounded-xl border border-amber-300 bg-amber-50 p-4 text-sm text-amber-900 dark:border-amber-400/30 dark:bg-amber-500/10 dark:text-amber-200">
           <p className="font-semibold">Re-review needed</p>
           <p className="mt-1">{isCoordinator
-            ? "An approved change to the number of attendees or the venue may affect this event's venue bookings and equipment. Nothing was cancelled; re-check them, then mark the change as implemented."
-            : "Your change has been applied. Because it changes the number of attendees or the venue, your Coordinator is re-reviewing the venue and equipment arrangements before it is complete."}</p>
+            ? "An approved change to the number of attendees, the venue or the date/time may affect this event's venue bookings and equipment. Nothing was cancelled; re-check them, then mark the change as implemented."
+            : "Your change has been applied. Because it changes the number of attendees, the venue or the date/time, your Coordinator is re-reviewing the venue and equipment arrangements before it is complete."}</p>
           {capacityWarnings.length > 0 && <div className="mt-2 rounded-lg border border-destructive/30 bg-destructive/5 p-2 text-destructive">
             <p className="font-medium">Venue too small</p>
             <ul className="mt-1 list-disc pl-5">{capacityWarnings.map((warning) => <li key={warning}>{warning}</li>)}</ul>
