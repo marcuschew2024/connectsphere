@@ -11,7 +11,9 @@ vi.mock("@/lib/api", async original => ({ ...await original<object>(), apiReques
 const api = vi.mocked(apiRequest);
 const booking = { id: "booking-1", event_id: "event-1", venue_id: "venue-1", status: "Requested", requested_by: 2, reference: "BKG-001",
   start_at: "2099-10-20T06:00:00Z", end_at: "2099-10-20T08:00:00Z", expected_attendance: 20,
-  layout: "Theatre", special_requirements: null as string | null, venue: { name: "Auditorium" }, event: { title: "Workshop" } };
+  layout: "Theatre", special_requirements: null as string | null, venue: { name: "Auditorium" }, event: { title: "Workshop" },
+  // SCRUM-21/130: the server's management verdict; absent on older responses.
+  can_manage: undefined as boolean | undefined };
 const venues = [{ id: "venue-1", name: "Auditorium", capacity: 100 }, { id: "venue-2", name: "Seminar room", capacity: 40 }];
 function load(record = booking, catalogue = venues) {
   api.mockImplementation(async path => path === "/venues?page=1" ? { venues: catalogue } : { booking: record });
@@ -99,5 +101,17 @@ it.each(["Confirmed", "Cancelled", "Held"])("keeps a %s booking read-only even a
 it("does not offer edits for another Coordinator's Requested booking", async () => {
   load({ ...booking, requested_by: 7 }); render(<Edit />);
   expect(await screen.findByText(/This booking is read-only/)).toBeTruthy();
+  expect(screen.queryByRole("button", { name: "Save booking change" })).toBeNull();
+});
+// SCRUM-21/130: the server decides who manages a booking, because after a reassignment
+// requested_by no longer identifies the Coordinator in charge.
+it("offers edits on an inherited booking the signed-in Coordinator did not request", async () => {
+  load({ ...booking, requested_by: 7, can_manage: true }); render(<Edit />);
+  expect(await screen.findByLabelText("Venue")).toBeTruthy();
+  expect(screen.queryByText(/This booking is read-only/)).toBeNull();
+});
+it("withholds edits from a Coordinator who requested the booking but lost the event", async () => {
+  load({ ...booking, requested_by: 2, can_manage: false }); render(<Edit />);
+  expect(await screen.findByText(/Only the Coordinator assigned to this event/)).toBeTruthy();
   expect(screen.queryByRole("button", { name: "Save booking change" })).toBeNull();
 });

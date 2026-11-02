@@ -279,3 +279,87 @@ def test_tc_120_route_blocked_maintenance_prevents_approval(venue_staff, booking
     r = decide(venue_staff, target["id"], "approve")
     assert r.status_code == 409
     assert "conflicts with an approved booking and its setup/turnaround buffer" in r.json["error"]
+
+
+# ==============================================================================
+# SCRUM-79 release-1 gap fixes: the hold lifecycle completes
+# ==============================================================================
+
+def test_tc_79_08_a_held_booking_can_still_be_approved(venue_staff, booking_db):
+    """AC1/AC4: a hold is undecided work. Staff must be able to decide it before expiry.
+
+    Before this fix a 'Held' booking was a dead end: the decision route rejected it as
+    already decided, so the hold could only lapse.
+    """
+    b = seed(booking_db, status="Held", slot=SLOT_2_4PM)
+    b["expires_at"] = "2099-10-20T04:00:00+00:00"
+
+    r = decide(venue_staff, b["id"], "approve")
+
+    assert r.status_code == 200
+    assert r.json["booking"]["status"] == "Confirmed"
+
+
+def test_tc_79_09_a_held_booking_can_still_be_rejected(venue_staff, booking_db):
+    b = seed(booking_db, status="Held", slot=SLOT_2_4PM)
+    b["expires_at"] = "2099-10-20T04:00:00+00:00"
+
+    r = decide(venue_staff, b["id"], "reject", reason="The room is being repurposed.")
+
+    assert r.status_code == 200
+    assert r.json["booking"]["status"] == "Rejected"
+
+
+def test_tc_79_10_approving_a_hold_clears_its_deadline(venue_staff, booking_db):
+    """AC6 inverse: a confirmed slot must not keep the deadline it was held under.
+
+    Leaving expires_at set is what let the overlap engine treat a confirmed booking as
+    expired once that moment passed, freeing a venue that was in fact booked.
+    """
+    b = seed(booking_db, status="Held", slot=SLOT_2_4PM)
+    b["expires_at"] = "2099-10-20T04:00:00+00:00"
+
+    r = decide(venue_staff, b["id"], "approve")
+
+    assert r.status_code == 200
+    assert r.json["booking"]["expires_at"] is None
+    assert booking_db.rows[0]["expires_at"] is None, "the stored row must be clear too"
+
+
+def test_a_rejected_hold_keeps_its_deadline_for_the_record(venue_staff, booking_db):
+    """Only a confirmation clears the deadline; a rejection leaves the history intact."""
+    b = seed(booking_db, status="Held", slot=SLOT_2_4PM)
+    b["expires_at"] = "2099-10-20T04:00:00+00:00"
+
+    assert decide(venue_staff, b["id"], "reject", reason="Not available.").status_code == 200
+    assert booking_db.rows[0]["expires_at"] == "2099-10-20T04:00:00+00:00"
+
+
+def test_a_decision_notifies_the_events_current_coordinator(venue_staff, booking_db):
+    """SCRUM-21/130: after a reassignment the decision reaches whoever holds the event.
+
+    The booking was requested by Coordinator 2 but the event now belongs to Coordinator 7,
+    so 7 is told -- 2 no longer manages these arrangements.
+    """
+    b = seed(booking_db, status="Requested", slot=SLOT_2_4PM, requested_by=2)
+    b["event"] = {"title": "Workshop", "coordinator_id": 7}
+
+    assert decide(venue_staff, b["id"], "approve").status_code == 200
+
+    approved = [n for n in booking_db.notifications
+                if n["notification_type"] == "booking_approved"]
+    assert len(approved) == 1
+    assert approved[0]["recipient_id"] == 7
+
+
+def test_a_decision_falls_back_to_the_requester_when_the_event_names_no_coordinator(
+    venue_staff, booking_db,
+):
+    """An unassigned event must not swallow the decision notice."""
+    b = seed(booking_db, status="Requested", slot=SLOT_2_4PM, requested_by=2)
+
+    assert decide(venue_staff, b["id"], "approve").status_code == 200
+
+    approved = [n for n in booking_db.notifications
+                if n["notification_type"] == "booking_approved"]
+    assert approved[0]["recipient_id"] == 2

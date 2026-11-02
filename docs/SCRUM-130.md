@@ -13,7 +13,7 @@ and trade-offs: Decision Log **D26**. Owner: Ernest Wong.
 | 1 | A new submission enters the unassigned queue; it is not auto-assigned. | `coordinator_assignment.sql`, TC-130-01, `test_events.py` submission tests |
 | 2 | The Lead sees the queue with basic event info: title, category, date, expected attendance, submitted time. | TC-130-01 (API + e2e) |
 | 3 | The Lead assigns, and reassigns in any active state. Closed events can't be moved. | TC-130-02/03 (API + e2e), refusal tests |
-| 4 | Coordinators manage only events assigned to them. A reassigned Coordinator loses access. | TC-130-04 (API), mutation-checked |
+| 4 | Coordinators manage only events assigned to them. A reassigned Coordinator loses access. | TC-130-04 (API), mutation-checked; venue bookings covered from 2 Nov 2026 (see below) |
 | 5 | The new Coordinator is notified "assigned"; on reassignment the previous one is notified "moved away". The Organiser is notified once, when a Coordinator is first assigned. | TC-130-02/03 (API), `coordinator_assignment.sql`, e2e Coordinator and Organiser notifications |
 
 ## What changed
@@ -109,3 +109,22 @@ cd ../frontend && npm run test:unit && npm run build && npm run test:e2e
   on the Supervised events page, which doesn't need it.
 - **Unpaginated list:** the Lead's list is the existing `GET /events`, which has no
   pagination.
+
+## Release-1 gap closure (2 Nov 2026) — Decision Log D57
+
+AC4 held for event routes but not for the event's **venue bookings**. Booking edit and
+cancel authorised on the booking's `requested_by`, which reassignment does not move, so a
+former Coordinator kept API-level control of the arrangements and the receiving Coordinator
+had none. `TC-130-04` only exercised event-level routes, so the gap was not visible.
+
+Authority for a booking is now the event's current `coordinator_id`. `requested_by` is
+retained as history and is no longer an authorisation input. Booking decision notices and
+hold-expiry notices follow the same rule.
+
+New coverage in `api/tests/test_booking_lifecycle.py` and
+`api/tests/test_booking_persistence_acceptance.py`
+(`test_the_events_coordinator_manages_bookings_another_coordinator_requested`).
+
+**Ownership note:** this document names Ernest Wong as SCRUM-130's owner, while the audit
+routes R3 to "Ernest, with Jessica". Ownership of this fix is unresolved and must be
+settled before merge.

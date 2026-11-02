@@ -689,3 +689,76 @@ def test_identify_problematic_bookings_unconflicted_and_no_conflicts():
     )
     assert res_far == []
 
+
+
+# ==============================================================================
+# SCRUM-79 release-1 gap fixes: expiry belongs to tentative holds only
+# ==============================================================================
+
+def _record(status, *, expires_at=None, booking_id="b-1", hours=2):
+    return {
+        "id": booking_id,
+        "venue_id": "venue-1",
+        "start_at": START.isoformat(),
+        "end_at": (START + timedelta(hours=hours)).isoformat(),
+        "status": status,
+        **({"expires_at": expires_at.isoformat()} if expires_at else {}),
+    }
+
+
+def test_tc_79_08_confirmed_booking_with_a_stale_hold_deadline_still_blocks():
+    """AC6 inverse: expiry releases a HOLD, never a decided booking.
+
+    A booking approved while it was Held keeps its expires_at unless the decision clears
+    it. Treating that deadline as releasing the slot would hand a confirmed venue to
+    another event -- the engine must key expiry off the tentative statuses alone.
+    """
+    confirmed_but_stale = [_record(
+        "Confirmed",
+        expires_at=datetime.now(UTC) - timedelta(days=1),
+        booking_id="approved-from-hold",
+    )]
+
+    result = OverlapEngine().evaluate(
+        "venue-1", START, START + timedelta(hours=2), confirmed_but_stale,
+    )
+
+    assert result.hard_conflict is not None, "a confirmed slot must stay occupied"
+    assert result.hard_conflict.booking_id == "approved-from-hold"
+    assert result.can_request is False
+    assert result.can_confirm is False
+
+
+def test_tc_79_09_blocked_maintenance_with_a_stale_deadline_still_blocks():
+    """The same rule for the other hard status: maintenance is not released by a deadline."""
+    result = OverlapEngine().evaluate(
+        "venue-1", START, START + timedelta(hours=2),
+        [_record("Blocked", expires_at=datetime.now(UTC) - timedelta(hours=1), booking_id="mx")],
+    )
+
+    assert result.hard_conflict is not None
+    assert result.hard_conflict.booking_id == "mx"
+
+
+def test_tc_79_10_expired_hold_is_not_reported_as_a_buffer_conflict():
+    """SCRUM-129 AC3 + SCRUM-79: a released slot is not a conflict a human must resolve.
+
+    Two back-to-back bookings conflict once buffers apply, but when one of them is an
+    expired hold it no longer occupies the venue, so the pair is not reported.
+    """
+    engine = OverlapEngine()
+    first = _record("Confirmed", booking_id="confirmed-10-12", hours=2)
+    lapsed = datetime.now(UTC) - timedelta(hours=1)
+    second = {
+        **_record("Held", booking_id="hold-12-14", expires_at=lapsed),
+        "start_at": (START + timedelta(hours=2)).isoformat(),
+        "end_at": (START + timedelta(hours=4)).isoformat(),
+    }
+
+    live_hold = {**second}
+    live_hold.pop("expires_at")
+    assert engine.identify_problematic_bookings("venue-1", [first, live_hold], 30, 30), (
+        "a live hold abutting a confirmed booking must conflict once buffers apply"
+    )
+
+    assert engine.identify_problematic_bookings("venue-1", [first, second], 30, 30) == []

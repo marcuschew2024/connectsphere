@@ -76,10 +76,16 @@ def create_booking(fields: dict, actor_id: int) -> dict:
 
 
 def list_requested_bookings() -> list[dict]:
+    """Bookings still awaiting a Venue Staff decision.
+
+    SCRUM-79: a tentatively Held booking is still undecided — staff must be able to
+    approve or reject it before its deadline — so it belongs in this queue alongside
+    Requested ones.
+    """
     try:
         result = _client().table("venue_bookings").select(
             "*,venue:venues(reference,name,location),event:events(reference,title,event_datetime,expected_attendance)"
-        ).eq("status", "Requested").order("requested_at", desc=True).execute()
+        ).in_("status", ["Requested", "Held"]).order("requested_at", desc=True).execute()
         return result.data or []
     except ServiceUnavailable:
         raise
@@ -88,9 +94,15 @@ def list_requested_bookings() -> list[dict]:
 
 
 def get_booking(booking_id: str) -> dict | None:
+    """One booking with its venue and event.
+
+    The event embed carries `coordinator_id` because booking management follows the
+    event's *current* Coordinator, not whoever first requested it (SCRUM-21/130).
+    """
     try:
         result = _client().table("venue_bookings").select(
-            "*,venue:venues(reference,name,location),event:events(reference,title,event_datetime,expected_attendance)"
+            "*,venue:venues(reference,name,location),"
+            "event:events(reference,title,event_datetime,expected_attendance,coordinator_id)"
         ).eq("id", booking_id).execute()
         return result.data[0] if result.data else None
     except ServiceUnavailable:
@@ -116,18 +128,23 @@ def list_bookings_for_event_detail(event_id: str) -> list[dict]:
 
 
 def update_requested_booking(booking_id: str, fields: dict, user_id: int) -> dict:
-    """Change only one Coordinator-owned Requested booking."""
+    """Change one Requested booking.
+
+    Authority is the route's business: it checks the acting user is the event's current
+    Coordinator (SCRUM-21/130), so this filters on state only. `last_changed_by` records
+    who made the change.
+    """
     try:
         result = _client().table("venue_bookings").update({
             **fields,
             "updated_at": datetime.now(UTC).isoformat(),
             "last_changed_by": user_id,
             "last_changed_at": datetime.now(UTC).isoformat(),
-        }).eq("id", booking_id).eq("requested_by", user_id).eq(
+        }).eq("id", booking_id).eq(
             "status", "Requested"
         ).execute()
         if not result.data:
-            raise Conflict("Only your Requested booking can be changed.")
+            raise Conflict("Only a Requested booking can be changed.")
         return result.data[0]
     except (Conflict, ServiceUnavailable):
         raise
@@ -140,18 +157,22 @@ def update_requested_booking(booking_id: str, fields: dict, user_id: int) -> dic
 
 
 def cancel_booking(booking_id: str, user_id: int) -> dict:
-    """Cancel one Coordinator-owned booking without touching sibling bookings."""
+    """Cancel one booking without touching sibling bookings.
+
+    As with `update_requested_booking`, the route owns authority (the event's current
+    Coordinator, SCRUM-21/130) and this filters on cancellable state only.
+    """
     try:
         result = _client().table("venue_bookings").update({
             "status": "Cancelled",
             "updated_at": datetime.now(UTC).isoformat(),
             "last_changed_by": user_id,
             "last_changed_at": datetime.now(UTC).isoformat(),
-        }).eq("id", booking_id).eq("requested_by", user_id).in_(
+        }).eq("id", booking_id).in_(
             "status", ["Requested", "Confirmed"]
         ).execute()
         if not result.data:
-            raise Conflict("Only your Requested or Confirmed booking can be cancelled.")
+            raise Conflict("Only a Requested or Confirmed booking can be cancelled.")
         return result.data[0]
     except (Conflict, ServiceUnavailable):
         raise
@@ -185,12 +206,16 @@ def record_booking_decision(
     alternative: str | None,
     user_id: int,
     expires_at: str | None = None,
+    clear_expiry: bool = False,
 ) -> dict:
     """Record a Venue Staff decision while the booking still awaits one (SCRUM-32).
 
-    The ``status in (Requested, Pending)`` guard makes the write idempotent: an
+    The ``status in (Requested, Pending, Held)`` guard makes the write idempotent: an
     already-decided booking matches no rows (409). Approving to 'Confirmed' can trip the
     EXCLUDE overlap constraint (23P01) if the slot is now taken -> surfaced as a 409.
+
+    SCRUM-79: ``clear_expiry`` drops the hold deadline when a held booking is approved,
+    so a confirmed slot never carries an expiry that outlived the decision.
     """
     try:
         now = datetime.now(UTC).isoformat()
@@ -201,7 +226,9 @@ def record_booking_decision(
             "decided_by": user_id,
             "decision_at": now,
         }
-        if expires_at is not None:
+        if clear_expiry:
+            payload["expires_at"] = None
+        elif expires_at is not None:
             payload["expires_at"] = expires_at
         result = _client().table("venue_bookings").update(payload).eq(
             "id", booking_id
@@ -239,12 +266,60 @@ def list_venue_bookings_in_range(
             start_at = (s_dt - timedelta(minutes=buffer_minutes)).isoformat()
             end_at = (e_dt + timedelta(minutes=buffer_minutes)).isoformat()
         result = _client().table("venue_bookings").select(
-            "id,venue_id,start_at,end_at,status,occupied_start,occupied_end"
+            "id,venue_id,start_at,end_at,status,occupied_start,occupied_end,expires_at"
         ).eq("venue_id", venue_id).in_(
-            "status", ["Confirmed", "Requested", "Blocked"]
+            # SCRUM-79: a tentative hold occupies the slot, so the calendar must show it.
+            "status", ["Confirmed", "Requested", "Pending", "Held", "Blocked"]
         ).lt("start_at", end_at).gt("end_at", start_at).execute()
         return result.data or []
     except ServiceUnavailable:
         raise
     except Exception as error:
         raise ServiceUnavailable("Could not load venue bookings. Contact the team.") from error
+
+
+def expire_holds(venue_id: str | None = None, as_of: str | None = None) -> list[dict]:
+    """Flip every tentative hold past its deadline to 'Expired' (SCRUM-79).
+
+    The row is kept, not deleted: an expired hold is part of the venue's history and the
+    audit trail (S1 Q23). 'Expired' sits outside every exclusion-constraint predicate, so
+    the slot becomes requestable again at the database layer as well as in the engine.
+    Returns the rows it released, so the caller can notify their Coordinators.
+    """
+    try:
+        moment = as_of or datetime.now(UTC).isoformat()
+        query = _client().table("venue_bookings").update({
+            "status": "Expired",
+            "updated_at": moment,
+        }).eq("status", "Held").lte("expires_at", moment)
+        if venue_id is not None:
+            query = query.eq("venue_id", venue_id)
+        return [row for row in (query.execute().data or []) if isinstance(row, dict)]
+    except ServiceUnavailable:
+        raise
+    except Exception as error:
+        raise ServiceUnavailable(
+            "Could not release expired venue holds. Contact the team."
+        ) from error
+
+
+def list_active_bookings_for_venue(venue_id: str) -> list[dict]:
+    """Every slot-holding booking for one venue, for the buffer conflict report (SCRUM-129).
+
+    Status is unfiltered by date: raising a venue's buffers can make any pair of its
+    existing bookings conflict, so the report considers all of them.
+    """
+    try:
+        result = _client().table("venue_bookings").select(
+            "id,reference,venue_id,event_id,start_at,end_at,status,expires_at,"
+            "event:events(reference,title)"
+        ).eq("venue_id", venue_id).in_(
+            "status", ["Confirmed", "Blocked", "Requested", "Pending", "Held"]
+        ).order("start_at").execute()
+        return result.data or []
+    except ServiceUnavailable:
+        raise
+    except Exception as error:
+        raise ServiceUnavailable(
+            "Could not load this venue's bookings. Contact the team."
+        ) from error

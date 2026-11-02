@@ -143,3 +143,27 @@ it("a single unusable reserved unit is described accurately", async () => {
   api.mockImplementation(async path => path.includes("/history") ? { history: [], has_more: false } : { request: { ...equipmentRequest, items: [{ ...equipmentRequest.items[0], unusable_reserved_quantity: 1 }] } }); await act(async () => { render(<Request params={params} />); });
   await screen.findByText(/1 reserved unit is on stock.*does not count/);
 });
+// SCRUM-129 AC3: a buffer change that breaks existing bookings reports them for a human.
+it("raising a buffer reports the bookings it broke without claiming anything was changed", async () => {
+  const conflict = {
+    booking_id: "booking-a", event_id: "event-a", event_title: "Science Fair", status: "Confirmed",
+    start_at: "2099-10-20T02:00:00Z", end_at: "2099-10-20T04:00:00Z",
+    occupied_start: "2099-10-20T01:30:00Z", occupied_end: "2099-10-20T04:45:00Z",
+    reason: "Booking occupies ... with buffers, conflicting with 1 existing booking(s).",
+    conflicts_with: [{ booking_id: "booking-b", event_id: "event-b", event_title: "Debate Final", status: "Requested", start_at: "2099-10-20T04:00:00Z", end_at: "2099-10-20T06:00:00Z", occupied_start: "2099-10-20T03:30:00Z", occupied_end: "2099-10-20T06:45:00Z" }],
+  };
+  api.mockResolvedValue({ venue: venueRecord, buffer_conflicts: [conflict] });
+  render(<VenueForm venue={venueRecord} />);
+  fireEvent.submit(screen.getByRole("button", { name: "Save changes" }).closest("form")!);
+  const panel = await screen.findByRole("region", { name: /now conflict/i });
+  expect(panel.textContent).toContain("Science Fair");
+  expect(panel.textContent).toContain("Debate Final");
+  expect(panel.textContent).toContain("Nothing has been changed or cancelled");
+});
+it("a save with no buffer conflicts shows no conflict report", async () => {
+  api.mockResolvedValue({ venue: venueRecord });
+  render(<VenueForm venue={venueRecord} />);
+  fireEvent.submit(screen.getByRole("button", { name: "Save changes" }).closest("form")!);
+  await screen.findByRole("status");
+  expect(screen.queryByRole("region", { name: /now conflict/i })).toBeNull();
+});

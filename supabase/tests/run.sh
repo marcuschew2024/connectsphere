@@ -224,3 +224,13 @@ for pass in 1 2; do
 done
 psql -v ON_ERROR_STOP=1 -f /sql/tests/venue_calendar_buffers.sql
 echo "Persisted calendar occupancy database checks: PASS"
+
+# SCRUM-79 (Week 7 Change #4): an expired tentative hold releases its slot at the database
+# layer too. Applied after SCRUM-137 so the trigger coexists with the buffered occupancy
+# trigger, and applied twice to prove the create-or-replace and backfill are replay-safe.
+for pass in 1 2; do
+  psql -v ON_ERROR_STOP=1 -f /sql/migrations/20261102120000_scrum_79_release_expired_holds.sql > /tmp/migration-output.txt
+  echo "Expired hold release migration pass $pass: PASS"
+done
+psql -v ON_ERROR_STOP=1 -f /sql/tests/venue_hold_release.sql
+echo "Expired hold release database checks: PASS"

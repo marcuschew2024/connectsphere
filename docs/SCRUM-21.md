@@ -69,7 +69,27 @@ Run: `cd api && source .venv/bin/activate && python -m pytest tests/test_rbac.py
 - Non-Organiser `POST /events` → 403, row in `access_denied_log` (actor + role + reason + timestamp).
 - Attendee event view returns only public fields.
 
-## Known limitation / future work
-Same auth seam as SCRUM-20: these endpoints resolve identity via the dev role switcher
-(`require_acting_user`), not the real login session. Fine for the Sprint 1 demo (role
-switching); unifying real auth with the events API is future work.
+## Resolved limitation
+Sprint 1 noted that these endpoints resolved identity via the dev role switcher rather
+than a real login session. That is no longer the case: `require_acting_user` now prefers
+`get_authenticated_user()` and falls back to the switcher only in development
+(`api/app/acting_user.py`), per SCRUM-139 and Decision Log D25.
+
+## Release-1 gap closure (2 Nov 2026) — Decision Log D57
+
+The audit (R3) found one path that bypassed these guards. `PATCH /venues/bookings/<id>` and
+`POST /venues/bookings/<id>/cancel` authorised on the booking's `requested_by` instead of
+the event's current `coordinator_id`, and expressed refusal as a `409 Conflict` without
+calling `log_access_denied`.
+
+Two AC breaches followed:
+
+- **"Role determines accessible records."** After the Lead reassigned an event, the former
+  Coordinator could still edit and cancel its venue bookings through the API, while the new
+  Coordinator could not manage what they had inherited.
+- **"Denied attempts recorded."** Those refusals wrote nothing to `access_denied_log`, so
+  an unauthorised attempt on another Coordinator's arrangements left no trace.
+
+Both routes now call `require_related_user`, producing a recorded `403`. Tests:
+`api/tests/test_booking_lifecycle.py` (direct-API refusal, the audit row, and the inherited
+booking) and `api/tests/test_booking_persistence_acceptance.py` against the real database.

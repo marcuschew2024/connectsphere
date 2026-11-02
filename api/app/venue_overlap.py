@@ -164,8 +164,10 @@ class OverlapEngine:
                 turnaround_minutes=turnaround_minutes,
             )
 
-            # SCRUM-79: An expired hold is not treated as active/confirmed and does not block
-            if interval.is_expired():
+            # SCRUM-79: an expired tentative hold releases its slot. Expiry applies ONLY to
+            # tentative statuses: a decided booking keeps its slot even if it still carries
+            # the deadline it was held under, so approving a hold can never free the venue.
+            if interval.status in self.TENTATIVE_STATUSES and interval.is_expired():
                 continue
 
             # Check if this interval overlaps considering setup and turnaround buffers
@@ -203,6 +205,12 @@ class OverlapEngine:
             b for b in bookings
             if str(b.get("venue_id")) == str(venue_id)
             and b.get("status") in (self.HARD_STATUSES | self.TENTATIVE_STATUSES)
+            # An expired hold no longer occupies the venue, so it cannot be part of a
+            # buffer conflict a human has to resolve (SCRUM-79 + SCRUM-129).
+            and not (
+                b.get("status") in self.TENTATIVE_STATUSES
+                and BookingInterval.from_record(b, 0, 0).is_expired()
+            )
         ]
 
         problematic: list[dict[str, Any]] = []

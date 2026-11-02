@@ -23,6 +23,10 @@ export type BookingRecord = {
   decision_at: string | null;
   requested_by: number;
   requested_at: string;
+  // SCRUM-21/130: the server's answer to "may the signed-in user change this booking?".
+  // Authority follows the event's current Coordinator, so the UI must not re-derive it
+  // from requested_by -- a reassigned event moves its bookings with it.
+  can_manage?: boolean;
   expected_attendance: number;
   layout: string;
   special_requirements: string | null;

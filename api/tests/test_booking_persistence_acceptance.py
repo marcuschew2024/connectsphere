@@ -143,16 +143,71 @@ def test_wrong_role_is_denied_without_mutating_any_arrangement(arrangements, act
 
 
 @pytest.mark.parametrize("action", ["edit", "cancel"])
-def test_another_coordinator_cannot_mutate_the_owners_booking(arrangements, action):
+def test_a_coordinator_without_the_event_cannot_mutate_its_bookings(arrangements, action):
+    """A Coordinator who does not hold this event cannot touch its venue arrangements.
+
+    SCRUM-21/130 changed the refusal this test asserts. Authority used to be the booking's
+    `requested_by`, which answered "not your booking" with a 409 and recorded nothing;
+    it is now the event's current `coordinator_id`, so the refusal is a 403 written to
+    access_denied_log like every other record-level denial. The intent is unchanged and
+    the guarantee is stronger: same actor, same arrangements untouched, plus an audit row.
+    Decision Log D57.
+    """
     db, users, event, bookings, _ = arrangements
     before = snapshot(db, event)
+    prior_denials = {row["id"] for row in db.table("access_denied_log").select("id").eq(
+        "actor_id", 7,
+    ).execute().data}
     path = f"/venues/bookings/{bookings[0]['id']}"
     if action == "edit":
         response = users[7].patch(path, json={"layout": "Theatre"}, headers=ORIGIN)
     else:
         response = users[7].post(path + "/cancel", headers=ORIGIN)
-    assert response.status_code == 409
+    assert response.status_code == 403
     assert snapshot(db, event) == before
+    denials = db.table("access_denied_log").select("id,actor_id,action,event_id").eq(
+        "actor_id", 7,
+    ).execute().data
+    new_denials = [row for row in denials if row["id"] not in prior_denials]
+    assert len(new_denials) == 1
+    assert new_denials[0]["action"] == (
+        "change_venue_booking" if action == "edit" else "cancel_venue_booking"
+    )
+    assert new_denials[0]["event_id"] == event["id"]
+
+
+@pytest.mark.parametrize("action", ["edit", "cancel"])
+def test_the_events_coordinator_manages_bookings_another_coordinator_requested(
+    arrangements, action,
+):
+    """The other half of SCRUM-130 AC4: a reassignment hands over the arrangements.
+
+    Coordinator 7 did not request these bookings. Once the event is theirs they must be
+    able to manage them, or inherited arrangements would be stranded.
+    """
+    db, users, event, bookings, _ = arrangements
+    db.table("events").update({"coordinator_id": 7}).eq("id", event["id"]).execute()
+    path = f"/venues/bookings/{bookings[0]['id']}"
+
+    if action == "edit":
+        response = users[7].patch(path, json={
+            "start_at": "2099-10-20T08:00:00Z", "end_at": "2099-10-20T09:00:00Z",
+            "layout": "Theatre",
+        }, headers=ORIGIN)
+    else:
+        response = users[7].post(path + "/cancel", headers=ORIGIN)
+
+    assert response.status_code == 200, response.json
+    stored = db.table("venue_bookings").select("status,last_changed_by").eq(
+        "id", bookings[0]["id"],
+    ).execute().data[0]
+    assert stored["last_changed_by"] == 7, "the change is attributed to who made it"
+    if action == "cancel":
+        assert stored["status"] == "Cancelled"
+    # The Coordinator who lost the event can no longer manage what they requested.
+    assert users[2].post(
+        f"/venues/bookings/{bookings[1]['id']}/cancel", headers=ORIGIN,
+    ).status_code == 403
 
 
 @pytest.mark.parametrize("action", ["edit", "cancel"])

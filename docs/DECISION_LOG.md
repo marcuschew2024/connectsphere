@@ -1591,3 +1591,147 @@ auto-assign in D9) are recorded explicitly rather than left implicit.
   requested accurate e2e verification and explicitly authorised fixing the discovered
   display gap. This is not a claim of human design approval. Human review and green
   hosted CI remain required before an explicitly authorised merge.
+
+### D56 — An expired tentative hold releases its slot in both layers (SCRUM-79)
+
+- **Context.** Week 7 Change #4 requires a hold to expire and free the venue. D21 decided
+  expiry would be evaluated on demand by `OverlapEngine.is_expired()` rather than by a
+  background daemon. The release-1 audit (R2) showed that left three gaps:
+  1. The engine applied expiry *before* classifying status, so a booking approved while it
+     was `Held` kept its `expires_at` and stopped occupying its slot once that moment
+     passed. A confirmed venue could be handed to another event. This is a correctness
+     defect in the confirmed-booking path, not only in the hold path.
+  2. Nothing ever wrote the `Expired` status. The value existed in the status CHECK and in
+     the frontend's type and badge, but no code could produce it.
+  3. The engine ignored an expired hold while the `venue_bookings_one_tentative_hold`
+     exclusion constraint kept blocking its slot, so search showed a slot free and the
+     booking insert was then refused — breaking SCRUM-137's accepted invariant that a slot
+     shown available is not later rejected for a buffer or hold reason.
+- **Decision.** Expiry applies to the tentative statuses only (`Requested`, `Pending`,
+  `Held`); a decided booking is never released by a deadline it carries. Approving a held
+  booking clears `expires_at`. Lapsed holds are moved to `Expired`, keeping the row, by two
+  layers: an opportunistic application sweep (`venue_hold_expiry.release_expired_holds`)
+  that also notifies the Coordinator, and a `before insert or update` database trigger
+  (`release_expired_venue_holds`) that clears a venue's stale holds before any booking
+  write and nulls `expires_at` on a confirmation. The trigger is the authority; the sweep
+  exists to make the stored state honest and to satisfy AC 5.
+- **Why a trigger rather than a constraint predicate.** An index or constraint predicate
+  must be IMMUTABLE and `now()` is STABLE, so "ignore holds past their deadline" cannot be
+  expressed in the `EXCLUDE` predicate. Moving the row out of the tentative tier achieves
+  the same result with no change to the constraint, because `Expired` appears in no
+  exclusion predicate.
+- **Constraints and guardrails.** The row is kept, never deleted (S1 Q23: data must not
+  disappear). Hold duration stays 24h or 48h chosen by Venue Staff (S1 Q6: the customer is
+  indifferent, so the existing control is sufficient). AC 5 is read as "informed *when* the
+  hold expires" — the customer's wording permits it and no scheduler exists for "before".
+  The sweep follows `rbac.log_access_denied` in logging and swallowing its own failures: it
+  must never turn a working booking request into a 500, and the trigger guarantees the
+  invariant regardless. The trigger recurses exactly one level, because its own `UPDATE`
+  re-enters with status `Expired`, which fails the guard.
+- **Verification.** `test_venue_overlap.py` TC-79-08/09/10 (a confirmed or blocked booking
+  with a stale deadline still blocks; an expired hold is not reported as a buffer conflict)
+  — all three fail against the previous engine. `test_venue_hold_expiry.py`: 27 tests over
+  the pure rules, the sweep, the notice recipient, and the repository write including its
+  failure paths. `test_booking_decision_route.py` TC-79-08/09/10: a held booking can still
+  be approved or rejected, approval clears the deadline, a rejection keeps it for the
+  record. `supabase/tests/venue_hold_release.sql`: the slot becomes requestable, the row
+  survives as `Expired`, a live hold still blocks, and a confirmation keeps no deadline.
+  100% statement and branch coverage on `venue_hold_expiry.py` and `venue_overlap.py`.
+- **Trade-off.** The sweep writes on some read paths (the Venue Staff queue and the
+  availability calendar). That cost buys a stored state matching what the engine and the
+  constraints believe, which is what the audit found missing. A hold released by the
+  trigger alone — a direct SQL write with no application path — produces no notification;
+  the application sweep runs first on every route that matters.
+- **Supersedes.** The expiry half of D21. D21's "no background daemon" choice stands.
+- **Owner.** Jessica Ang (Sprint 4 overlap and availability owner). Overlap-engine,
+  status-transition and schema changes: human review required before merge.
+
+### D57 — Booking management follows the event's current Coordinator (SCRUM-21 / SCRUM-130)
+
+- **Context.** Audit R3. `PATCH /venues/bookings/<id>` and `POST .../cancel` authorised on
+  the booking's `requested_by`. Reassignment (D26) changes `events.coordinator_id` but not
+  that field, so after a reassignment the former Coordinator could still edit and cancel
+  the event's venue arrangements through the API, the receiving Coordinator could not manage
+  what they had inherited, and booking decisions notified the former Coordinator. The
+  refusal was also a `409 Conflict` that bypassed `require_related_user`, so SCRUM-21 AC4
+  ("denied attempts recorded") did not hold for this path — nothing was written to
+  `access_denied_log`.
+- **Decision.** Authority for a venue booking is the event's current `coordinator_id`,
+  checked with the central `require_related_user` guard, producing a recorded `403`.
+  `requested_by` is retained as history and is no longer an authorisation input; the
+  repository filters on state only and records `last_changed_by`. Decision and hold-expiry
+  notices go to the current Coordinator, falling back to `requested_by` only when the event
+  cannot be read, so a notice is never silently dropped. `GET /venues/bookings/<id>` returns
+  a server-computed `can_manage`, which the edit screen uses instead of comparing
+  `requested_by` (D52: the UI offers only what the API permits).
+- **Constraints and guardrails.** No customer answer governs this: S1 Q19 explicitly waived
+  coordinator handover, and Week 7 Change #5 then made reassignment mandatory, so the rule
+  is the team's. It is derived from SCRUM-130 AC4 ("Coordinators can only manage events
+  assigned to them") and SCRUM-21 ("role determines accessible records"). Read access is
+  unchanged and still broad (S1 Q48, D28): read grants no edit. Authorisation runs before
+  the event's state is revealed.
+- **Changed existing test — reviewable.** `test_booking_persistence_acceptance.py`
+  `test_another_coordinator_cannot_mutate_the_owners_booking` asserted the old `409`. It is
+  renamed to `test_a_coordinator_without_the_event_cannot_mutate_its_bookings` and now
+  asserts `403` plus the `access_denied_log` row. The intent (another Coordinator cannot
+  mutate these arrangements; nothing is written) is unchanged and the guarantee is
+  strengthened. Two fixtures in `test_booking_lifecycle.py` gained a `coordinator_id`
+  because cancelling is now authorised against the event. No assertion was weakened or
+  removed. This is flagged for human review per the root AGENTS.md test-protection rule.
+- **Verification.** `test_booking_lifecycle.py`: former Coordinator refused on both routes
+  by direct API call with no write; the denial recorded with the right action and event;
+  the receiving Coordinator manages a booking requested by someone else and the change is
+  attributed to them; `can_manage` reflects the server's verdict. New acceptance test
+  `test_the_events_coordinator_manages_bookings_another_coordinator_requested` exercises the
+  handover against the real database. `test_booking_decision_route.py`: a decision notifies
+  the current Coordinator, falling back to the requester for an unassigned event.
+  Frontend: the edit screen offers an inherited booking and withholds a lost one.
+- **Trade-off.** A Coordinator who requested a booking and then lost the event keeps no
+  access to it at all, including read — consistent with how event access already behaves
+  after reassignment. `requested_by` becomes audit-only, so any future rule needing the
+  original requester must read it explicitly.
+- **Owner.** Authorisation logic: needs a named human owner before merge.
+  `docs/SCRUM-130.md` names Ernest Wong as SCRUM-130's owner; ownership of this fix is
+  unresolved (see the open coordination item) and it must not merge until that is settled.
+
+### D58 — The buffer conflict report is computed on demand, not stored (SCRUM-129)
+
+- **Context.** SCRUM-129 AC3 and the ratified SCRUM-137 ACs require that existing bookings
+  made conflicting by a buffer change are identified and reported, not silently deleted.
+  The audit (R6) found the criterion unmet in both layers: `identify_problematic_bookings`
+  had no production caller at all, `problematic_venue_bookings` had no reader, and the one
+  statement that wrote it was followed by `raise exception` inside the same transaction, so
+  the report was rolled back with the migration it was meant to justify.
+  `docs/SCRUM-129.md` and D48 described this as working.
+- **Decision.** Compute the report on demand from the existing pure detector: a repository
+  read of the venue's slot-holding bookings, `OverlapEngine.identify_problematic_bookings`,
+  and a presentation shape. Surface it on the venue save response when a buffer actually
+  changed, and at `GET /venues/<id>/buffer-conflicts` for Venue Staff. Venue Staff see a
+  plain count and list after saving; nothing is written to a booking.
+- **Why on demand rather than the table.** `problematic_venue_bookings` is created by
+  SCRUM-137's migration, which the audit reports has not successfully applied to the
+  connected database, and whose rollback defect is that story's to fix. Computing on demand
+  makes AC3 true today whichever way that lands, and cannot disagree with the table once it
+  works. If the table becomes reliable it is the durable home for the same facts and this
+  reader can persist them instead.
+- **Constraints and guardrails.** Read-only and Venue Staff only — they own the catalogue
+  and resolve the conflicts. Pairs that already overlapped on their published times are
+  excluded: they are not a consequence of the buffer change. Expired holds are excluded,
+  because a released slot is not a conflict anyone must resolve. Buffers of zero produce no
+  report. Supports S1 Q55, the customer's nearest ruling: no automatic process, alert
+  someone, fixed manually — which requires something visible.
+- **Verification.** `test_venue_buffer_conflicts.py`: 22 tests covering the AC's own
+  10-12 / 12-14 example, buffer-only versus pre-existing overlap, distant slots, held
+  bookings, the report shape, the save that triggers it, a save that does not, the read
+  endpoint, an unknown venue and role refusal — including an explicit assertion that no
+  booking row is mutated while the report is produced. 100% statement and branch coverage
+  on `venue_buffer_conflicts.py`. Frontend: the panel lists both sides of the clash and
+  states that nothing was changed.
+- **Trade-off.** The report is recomputed on each request rather than stored, so there is no
+  history of when a conflict was first detected and no record of a human dispositioning
+  one. That is acceptable for Release 1 and is what the durable table would add later.
+- **Corrects.** The claim in `docs/SCRUM-129.md` section 2C and in D48 that conflicting
+  bookings were already recorded. They were detected only in unit tests.
+- **Owner.** Jessica Ang (SCRUM-129). The SCRUM-137 migration half, including its rollback
+  defect, stays with that story's owner and must be coordinated before the database becomes
+  the source of this report.

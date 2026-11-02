@@ -29,6 +29,12 @@
 ### C. Pure Conflict Detection & Flagging (`identify_problematic_bookings`)
 - Encapsulates the safety policy for changing venue parameters: instead of destructively altering existing bookings when a venue's buffer times are updated, this function identifies pairs of bookings that were non-conflicting previously under raw intervals but now conflict under the buffered intervals.
 
+> **Correction (2 Nov 2026).** As originally delivered this function had **no production
+> caller** — it was exercised only by unit tests — and `problematic_venue_bookings` had no
+> reader, so AC3 ("existing bookings that become conflicting are IDENTIFIED/flagged") had
+> no runtime surface. The audit recorded this as R6. It is now wired up: see the section
+> below and Decision Log D58.
+
 ---
 
 ## 3. Test Register Traceability & Evidence
@@ -47,3 +53,34 @@
 - **Linter & Code Style:** `ruff check api/` reported **All checks passed!**
 - **Frontend Linter:** `npm run lint` reported **0 errors**.
 - **Frontend Unit Tests:** `npm run test:unit` reported **16 passed**.
+
+---
+
+## 5. AC3 closure (2 Nov 2026) — Decision Log D58
+
+AC3 is now implemented end to end, computed on demand:
+
+| Layer | What |
+| --- | --- |
+| Detector (pure) | `OverlapEngine.identify_problematic_bookings` — unchanged, now also skipping expired holds |
+| Composition | `api/app/venue_buffer_conflicts.py` — repository read, shaping, and `buffers_changed` |
+| API | `PUT /venues/<id>` returns `buffer_conflicts` when a buffer actually changed; `GET /venues/<id>/buffer-conflicts` (Venue Staff) reads it any time |
+| UI | The venue save confirmation lists both sides of each clash and states that nothing was changed or cancelled |
+
+Pairs that already overlapped on their published times are excluded — they are not a
+consequence of the buffer change. Nothing writes to a booking, which is asserted directly
+by `test_the_report_never_writes_to_a_booking`.
+
+**Why not the `problematic_venue_bookings` table:** it is created by SCRUM-137's migration,
+which the audit reports has not successfully applied to the connected database and whose
+insert is rolled back by the `raise exception` in the same transaction. That defect belongs
+to SCRUM-137. Computing on demand makes AC3 true regardless of how that lands; the table
+remains the durable home for the same facts once it works.
+
+### Added tests
+
+`api/tests/test_venue_buffer_conflicts.py` — 22 tests: the AC's own 10:00–12:00 / 12:00–14:00
+example, buffer-only versus pre-existing overlap, distant slots, held bookings, the report
+shape, the save that triggers it and a save that does not, the read endpoint, an unknown
+venue, role refusal, and the no-mutation guarantee. 100% statement and branch coverage on
+`api/app/venue_buffer_conflicts.py`.

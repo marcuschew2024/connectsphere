@@ -24,6 +24,7 @@ from .rbac import require_related_user, require_role
 # get_supabase_client on every app module. bookings.py no longer calls it directly
 # (SCRUM-49 removed the per-staff lookup), so keep it importable for those fixtures.
 from .supabase_client import get_supabase_client  # noqa: F401
+from .venue_hold_expiry import release_expired_holds
 from .venue_overlap import OverlapEngine
 from .venue_repository import get_venue
 from .venue_retirement import VenueRetirement
@@ -89,6 +90,9 @@ def _validated_booking_fields(data, event: dict, existing: dict | None = None) -
 
     setup_m = int(venue.get("setup_time_minutes") or 0)
     turnaround_m = int(venue.get("turnaround_time_minutes") or 0)
+    # SCRUM-79: release holds that have passed their deadline before judging this slot, so
+    # a stale hold never blocks a request the engine already considers free.
+    release_expired_holds(venue_id)
     conflicts = find_overlapping_bookings(
         venue_id, start.isoformat(), end.isoformat(),
         setup_minutes=setup_m, turnaround_minutes=turnaround_m,
@@ -190,6 +194,7 @@ def submit_booking():
 
     setup_m = int(venue.get("setup_time_minutes") or 0)
     turnaround_m = int(venue.get("turnaround_time_minutes") or 0)
+    release_expired_holds(venue_id)  # SCRUM-79: see _validated_booking_fields
     overlap = OverlapEngine().evaluate(
         venue_id,
         start,
@@ -233,7 +238,22 @@ def requested_queue():
     _origin_check()
     user = require_acting_user()
     require_role(user, "Venue Staff", action="view_venue_booking_queue")
+    # SCRUM-79: the queue shows undecided bookings, including live holds. Release the
+    # lapsed ones first so staff are never offered a decision on an expired hold.
+    release_expired_holds()
     return jsonify({"bookings": list_requested_bookings()}), 200
+
+
+def _current_coordinator(booking: dict, event: dict | None = None) -> int | None:
+    """The Coordinator who manages this booking now (SCRUM-21/130).
+
+    Booking authority follows the event's assignment, so a reassignment moves the venue
+    arrangements with it. `requested_by` stays on the record as history. Falls back to it
+    only when the event cannot be read, so a booking is never left unmanageable.
+    """
+    embedded = booking.get("event") or {}
+    coordinator = (event or {}).get("coordinator_id") or embedded.get("coordinator_id")
+    return coordinator or booking.get("requested_by")
 
 
 @bookings.get("/<booking_id>")
@@ -249,6 +269,12 @@ def booking_detail(booking_id):
     else:
         require_role(user, "Coordinator", action="view_venue_booking")
         require_related_user(user, event or booking, action="view_venue_booking")
+    # D52: the UI offers a change only where the API would permit one, so the server
+    # decides. A Coordinator manages the booking only while they hold the event.
+    booking["can_manage"] = (
+        user.get("role") == "Coordinator"
+        and _current_coordinator(booking, event) == user["id"]
+    )
     return jsonify({"booking": booking}), 200
 
 
@@ -285,11 +311,14 @@ def change_booking(booking_id):
     booking = get_booking(booking_id)
     if booking is None:
         raise NotFound("Booking request not found.")
-    if booking.get("requested_by") != user["id"] or booking.get("status") != "Requested":
-        raise Conflict("Only your Requested booking can be changed.")
     event = get_event_by_id(booking["event_id"])
     if event is None:
         raise NotFound("Event not found.")
+    # SCRUM-21/130: authority follows the event's current Coordinator, and the refusal is
+    # a recorded 403 rather than a 409 so a denied attempt lands in access_denied_log.
+    require_related_user(user, event, action="change_venue_booking")
+    if booking.get("status") != "Requested":
+        raise Conflict("Only a Requested booking can be changed.")
     data = request.get_json(silent=True)
     fields = _validated_booking_fields(data, event, booking)
     return jsonify({"booking": update_requested_booking(booking_id, fields, user["id"])}), 200
@@ -305,7 +334,12 @@ def cancel_one_booking(booking_id):
     if booking is None:
         raise NotFound("Booking request not found.")
     event = get_event_by_id(booking["event_id"]) if booking.get("event_id") else None
-    if event and event.get("status") == "Completed":
+    if event is None:
+        raise NotFound("Event not found.")
+    # SCRUM-21/130: as with a change, only the event's current Coordinator may cancel its
+    # venue arrangements. Authorise before revealing the event's state.
+    require_related_user(user, event, action="cancel_venue_booking")
+    if event.get("status") == "Completed":
         # SCRUM-132: a completed event's bookings are part of its closed record.
         raise Conflict("This event is completed and closed. Its bookings are read-only.")
     return jsonify({"booking": cancel_booking(booking_id, user["id"])}), 200
@@ -385,24 +419,29 @@ def decide_booking(booking_id):
         decision.alternative,
         user["id"],
         expires_at=expires_at_iso,
+        # SCRUM-79: approving a held booking drops the hold deadline. Without this the
+        # confirmed slot would still carry an expiry it was never meant to outlive.
+        clear_expiry=decision.status == "Confirmed",
     )
 
-    # Notify the Coordinator who requested the booking.
+    # Notify the Coordinator who manages the event now, not whoever first requested the
+    # booking -- a reassignment moves the arrangements with the event (SCRUM-21/130).
+    recipient = _current_coordinator(booking)
     if decision.is_rejection:
         message = f"Your venue booking was rejected: {decision.reason}"
         if decision.alternative:
             message += f" Suggested alternative: {decision.alternative}"
         create_notification(
-            booking["requested_by"], booking["event_id"], "booking_rejected", message,
+            recipient, booking["event_id"], "booking_rejected", message,
         )
     elif decision.is_hold:
         create_notification(
-            booking["requested_by"], booking["event_id"], "booking_held",
+            recipient, booking["event_id"], "booking_held",
             f"Your venue booking is tentatively held until {expires_at_iso}.",
         )
     else:
         create_notification(
-            booking["requested_by"], booking["event_id"], "booking_approved",
+            recipient, booking["event_id"], "booking_approved",
             "Your venue booking was approved and the slot is now confirmed.",
         )
     return jsonify({"booking": updated}), 200
