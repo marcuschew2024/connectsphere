@@ -1591,3 +1591,58 @@ auto-assign in D9) are recorded explicitly rather than left implicit.
   requested accurate e2e verification and explicitly authorised fixing the discovered
   display gap. This is not a claim of human design approval. Human review and green
   hosted CI remain required before an explicitly authorised merge.
+
+### D56 — Confirming an event notifies the Organiser (SCRUM-164, audit R7)
+
+- **Context.** The Release 1 Gap Audit (2026-11-02, R7) found that `confirm_event`
+  (`api/app/events.py`) wrote status + history but created no notification, so the
+  Organiser was never told their event was confirmed.
+- **Decision.** On a successful Planning → Confirmed transition, persist one
+  notification (`notification_type = "event_confirmed"`) to the event's
+  **Organiser**, naming the event. The frontend Home feed renders it as a positive
+  "Event confirmed" notice.
+- **Requirement basis.** Core feature **#20** explicitly lists *confirmation* among
+  the notification triggers for users to whom the event is *"relevant."* No
+  Section-G6 clarification removes it.
+- **Scope — Organiser only, not the acting Coordinator.** Confirmation is
+  Coordinator-only and the Event Coordinator Lead cannot confirm (`require_role(user,
+  "Coordinator")` + `require_related_user`), so the acting Coordinator is always the
+  person who clicked and already knows — notifying the actor of their own action is
+  noise. If the Lead is later permitted to confirm, extend to "Coordinator when not
+  the actor", mirroring `cancel_event`.
+- **Constraints.** No schema change (`notification_type` is free-form text). No
+  authorization, gate or status-transition change. Reuses the existing
+  `create_notification` helper.
+- **Verification.** New integration test
+  (`test_confirm_notifies_organiser_not_the_acting_coordinator`) asserts exactly one
+  `event_confirmed` notification to the Organiser, none to the Coordinator, and the
+  event title in the message. New frontend feed test asserts the "Event confirmed"
+  label. Full backend suite green (2014 passed / 268 CI-only skips); ruff clean.
+- **Owner / review.** Marcus owns SCRUM-164. Team review + green hosted CI required
+  before merge.
+
+### D57 — Attendees are NOT notified of venue changes in Release 1 (SCRUM-51 venue clause; supersedes D41-G2)
+
+- **Context.** SCRUM-51's AC reads "notify registered attendees on date/time/**venue**
+  change." The audit (R7) flagged the missing venue notification. Date/time attendee
+  notification already ships (SCRUM-48).
+- **Decision.** Ship **date/time only**; keep **venue** attendee notification **out of
+  Release 1** as a conscious PO scope decision. Attendees are notified about changes to
+  information that is theirs to see (date/time) plus **cancellation** (Section-G6 Q20).
+- **Requirement basis / consistency.** `PUBLIC_EVENT_FIELDS` (`api/app/rbac.py`)
+  deliberately treats venue as **internal planning information** — attendees can see
+  `event_datetime` but not venue. Notifying attendees of a change to something they
+  cannot see (and, per #17 "appropriate event information", are not entitled to) would
+  be incoherent. Q20 is the only clarification that names attendee notification, and it
+  names cancellation. The venue is also often not booked/confirmed when registration
+  opens (booking + confirmation happen during Planning).
+- **Constraints.** No code change. The alternative (notify-but-cannot-show) was
+  rejected as internally inconsistent; fully surfacing venue to attendees is a larger
+  change deferred to backlog.
+- **Follow-up.** Logged **SCRUM-165** ("Attendees can view the confirmed venue");
+  the venue-change notification is revisited there once venue is attendee-visible.
+  Comment recorded on SCRUM-51.
+- **Trade-off.** An attendee learns a venue changed only via the Organiser, not the
+  app. Accepted for R1 as a scoping decision consistent with the attendee data model.
+- **Owner / review.** Marcus (PO). Defensible in the Week-13 Q&A as a conscious
+  decision, not a gap.

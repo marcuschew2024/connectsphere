@@ -165,7 +165,9 @@ export default function NotificationsFeed({
                 const movedAway = notification.notification_type === "coordinator_unassigned";
                 // The Organiser's notice that the request left the Lead's queue.
                 const routed = notification.notification_type === "request_assigned";
-                const accepted = notification.notification_type === "event_approved" || assigned || routed;
+                // SCRUM-164: the Organiser's notice that their event was confirmed.
+                const confirmed = notification.notification_type === "event_confirmed";
+                const accepted = notification.notification_type === "event_approved" || assigned || routed || confirmed;
                 const rejected = notification.notification_type === "event_rejected";
                 // SCRUM-49 / R07: pool notifications for the Venue Staff / Tech Support queues.
                 const venueRequest = notification.notification_type === "venue_booking_requested";
@@ -205,6 +207,8 @@ export default function NotificationsFeed({
                                 ? "Coordinator assigned"
                               : movedAway
                                 ? "Event reassigned"
+                                : confirmed
+                                  ? "Event confirmed"
                                 : accepted
                               ? "Request accepted"
                               : rejected
