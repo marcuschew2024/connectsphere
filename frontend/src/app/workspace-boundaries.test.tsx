@@ -39,6 +39,10 @@ it("the default notification audience includes clarification requests", async ()
   api.mockResolvedValue({ notifications: [{ id: 1, event_id: "event", notification_type: "event_clarification", message: "Please explain", created_at: "2099-10-01T00:00:00Z", event: { title: "Workshop" } }] }); render(<Feed />);
   await screen.findByText("Please explain"); expect(screen.getByText("Clarification requested")).toBeTruthy();
 });
+it("the Organiser sees a confirmation notice when their event is confirmed (SCRUM-164)", async () => {
+  api.mockResolvedValue({ notifications: [{ id: 1, event_id: "event", notification_type: "event_confirmed", message: "Your event \"Workshop\" has been confirmed.", created_at: "2099-10-01T00:00:00Z", event: { title: "Workshop" } }] }); render(<Feed />);
+  await screen.findByText("Your event \"Workshop\" has been confirmed."); expect(screen.getByText("Event confirmed")).toBeTruthy();
+});
 it("notification failures retain an explicit recovery action", async () => {
   api.mockRejectedValue("offline"); render(<Feed />); expect((await screen.findByRole("alert")).textContent).toBe("Could not load notifications.");
   api.mockResolvedValueOnce({ notifications: [] }); fireEvent.click(screen.getByRole("button", { name: "Refresh" })); await screen.findByText("No notifications yet.");

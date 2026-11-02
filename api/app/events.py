@@ -626,6 +626,14 @@ def confirm_event(event_id):
     old_status = event["status"]
     updated = update_event_status(event_id, "Confirmed", user["id"])
     add_status_history(event_id, old_status, "Confirmed", user["id"])
+    # SCRUM-164 (audit R7): confirmation is a named notification trigger in core
+    # feature #20. Notify the Organiser their event is confirmed. Only the Organiser:
+    # confirming is Coordinator-only and the Lead cannot confirm, so the acting
+    # Coordinator is always the one who clicked and already knows.
+    create_notification(
+        event["organiser_id"], event_id, "event_confirmed",
+        f'Your event "{event.get("title") or "Untitled event"}" has been confirmed.',
+    )
     updated["status"] = canonical_event_status(updated.get("status"))
     return jsonify({"event": updated}), 200
 

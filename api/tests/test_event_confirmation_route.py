@@ -158,3 +158,24 @@ def test_confirm_allowed_when_booking_slot_covers_event_datetime(
 
     assert response.status_code == 200
     assert response.json["event"]["status"] == "Confirmed"
+
+
+# SCRUM-164 (audit R7): a successful confirm notifies the Organiser (core feature #20).
+# The acting Coordinator (user 2) is not notified — they performed the action.
+def test_confirm_notifies_organiser_not_the_acting_coordinator(app, event_database, bookings):
+    bookings(["Confirmed"])
+    client = app.test_client()
+    select_user(client, 2)  # the Coordinator who confirms
+    event = _seed_planning_event(event_database, status="Planning")
+
+    response = client.post(f"/events/{event['id']}/confirm", headers=ORIGIN)
+
+    assert response.status_code == 200
+    confirmed = [
+        n for n in event_database[1].notifications
+        if n["notification_type"] == "event_confirmed"
+    ]
+    assert len(confirmed) == 1
+    assert confirmed[0]["recipient_id"] == event["organiser_id"]  # Organiser (1)
+    assert confirmed[0]["recipient_id"] != 2  # not the acting Coordinator
+    assert event["title"] in confirmed[0]["message"]
