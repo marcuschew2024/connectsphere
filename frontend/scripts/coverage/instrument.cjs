@@ -4,8 +4,12 @@ const crypto = require('node:crypto');
 const { createInstrumenter } = require('istanbul-lib-instrument');
 const root = path.resolve(__dirname, '../..');
 const dataDir = path.join(root, '.coverage-data');
+// Vite hands this hook forward-slash ids while path.join yields the platform separator,
+// so compare on a normalised path or nothing is eligible on Windows.
+const normalise = (file) => file.split(path.sep).join('/');
 function eligible(file) {
-  return file.startsWith(`${root}/src/`) && /\.tsx?$/.test(file) && !/\.(test\.[jt]sx?|d\.ts)$/.test(file);
+  const id = normalise(file);
+  return id.startsWith(`${normalise(root)}/src/`) && /\.tsx?$/.test(id) && !/\.(test\.[jt]sx?|d\.ts)$/.test(id);
 }
 function instrument(source, file) {
   const tool = createInstrumenter({ esModules: true, parserPlugins: ['typescript', 'jsx'],

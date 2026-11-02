@@ -1591,8 +1591,61 @@ auto-assign in D9) are recorded explicitly rather than left implicit.
   requested accurate e2e verification and explicitly authorised fixing the discovered
   display gap. This is not a claim of human design approval. Human review and green
   hosted CI remain required before an explicitly authorised merge.
+### D56 — Confirming an event notifies the Organiser (SCRUM-164, audit R7)
 
-### D56 — An expired tentative hold releases its slot in both layers (SCRUM-79)
+- **Context.** The Release 1 Gap Audit (2026-11-02, R7) found that `confirm_event`
+  (`api/app/events.py`) wrote status + history but created no notification, so the
+  Organiser was never told their event was confirmed.
+- **Decision.** On a successful Planning → Confirmed transition, persist one
+  notification (`notification_type = "event_confirmed"`) to the event's
+  **Organiser**, naming the event. The frontend Home feed renders it as a positive
+  "Event confirmed" notice.
+- **Requirement basis.** Core feature **#20** explicitly lists *confirmation* among
+  the notification triggers for users to whom the event is *"relevant."* No
+  Section-G6 clarification removes it.
+- **Scope — Organiser only, not the acting Coordinator.** Confirmation is
+  Coordinator-only and the Event Coordinator Lead cannot confirm (`require_role(user,
+  "Coordinator")` + `require_related_user`), so the acting Coordinator is always the
+  person who clicked and already knows — notifying the actor of their own action is
+  noise. If the Lead is later permitted to confirm, extend to "Coordinator when not
+  the actor", mirroring `cancel_event`.
+- **Constraints.** No schema change (`notification_type` is free-form text). No
+  authorization, gate or status-transition change. Reuses the existing
+  `create_notification` helper.
+- **Verification.** New integration test
+  (`test_confirm_notifies_organiser_not_the_acting_coordinator`) asserts exactly one
+  `event_confirmed` notification to the Organiser, none to the Coordinator, and the
+  event title in the message. New frontend feed test asserts the "Event confirmed"
+  label. Full backend suite green (2014 passed / 268 CI-only skips); ruff clean.
+- **Owner / review.** Marcus owns SCRUM-164. Team review + green hosted CI required
+  before merge.
+
+### D57 — Attendees are NOT notified of venue changes in Release 1 (SCRUM-51 venue clause; supersedes D41-G2)
+
+- **Context.** SCRUM-51's AC reads "notify registered attendees on date/time/**venue**
+  change." The audit (R7) flagged the missing venue notification. Date/time attendee
+  notification already ships (SCRUM-48).
+- **Decision.** Ship **date/time only**; keep **venue** attendee notification **out of
+  Release 1** as a conscious PO scope decision. Attendees are notified about changes to
+  information that is theirs to see (date/time) plus **cancellation** (Section-G6 Q20).
+- **Requirement basis / consistency.** `PUBLIC_EVENT_FIELDS` (`api/app/rbac.py`)
+  deliberately treats venue as **internal planning information** — attendees can see
+  `event_datetime` but not venue. Notifying attendees of a change to something they
+  cannot see (and, per #17 "appropriate event information", are not entitled to) would
+  be incoherent. Q20 is the only clarification that names attendee notification, and it
+  names cancellation. The venue is also often not booked/confirmed when registration
+  opens (booking + confirmation happen during Planning).
+- **Constraints.** No code change. The alternative (notify-but-cannot-show) was
+  rejected as internally inconsistent; fully surfacing venue to attendees is a larger
+  change deferred to backlog.
+- **Follow-up.** Logged **SCRUM-165** ("Attendees can view the confirmed venue");
+  the venue-change notification is revisited there once venue is attendee-visible.
+  Comment recorded on SCRUM-51.
+- **Trade-off.** An attendee learns a venue changed only via the Organiser, not the
+  app. Accepted for R1 as a scoping decision consistent with the attendee data model.
+- **Owner / review.** Marcus (PO). Defensible in the Week-13 Q&A as a conscious
+  decision, not a gap.
+### D58 — An expired tentative hold releases its slot in both layers (SCRUM-79)
 
 - **Context.** Week 7 Change #4 requires a hold to expire and free the venue. D21 decided
   expiry would be evaluated on demand by `OverlapEngine.is_expired()` rather than by a
@@ -1646,7 +1699,7 @@ auto-assign in D9) are recorded explicitly rather than left implicit.
 - **Owner.** Jessica Ang (Sprint 4 overlap and availability owner). Overlap-engine,
   status-transition and schema changes: human review required before merge.
 
-### D57 — Booking management follows the event's current Coordinator (SCRUM-21 / SCRUM-130)
+### D59 — Booking management follows the event's current Coordinator (SCRUM-21 / SCRUM-130)
 
 - **Context.** Audit R3. `PATCH /venues/bookings/<id>` and `POST .../cancel` authorised on
   the booking's `requested_by`. Reassignment (D26) changes `events.coordinator_id` but not
@@ -1694,7 +1747,7 @@ auto-assign in D9) are recorded explicitly rather than left implicit.
   `docs/SCRUM-130.md` names Ernest Wong as SCRUM-130's owner; ownership of this fix is
   unresolved (see the open coordination item) and it must not merge until that is settled.
 
-### D58 — The buffer conflict report is computed on demand, not stored (SCRUM-129)
+### D60 — The buffer conflict report is computed on demand, not stored (SCRUM-129)
 
 - **Context.** SCRUM-129 AC3 and the ratified SCRUM-137 ACs require that existing bookings
   made conflicting by a buffer change are identified and reported, not silently deleted.
@@ -1736,7 +1789,7 @@ auto-assign in D9) are recorded explicitly rather than left implicit.
   defect, stays with that story's owner and must be coordinated before the database becomes
   the source of this report.
 
-### D59 — The availability calendar degrades to raw slots when SCRUM-137's columns are absent
+### D61 — The availability calendar degrades to raw slots when SCRUM-137's columns are absent
 
 - **Context.** Manual verification of the SCRUM-79 increment could not open any venue page:
   `GET /venues/<id>/bookings` returned "Could not load venue bookings." The calendar read
@@ -1762,12 +1815,12 @@ auto-assign in D9) are recorded explicitly rather than left implicit.
   keep the gap visible to the team.
 - **Owner.** Jessica Ang for the fallback; R1 itself stays with SCRUM-137 / the release owner.
 
-### D60 — Booking actions are offered per booking, and a refusal names its own reason
+### D62 — Booking actions are offered per booking, and a refusal names its own reason
 
-- **Context.** Manual verification of D57 found two presentation faults. The event's venue
+- **Context.** Manual verification of D59 found two presentation faults. The event's venue
   panel offered **Change** on any `Requested` *or* `Confirmed` booking, but the API accepts a
   change only while `Requested` — so a Coordinator clicking Change on a confirmed booking
-  always landed on a read-only page with no action available. D57 then made that page's
+  always landed on a read-only page with no action available. D59 then made that page's
   message name the *assignment* as the reason, which for a decided booking is simply wrong
   and sends the reader looking at permissions instead of at the booking's state. The panel
   also decided actions from the acting role alone, so a Coordinator who had lost the event
@@ -1792,9 +1845,9 @@ auto-assign in D9) are recorded explicitly rather than left implicit.
   the holding Coordinator, a former Coordinator who may still read, and an Organiser.
 - **Trade-off.** The panel now shows fewer controls than before on confirmed bookings. That
   is the point: the removed control never worked.
-- **Owner.** Jessica Ang. Presentation fix to D57; no new authorisation decision.
+- **Owner.** Jessica Ang. Presentation fix to D59; no new authorisation decision.
 
-### D61 — The booking change form uses the same choice groups as the request form
+### D63 — The booking change form uses the same choice groups as the request form
 
 - **Context.** User request during manual verification. "Change venue booking" collected
   layout as free text and requirements as one textarea, while "Request venue" collects
