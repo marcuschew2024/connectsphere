@@ -1876,3 +1876,131 @@ auto-assign in D9) are recorded explicitly rather than left implicit.
   field; they tick Other and add it, which is one extra click but keeps the two forms
   consistent and the stored vocabulary aligned with the catalogue.
 - **Owner.** Jessica Ang. Presentation only; no authorisation or contract decision.
+
+### D64 — A rescheduled event returns to Planning; confirmation judges the event's whole time (SCRUM-166, audit R4)
+
+- **Context.** The Release 1 audit (R4) found three ways an event could pass the
+  confirmation and safety gates on stale resources:
+  - The confirm gate checked only that a booking contained the event's *start instant*,
+    so a 1-hour booking satisfied a 3-hour event.
+  - Equipment readiness ignored reservation timing.
+  - An approved reschedule left a Confirmed or Preparation event in that state, with
+    bookings and a safety approval for the old time.
+- **Decision (Ernest, 2 Nov 2026; timing area owned by Marcus, D54).**
+  - **(a) Reschedule returns to Planning.** An approved date/time change on a Confirmed
+    or Preparation event returns it to **Planning**. History records
+    `rescheduled_returned_to_planning`, and the Organiser and Coordinator notices say
+    so. The Coordinator must re-confirm for the new time, and the Operational Safety
+    Check runs again. Nothing is cancelled or un-booked (D36); the gate shows what no
+    longer fits. Pax, venue and facility changes stay flag-only (D36 / D43).
+  - **Venue coverage.** When the event has an end time, its approved bookings
+    **together** must cover `[start, end)` with no gap. A main hall plus a shorter
+    breakout room passes; a short booking or a gap blocks. An approved booking that
+    doesn't overlap the event at all is an orphan and still blocks (SCRUM-159).
+  - **Equipment timing.** A Reserved request counts only if its reservation window
+    covers the event's whole time.
+  - **No end time.** Events without one keep the SCRUM-159 start-instant rule.
+    Unreadable times never invent a conflict.
+- **Requirement basis.**
+  - **SCRUM-48 AC2:** conflicts "block confirmation until resolved", which needs the
+    event to be confirmed again.
+  - **SCRUM-128 AC1 / AC4 (Week 7 Change #6):** the safety check comes only after venue
+    and technical arrangements are confirmed, and there is no preparation without
+    approval.
+  - **SCRUM-39 AC1** and **SCRUM-58** (date/time changes are impactful).
+  - **The Week 7 lifecycle design:** SafetyReview → Planning is the only way back, so
+    no new state is invented.
+  - **NFR-d:** no contradictory dates vs bookings.
+  - **S1 Q32** ("the Coordinator's approval carries") is respected: the Coordinator
+    re-confirms, and no Venue Staff / Tech Support re-approval is added.
+- **How.** `EventConfirmation` (a pure value object) gained the span-coverage and
+  equipment-window rules. The confirm route passes `event_end_datetime`, and
+  `list_confirmation_requests` passes each reservation window when one is recorded.
+  Migration `20261103090000_scrum_166_reschedule_returns_to_planning.sql` replaces
+  `approve_change_request()` (the 20261101160000 version, keeping SCRUM-48/152/156 and
+  the end-time shift) and adds only the return to Planning and its wording. The same
+  grants, transaction and response shape are kept. Separately, the "significant change"
+  wording now says "attendees, the venue or the date/time" (date/time became
+  significant in SCRUM-48).
+- **Verification.**
+  - **Unit:** `test_event_confirmation_coverage.py` (29 boundary cases: exact edges,
+    adjacent and overlapping bookings, gaps, a breakout room, orphans, unreadable
+    times, no end time, equipment windows). All fail against `main`'s gate.
+  - **Real database:** `test_reschedule_returns_to_planning_acceptance.py` covers
+    Confirmed and Preparation reschedules returning to Planning with history and
+    notices, old booking blocks then a new booking confirms, the safety check is
+    unreachable from Planning, a Planning reschedule doesn't move status, a pax change
+    keeps Confirmed, and coverage / equipment windows through the confirm endpoint.
+    7 of 11 fail against the previous function and gate (the other 4 are positive
+    controls).
+  - **E2E:** `e2e/reschedule-returns-to-planning.spec.ts`.
+  - **Coverage:** backend 100% statements/branches; frontend combined coverage 100%;
+    all 14 integrated journeys pass.
+- **Changed existing tests (reviewable).** Each encoded the old behaviour this decision
+  replaces; no assertion was removed.
+  - `test_change_request_apply_acceptance.py`: a rescheduled Confirmed event now
+    asserts `Planning` plus the history entry, instead of staying `Confirmed`.
+  - `test_event_confirmation_route.py`: the "covering booking" case now covers the
+    seeded event's full 3 hours (it was 2).
+  - `test_unusable_equipment_readiness_acceptance.py`: its booking and reservation now
+    cover the whole 2-hour event, so it still tests equipment condition, not timing.
+  - `frontend/integration/event-lifecycle.spec.ts` (INTEGRATED-01): the UI-created event
+    ends at 15:00 to match the 14:00–15:00 slot the journey books and reserves; before,
+    it ended at 16:00 and booked only the first hour.
+- **Trade-off.** A Coordinator moving a confirmed event must re-confirm it, and the
+  Safety Officer reviews again, even when the old bookings happen to cover the new time.
+  That is the price of never carrying a stale approval forward.
+- **Owner.** Ernest Wong. Status-transition and confirmation-gate change: human review
+  required before merge. The migration must be applied to the shared Supabase project
+  after merge.
+
+### D65 — Preserve buffer-induced conflicts while enforcing new occupied windows (SCRUM-137)
+
+- **Context.** Week 7 Change #1 / SCRUM-129 AC3 requires existing bookings made conflicting
+  by a buffer increase to be identified, not silently removed. The original SCRUM-137
+  migration bulk-refreshed occupied intervals under an unconditional occupied exclusion:
+  a 15-minute setup / 30→60-minute turnaround change rejected the venue save with 23P01,
+  surfaced as 503, before the report or SCRUM-167 notifications could execute.
+- **Decision proposed for human review.** Keep current venue buffers materialized into every
+  booking's occupied interval, preserving published times, status, identity and event data.
+  Replace the blanket occupied exclusion with a serialized database trigger for new or
+  changed slots. Retain raw-time exclusions as defence in depth. Every booking writer and
+  venue buffer refresh updates a private per-venue guard row and holds its lock to commit.
+  The row version update (not just an advisory lock) also causes stale REPEATABLE READ
+  transactions to abort rather than check an obsolete snapshot. Moving between venues
+  acquires guards in UUID order. The guard executes before expiry and occupied triggers.
+- **Conflict policy.** Preserve the existing FCFS tiers: hard-vs-hard and live tentative-vs-
+  tentative overlaps are refused; confirmation can supersede a tentative hold. API request
+  checks remain stricter. Only inserts and changes to venue, published time, status or hold
+  expiry must pass the guard; buffer recalculation and harmless metadata changes preserve
+  existing conflicts. Caller-supplied occupied fields/buffers are always recomputed. No
+  caller-controlled flag or trigger-depth escape is used.
+- **Reports.** Refresh normalized buffer-only pairs atomically on buffer changes and booking
+  insert/change/cancellation/deletion. Raw overlaps allowed by cross-tier FCFS are excluded,
+  as in the existing Python report. Expired tentative holds and inactive bookings are
+  excluded. The persisted table is a current snapshot at the last write, not an immutable
+  audit log; as time passes the on-demand API report remains authoritative for expired holds.
+  FK cascades delete report records only, never their bookings. Historical bookings follow
+  the same existing refresh policy; no new historical cutoff is invented.
+- **Constraints.** Functions have an empty search_path and no EXECUTE privilege for public,
+  anon, authenticated or service_role. Trigger definer rights access the otherwise private
+  guard/report tables; no application CRUD privilege or authorisation rule is broadened.
+  The migration holds table write locks during the atomic enforcement switch. It requires
+  the original buffer/occupied/hold-release migrations. Do not replay old SCRUM-137 over it.
+- **Verification.** Nine new real HTTP/PostgreSQL tests failed on the original schema and
+  passed after this migration. Expanded acceptance covers search/calendar consistency,
+  inactive and expired rows, forged occupied fields and multirow inserts. A two-session SQL
+  test proves booking-first/buffer-first ordering, simultaneous inserts, concurrent approvals,
+  and REPEATABLE READ safety. The full migration harness replays the follow-up twice and
+  re-runs the unchanged occupied-boundary and hold-release tests. Final counts live in
+  docs/SCRUM-137.md. No existing assertions are weakened.
+- **Trade-off.** Buffered enforcement is now a trigger plus transactional serialization,
+  not a single GiST exclusion. Writes at one venue serialize; other venues remain separate.
+  Large venue refreshes update all its rows and regenerate pairs. Cross-resource transactions
+  may deadlock and abort safely; callers must retry a refused transaction, never assume it
+  committed. This prioritizes correctness at Release 1 scale. Read-only reports/search are
+  not reservations. Deployment and rollback must use the documented preflight; reverting
+  to unconditional occupied exclusions while flagged conflicts exist will fail.
+- **Owner / review required before merge.** Jessica owns the buffer policy, Ernest reviews
+  locking, FCFS, privileges and migration, and Jerome/release owner owns hosted deployment.
+  This entry records the agent's proposed design; it does not claim those reviews occurred.

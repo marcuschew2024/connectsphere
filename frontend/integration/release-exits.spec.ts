@@ -271,3 +271,54 @@ test("INTEGRATED-11 clarification resubmits the same request and rejection prese
   await expect(organiser.page.getByText("No available supervision for this activity", { exact: true })).toBeVisible();
   await expect(organiser.page.getByRole("button", { name: "Revise and resubmit" })).toHaveCount(0);
 });
+
+// Real browser -> Flask -> PostgREST -> PostgreSQL. No mocked HTTP responses.
+test("INTEGRATED-R1 buffer edit flags existing conflicts while new bookings stay protected", async ({ as }) => {
+  const { organiser, lead, coordinator, staff, event, booking, room } = await setup(as);
+  const editable = { capacity: room.capacity, facilities: room.facilities, accessibility: room.accessibility,
+    supported_layouts: room.supported_layouts, operating_hours: room.operating_hours };
+  await call(staff, "PUT", `/venues/${room.id}`, { ...editable, revision: room.revision,
+    setup_time_minutes: 15, turnaround_time_minutes: 30 });
+  const { event: later } = await call(organiser, "POST", "/events", { action: "submit",
+    title: `Later ${crypto.randomUUID()}`, description: "Buffer regression", purpose: "Learning", category: "Workshop",
+    event_datetime: "2099-10-20T08:00:00Z", event_end_datetime: "2099-10-20T09:00:00Z", expected_attendance: 2 }, 201);
+  await call(lead, "POST", `/events/${later.id}/coordinator`, { coordinator_id: coordinator.id });
+  await call(coordinator, "POST", `/events/${later.id}/decision`, { decision: "approve" });
+  const { booking: next } = await call(coordinator, "POST", "/venues/bookings", { event_id: later.id,
+    venue_id: room.id, start_at: "2099-10-20T08:00:00Z", end_at: "2099-10-20T09:00:00Z",
+    expected_attendance: 2, layout: "Classroom" }, 201);
+  await call(staff, "POST", `/venues/bookings/${next.id}/decision`, { decision: "approve" });
+
+  await staff.page.goto(`/venues/${room.id}/edit`);
+  await staff.page.getByLabel("Turnaround buffer (mins)").fill("60");
+  await staff.page.getByRole("button", { name: "Save changes", exact: true }).click();
+  await expect(staff.page.getByRole("heading", { name: "Venue updated", exact: true })).toBeVisible();
+  const conflicts = staff.page.locator("section[aria-labelledby='buffer-conflicts-heading']");
+  await expect(conflicts).toContainText(event.title);
+  await expect(conflicts).toContainText(later.title);
+  const report = await call(staff, "GET", `/venues/${room.id}/buffer-conflicts`);
+  expect(new Set(report.buffer_conflicts.map((row: { booking_id: string }) => row.booking_id)))
+    .toEqual(new Set([booking.id, next.id]));
+  for (const id of [booking.id, next.id]) {
+    expect((await call(staff, "GET", `/venues/bookings/${id}`)).booking.status).toBe("Confirmed");
+  }
+  const calendar = await call(coordinator, "GET", `/venues/${room.id}/bookings?from=2099-10-20T09:45:00Z&to=2099-10-20T10:00:00Z`);
+  const occupied = calendar.bookings.find((row: { id: string }) => row.id === next.id);
+  expect(occupied.occupied_end).toBe("2099-10-20T10:00:00+00:00");
+  await coordinator.page.goto(`/venues/${room.id}?date=2099-10-20`);
+  await expect(coordinator.page.getByRole("region", { name: "Venue availability" })).toBeVisible();
+
+  await call(coordinator, "POST", "/venues/bookings", { event_id: later.id, venue_id: room.id,
+    start_at: "2099-10-20T10:00:00Z", end_at: "2099-10-20T11:00:00Z",
+    expected_attendance: 2, layout: "Classroom" }, 409);
+  const { booking: boundary } = await call(coordinator, "POST", "/venues/bookings", { event_id: later.id,
+    venue_id: room.id, start_at: "2099-10-20T10:15:00Z", end_at: "2099-10-20T11:15:00Z",
+    expected_attendance: 2, layout: "Classroom" }, 201);
+  await call(staff, "POST", `/venues/bookings/${boundary.id}/decision`, { decision: "approve" });
+  await staff.page.goto(`/venues/${room.id}/edit`);
+  await expect(staff.page.getByLabel("Turnaround buffer (mins)")).toHaveValue("60");
+  await staff.page.getByLabel("Turnaround buffer (mins)").fill("30");
+  await staff.page.getByRole("button", { name: "Save changes", exact: true }).click();
+  await expect(staff.page.getByRole("heading", { name: "Venue updated", exact: true })).toBeVisible();
+  expect((await call(staff, "GET", `/venues/${room.id}/buffer-conflicts`)).buffer_conflicts).toEqual([]);
+});
