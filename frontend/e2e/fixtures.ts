@@ -51,7 +51,14 @@ export const test = base.extend<{ sourceCoverage: void }>({
     // Keep that test receipt and its zero contribution instead of dropping the file.
     // Each document's final snapshot replaces earlier snapshots, so revisiting a page
     // never adds the same counters twice. Different tests/documents remain independent.
-    await writeFile(join(process.cwd(), ".coverage-data/browser", `${randomUUID()}.json`),
-      JSON.stringify({ title: testInfo.titlePath, status: testInfo.status, snapshots: [...snapshots.values()] }));
+    // Only record a receipt for an attempt that met its expected outcome. A failed
+    // attempt that Playwright then retries green (retries: 2 on CI) must not leave a
+    // 'failed' receipt behind, or report.cjs — which requires every receipt to be
+    // 'passed' — fails the job on a test that ultimately passed. A test that fails every
+    // retry still fails the job through Playwright's own non-zero exit code.
+    if (testInfo.status === testInfo.expectedStatus) {
+      await writeFile(join(process.cwd(), ".coverage-data/browser", `${randomUUID()}.json`),
+        JSON.stringify({ title: testInfo.titlePath, status: testInfo.status, snapshots: [...snapshots.values()] }));
+    }
   }, { auto: true }],
 });
