@@ -149,3 +149,19 @@ def test_confirmation_requires_reservations_to_cover_the_event(live, window, con
     assert (response.status_code == 200) is confirms, response.json
     if not confirms:
         assert "equipment reservation(s) do not cover" in response.json["error"]
+
+
+def test_the_history_reads_in_the_order_the_reschedule_happened(live):  # noqa: F811
+    # Manual-test finding: the approval and its return to Planning share one timestamp.
+    # The history endpoint must list them in recorded order, with no duplicate approval.
+    db, users, _, make_event, venue = live
+    event = make_event(status="Confirmed")
+    approved_booking(db, event, venue)
+    reschedule(users, event)
+
+    response = users[2].get(f"/events/{event['id']}/history", headers=ORIGIN)
+
+    assert response.status_code == 200
+    actions = [h["action"] for h in response.json["history"]
+               if (h["action"] or "").startswith(("change_request_", "rescheduled_"))]
+    assert actions == ["change_request_approved_re_review", "rescheduled_returned_to_planning"]

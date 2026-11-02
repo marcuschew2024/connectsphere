@@ -63,3 +63,25 @@ test("once the new time is covered the event confirms", async ({ page }) => {
 
   await expect(page.getByTestId("event-status-badge")).toHaveText("Confirmed");
 });
+
+// Manual-test finding: the Organiser's reschedule notice was cut off after two lines.
+const NOTICE = "Your change request for \"Annual tech conference\" was approved and applied. Because it changes the number of attendees, the venue or the date/time, the Coordinator is re-reviewing the venue and equipment arrangements. Because the date or time changed, your event is back in Planning until the Coordinator re-confirms it for the new time.";
+
+for (const width of [1280, 375]) {
+  test(`the Organiser reads the whole reschedule notice at ${width}px`, async ({ page }) => {
+    await page.setViewportSize({ width, height: 900 });
+    await page.route(`${API}/session`, (route) => route.fulfill({
+      json: { user: { id: 1, display_name: "Demo Organiser", role: "Organiser" } },
+    }));
+    await page.route(`${API}/notifications`, (route) => route.fulfill({ json: { notifications: [
+      { id: 1, event_id: EVENT_ID, notification_type: "event_change_request_updated", message: NOTICE,
+        created_at: "2026-11-03T10:00:00Z", event: { title: "Annual tech conference" } },
+    ] } }));
+    await page.goto("/");
+
+    const message = page.getByRole("region", { name: "Notifications" }).getByText(NOTICE, { exact: true });
+    await expect(message).toBeVisible();
+    // Nothing is clipped: the paragraph is as tall as its full text.
+    expect(await message.evaluate((el) => el.scrollHeight - el.clientHeight)).toBeLessThanOrEqual(1);
+  });
+}

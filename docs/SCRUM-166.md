@@ -13,6 +13,11 @@ Release 1 audit finding R4. Decision Log **D64**. Owner: Ernest Wong (event-timi
 
 Pax, venue and facility changes stay flag-only (D36 / D43).
 
+Found in the manual test and fixed here:
+
+- **Status history order:** the approval and its "Returned to Planning" entry share one timestamp. Ties now keep their recorded order. A re-review approval also no longer shows a duplicate "Change Request Approved" line (a pre-existing legacy-restore quirk).
+- **Notifications** now show their full message instead of cutting it after two lines.
+
 ## Files
 
 - `api/app/event_confirmation.py`: span coverage, orphan and equipment-window rules (pure value object).

@@ -238,7 +238,7 @@ export default function NotificationsFeed({
                             {notification.event.title}
                           </p>
                         )}
-                        <p className="mt-1 line-clamp-2 whitespace-pre-wrap break-words text-sm leading-relaxed text-muted-foreground">
+                        <p className="mt-1 whitespace-pre-wrap break-words text-sm leading-relaxed text-muted-foreground">
                           {notification.message}
                         </p>
                         {/* SCRUM-155: each recipient's link opens a page they can access. */}
