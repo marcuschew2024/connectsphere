@@ -302,6 +302,10 @@ def get_status_history(event_id: str) -> list[dict]:
             for row in history
             if row.get("action")
         }
+        # SCRUM-166: a significant approval is recorded as its re-review variant, so it
+        # already covers the plain approval; do not restore a duplicate "Approved" entry.
+        if "change_request_approved_re_review" in history_actions:
+            history_actions.add("change_request_approved")
         # Older reviews were persisted before review actions were added to the
         # status-history write path. Only query change requests for events that
         # already have a change-request history entry; this keeps history reads
@@ -323,7 +327,9 @@ def get_status_history(event_id: str) -> list[dict]:
                             "action": action,
                             "note": change_request.get("review_note"),
                         })
-        return sorted(history, key=lambda row: row.get("changed_at") or "")
+        # SCRUM-166: entries written in one transaction share a timestamp; the id keeps
+        # them in the order they were recorded (approval before its consequences).
+        return sorted(history, key=lambda row: (row.get("changed_at") or "", row.get("id") or 0))
     except ServiceUnavailable:
         raise
     except Exception as error:

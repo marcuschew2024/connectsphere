@@ -149,7 +149,9 @@ def test_confirm_allowed_when_booking_slot_covers_event_datetime(
     event_dt = datetime.fromisoformat(event["event_datetime"])
     monkeypatch.setattr(
         "app.events.list_bookings_for_event",
-        lambda event_id: _confirmed_booking_at(event_dt, event_dt + timedelta(hours=2)),
+        # SCRUM-166: the booking must cover the whole event, start to end.
+        lambda event_id: _confirmed_booking_at(
+            event_dt, datetime.fromisoformat(event["event_end_datetime"])),
     )
     client = app.test_client()
     select_user(client, 2)

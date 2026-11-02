@@ -93,7 +93,9 @@ test("INTEGRATED-01 same event crosses seven password-authenticated roles and pe
     await organiser.page.getByLabel("Category").fill("Workshop");
     await organiser.page.getByLabel("Preferred date").fill("2099-10-20");
     await organiser.page.getByLabel("Start time").fill("14:00");
-    await organiser.page.getByLabel("End time").fill("16:00");
+    // SCRUM-166: the event must match the 14:00-15:00 SGT slot (START-END) this journey
+    // books and reserves, because confirmation now checks the event's whole time.
+    await organiser.page.getByLabel("End time").fill("15:00");
     await organiser.page.getByLabel("Expected attendance").fill("2");
     await organiser.page.getByRole("button", { name: "Submit request", exact: true }).click();
     await expect(organiser.page.getByRole("heading", { name: "Event request received", exact: true })).toBeVisible();
