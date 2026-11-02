@@ -82,6 +82,36 @@ EDIT_FIELDS = (FIELDS - {"name", "location"}) - BUFFER_FIELDS
 OPTIONAL_EDIT_FIELDS = EDIT_FIELDS | BUFFER_FIELDS
 
 
+def _notify_affected_coordinators(venue: dict, report: list[dict]) -> None:
+    """Notify each coordinator whose booking a buffer change made conflicting (SCRUM-49).
+
+    Mirrors the venue-block notification: one in-app notice per affected coordinator,
+    deduped, pointing them to review. Venue Staff own the report (R6); coordinators own
+    the bookings, so they are the ones told to act. The report carries event_id but not
+    the coordinator, so resolve it per event. Never mutates a booking.
+    """
+    affected: dict[str, dict] = {}
+    for entry in report:
+        for slot in (entry, *entry.get("conflicts_with", [])):
+            event_id = slot.get("event_id")
+            if event_id and event_id not in affected:
+                affected[event_id] = slot
+    notified: set = set()
+    for event_id, slot in affected.items():
+        coordinator_id = (get_event_by_id(event_id) or {}).get("coordinator_id")
+        if not coordinator_id or coordinator_id in notified:
+            continue
+        notified.add(coordinator_id)
+        create_notification(
+            coordinator_id,
+            event_id,
+            "venue_buffer_conflict",
+            f'A setup/turnaround change at "{venue.get("name", "a venue")}" now conflicts '
+            f'with the booking for "{slot.get("event_title", "your event")}". '
+            f"Review the booking and request an alternative time or venue.",
+        )
+
+
 @venues.put("/<uuid:venue_id>")
 def edit_venue(venue_id):
     user = _require_user("Venue Staff")
@@ -108,7 +138,11 @@ def edit_venue(venue_id):
     # Venue Staff can resolve them; never rewrite or remove a booking to fit the new rule.
     body = {"venue": saved}
     if buffers_changed(venue, saved):
-        body["buffer_conflicts"] = buffer_conflict_report(saved)
+        report = buffer_conflict_report(saved)
+        body["buffer_conflicts"] = report
+        # SCRUM-167: Venue Staff see the report; the coordinators who own the now-conflicting
+        # bookings are the ones who must act, so notify them too (mirrors block_venue).
+        _notify_affected_coordinators(saved, report)
     return jsonify(body), 200
 
 
