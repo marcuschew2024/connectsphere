@@ -10,7 +10,7 @@ A mono-repo with two deployable parts:
 - `api/` - Python Flask REST API.
 - Data is stored in Supabase PostgreSQL. Flask manages application login sessions and the local demo role selector. Supabase is not run locally.
 
-The six roles are: Organiser, Coordinator, Venue Staff, Tech Support, Attendee, and Safety Officer.
+The seven roles are: Event Organiser, Event Coordinator, Event Coordinator Lead (SCRUM-131), Venue Staff, Technical Support, Attendee, and Safety Officer.
 
 ## Development users (SCRUM-83)
 
@@ -33,10 +33,12 @@ For coordinator approve/reject decisions, also run
 in the same SQL Editor. This adds decision metadata to events and creates the
 organiser notification table.
 
-For automatic Coordinator assignment, also run
-[`supabase/auto_assign_coordinator.sql`](supabase/auto_assign_coordinator.sql).
-Submitted requests are assigned to one Coordinator and show as Planning to customers;
-the Coordinator queue retains the internal Submitted marker.
+Coordinator assignment is handled by the Event Coordinator Lead, not automatically
+(this supersedes the earlier `auto_assign_coordinator.sql` approach). Submitted
+requests enter an **unassigned queue**; the Lead assigns, and can later reassign, a
+Coordinator who becomes the event's internal point of contact (SCRUM-130/131). Events
+show as Planning to customers while staff retain the internal Submitted marker. See
+[`20261030120000_scrum_130_unassigned_queue.sql`](supabase/migrations/20261030120000_scrum_130_unassigned_queue.sql).
 
 For the confirmed request clarification workflow, run
 [`supabase/request_clarification.sql`](supabase/request_clarification.sql) after the
@@ -68,8 +70,9 @@ Select **Demo Organiser**, then open **My drafts** from the home page, or visit
 when ready. Saving and submitting keep the same event reference.
 
 See the [SCRUM-15 walkthrough and acceptance checks](docs/SCRUM-15.md).
-Events still use the development role switcher. The newly merged login feature
-has a [documented integration handoff to SCRUM-21](docs/SCRUM-20.md#known-limitation--future-work).
+Real Flask login is the primary sign-in path (SCRUM-142); the passwordless
+development role switcher is a development-only convenience, disabled outside
+development.
 After pulling teammates' backend changes, rerun `pip install -r requirements.txt`
 in the API virtual environment (the login module requires bcrypt).
 
