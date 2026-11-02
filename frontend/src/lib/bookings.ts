@@ -56,6 +56,12 @@ export function BookingStatusBadge({ status }: { status: BookingStatus }) {
   );
 }
 
+// SCRUM-79: the deadline clause for a tentatively held booking. Older holds predate
+// expires_at, so the sentence has to read correctly without one.
+export function holdDeadlineClause(expiresAt: string | null | undefined): string {
+  return expiresAt ? ` until ${new Date(expiresAt).toLocaleString()}` : "";
+}
+
 // Asia/Singapore-friendly slot label, e.g. "20 Oct 2026, 2:00 pm – 4:00 pm".
 export function formatSlot(startAt: string, endAt: string): string {
   const start = new Date(startAt);

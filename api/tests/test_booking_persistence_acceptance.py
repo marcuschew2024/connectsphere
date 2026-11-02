@@ -65,6 +65,11 @@ def arrangements(monkeypatch):
                 bookings.append(response.json["booking"])
             yield db, users, event, bookings, venues
         finally:
+            # A record-level denial logs the event it was refused on, and access_denied_log
+            # has a foreign key to events. Clear those rows first or the event delete below
+            # raises 23503 and the whole fixture leaks its events, venues and bookings into
+            # the shared disposable database, breaking later tests that assert exact lists.
+            db.table("access_denied_log").delete().eq("event_id", event["id"]).execute()
             db.table("venue_bookings").delete().eq("event_id", event["id"]).execute()
             db.table("equipment_reservations").delete().eq("event_id", event["id"]).execute()
             db.table("equipment_requests").delete().eq("event_id", event["id"]).execute()

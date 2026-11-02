@@ -72,3 +72,15 @@ it("approving a held booking sends no new deadline", async () => {
   await waitFor(() => expect(saved).toHaveBeenCalledTimes(1));
   expect(JSON.parse(api.mock.calls[0][1]!.body as string)).toEqual({ decision: "approve" });
 });
+it("a held booking with no recorded deadline still explains its state", () => {
+  render(<Decision booking={{ ...booking, status: "Held", expires_at: null }} onSaved={saved} />);
+  expect(screen.getByRole("status").textContent).toContain("tentatively held");
+  expect(screen.getByRole("status").textContent).not.toContain("until");
+});
+// The page owns its own gate, so the form being willing to render is not enough.
+it("the booking page offers review actions on a held booking", async () => {
+  api.mockResolvedValue({ booking: { ...booking, status: "Held", expires_at: "2099-10-02T00:00:00Z" } });
+  render(<Page />);
+  expect(await screen.findByRole("button", { name: "Approve" })).toBeTruthy();
+  expect(screen.getByRole("button", { name: "Reject" })).toBeTruthy();
+});

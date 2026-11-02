@@ -1735,3 +1735,29 @@ auto-assign in D9) are recorded explicitly rather than left implicit.
 - **Owner.** Jessica Ang (SCRUM-129). The SCRUM-137 migration half, including its rollback
   defect, stays with that story's owner and must be coordinated before the database becomes
   the source of this report.
+
+### D59 — The availability calendar degrades to raw slots when SCRUM-137's columns are absent
+
+- **Context.** Manual verification of the SCRUM-79 increment could not open any venue page:
+  `GET /venues/<id>/bookings` returned "Could not load venue bookings." The calendar read
+  selects `occupied_start` / `occupied_end`, which audit R1 reports are missing from the
+  connected database. The failure predates this increment, but it blocks every venue
+  detail page, the availability calendar and therefore all hold and block verification.
+- **Decision.** The calendar read prefers the persisted occupied window and, when that
+  select fails, retries once with the raw published slot and logs a warning naming R1. A
+  `ServiceUnavailable` (unconfigured or unreachable database) is re-raised rather than
+  retried, so a genuine outage is still reported as itself and never shown as an empty week.
+- **Constraints / guardrails.** This is a read-path degradation only. It changes no write,
+  no constraint and no conflict rule, and the browser already falls back per booking (D55).
+  Buffered occupancy is simply not displayed until the SCRUM-137 migration is applied, which
+  is visible in the logs.
+- **This does not close R1.** The schema mismatch, its legacy conflict pair and the
+  migration's rollback defect remain SCRUM-137's and the release owner's to resolve. This
+  only stops a missing migration from making unrelated screens unusable.
+- **Verification.** `test_venue_hold_expiry.py`: the occupied select is preferred, the raw
+  slot is used after a column error, both reads failing is still a 503 with no connection
+  details, and an unconfigured database is not retried.
+- **Trade-off.** Falling back hides the mismatch from the user interface. Accepted because a
+  venue page that cannot open at all is worse, and the warning plus the open audit finding
+  keep the gap visible to the team.
+- **Owner.** Jessica Ang for the fallback; R1 itself stays with SCRUM-137 / the release owner.

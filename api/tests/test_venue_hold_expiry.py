@@ -333,3 +333,76 @@ def test_a_booking_that_changed_state_mid_request_is_a_conflict(monkeypatch, ope
 
     with pytest.raises(Conflict, match=message):
         operation(repo)
+
+
+def test_the_calendar_falls_back_when_the_occupied_columns_are_absent(app, monkeypatch):
+    """Audit R1: a database without SCRUM-137's columns must not break every venue page.
+
+    The calendar prefers the persisted occupied window and degrades to the raw published
+    slot, which the browser already handles per booking (D55).
+    """
+    from app import booking_repository as repo
+
+    attempted: list[str] = []
+    client = MagicMock()
+
+    def table(_name):
+        query = MagicMock()
+
+        def select(columns):
+            attempted.append(columns)
+            return query
+
+        def execute():
+            if "occupied_start" in attempted[-1]:
+                raise RuntimeError('column venue_bookings.occupied_start does not exist')
+            return SimpleNamespace(data=[{"id": "booking-1", "status": "Confirmed"}])
+
+        query.select.side_effect = select
+        query.eq.return_value = query
+        query.in_.return_value = query
+        query.lt.return_value = query
+        query.gt.return_value = query
+        query.execute.side_effect = execute
+        return query
+
+    client.table.side_effect = table
+    monkeypatch.setattr(repo, "get_supabase_client", lambda: client)
+
+    with app.app_context():
+        rows = repo.list_venue_bookings_in_range(
+            "venue-1", "2099-10-20T00:00:00Z", "2099-10-27T00:00:00Z",
+        )
+
+    assert rows == [{"id": "booking-1", "status": "Confirmed"}]
+    assert "occupied_start" in attempted[0], "the persisted window is preferred"
+    assert "occupied_start" not in attempted[1], "then the raw slot is used"
+
+
+def test_a_calendar_outage_is_still_reported_rather_than_shown_as_an_empty_week(
+    app, monkeypatch,
+):
+    """The fallback must not swallow a real outage: both reads failing is a 503."""
+    from app import booking_repository as repo
+
+    client = MagicMock()
+    client.table.side_effect = RuntimeError("PRIVATE connection credentials")
+    monkeypatch.setattr(repo, "get_supabase_client", lambda: client)
+
+    with app.app_context(), pytest.raises(ServiceUnavailable) as error:
+        repo.list_venue_bookings_in_range(
+            "venue-1", "2099-10-20T00:00:00Z", "2099-10-27T00:00:00Z",
+        )
+    assert "PRIVATE" not in error.value.description
+
+
+def test_an_unconfigured_database_is_not_retried_as_a_schema_mismatch(monkeypatch):
+    """Only a column problem earns the raw-slot retry; an outage is reported as itself."""
+    from app import booking_repository as repo
+
+    monkeypatch.setattr(repo, "get_supabase_client", lambda: None)
+
+    with pytest.raises(ServiceUnavailable, match="not configured"):
+        repo.list_venue_bookings_in_range(
+            "venue-1", "2099-10-20T00:00:00Z", "2099-10-27T00:00:00Z",
+        )

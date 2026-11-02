@@ -50,6 +50,13 @@ The audit (R2) found the hold lifecycle incomplete. Four defects, now fixed:
 | 3 | Nothing ever wrote `Expired`: the status existed only in the CHECK constraint and the frontend badge. | `venue_hold_expiry.release_expired_holds` sweeps lapsed holds and notifies the Coordinator; a `before insert or update` trigger is the database backstop. |
 | 4 | A `Held` booking was a dead end in the UI — absent from the Venue Staff queue and from the availability calendar, and its decision form was hidden. | The queue and calendar include `Held`; the decision form stays available while held and shows the deadline. |
 
+> **Found in manual verification.** The decision *form* and the booking *page* each had
+> their own status gate. Fixing only the form left the page still hiding it, and the
+> component-level unit test passed throughout because it renders the form directly. The
+> page gate (`canReview`) is now fixed and covered by a page-level test that fails against
+> the original gate. The API already accepted a decision on a held booking — the dead end
+> was presentation, not authorisation.
+
 Why both an application sweep and a database trigger: an exclusion-constraint predicate
 must be IMMUTABLE and `now()` is not, so expiry cannot live in the `EXCLUDE` predicate.
 Moving the row to `Expired` — a status in no exclusion predicate — frees the slot instead.

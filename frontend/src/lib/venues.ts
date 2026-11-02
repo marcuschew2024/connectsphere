@@ -50,6 +50,16 @@ export type BufferConflict = BufferConflictSlot & {
   conflicts_with: BufferConflictSlot[];
 };
 
+/** Heading for the conflict report, e.g. "2 existing bookings now conflict". */
+export function conflictCountLabel(count: number): string {
+  return `${count} existing ${count === 1 ? "booking" : "bookings"} now conflict`;
+}
+
+/** A booking's event name, or a stated stand-in when the record does not name one. */
+export function conflictEventLabel(title: string | null | undefined, fallback: string): string {
+  return title ?? fallback;
+}
+
 export function defaultOpeningHours(): OpeningHours {
   return Object.fromEntries(VENUE_DAYS.map((day, index) => [day, index < 5 ? { opens: "09:00", closes: "18:00" } : null])) as OpeningHours;
 }

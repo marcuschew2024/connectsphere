@@ -335,3 +335,26 @@ def test_a_booking_whose_event_is_gone_cannot_be_cancelled(inherited, monkeypatc
         "/venues/bookings/booking-a/cancel", headers=ORIGIN,
     ).status_code == 404
     assert cancelled == []
+
+
+def test_the_receiving_coordinator_sees_the_events_existing_bookings(app, monkeypatch):
+    """The event detail panel must list arrangements another Coordinator requested.
+
+    `GET /venues/bookings/event/<id>` is the panel's source; it is scoped by event, so a
+    reassignment must not empty it for the Coordinator who now holds the event.
+    """
+    requested_by_someone_else = booking(booking_id="booking-a", requested_by=99)
+    monkeypatch.setattr(
+        "app.bookings.get_event_by_id", lambda event_id: reassigned_event(coordinator_id=2),
+    )
+    monkeypatch.setattr(
+        "app.bookings.list_bookings_for_event_detail",
+        lambda event_id: [requested_by_someone_else],
+    )
+    client = app.test_client()
+    select_user(client, 2)
+
+    response = client.get("/venues/bookings/event/event-1", headers=ORIGIN)
+
+    assert response.status_code == 200
+    assert [row["id"] for row in response.json["bookings"]] == ["booking-a"]

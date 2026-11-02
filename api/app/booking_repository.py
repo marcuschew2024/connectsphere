@@ -2,9 +2,17 @@
 
 from datetime import UTC, datetime
 
+from flask import current_app
 from werkzeug.exceptions import Conflict, ServiceUnavailable
 
 from .supabase_client import get_supabase_client
+
+# The availability calendar prefers SCRUM-137's persisted occupied window and degrades to
+# the raw published slot where those columns are not present (see list_venue_bookings_in_range).
+CALENDAR_COLUMNS_WITH_OCCUPANCY = (
+    "id,venue_id,start_at,end_at,status,occupied_start,occupied_end,expires_at"
+)
+CALENDAR_COLUMNS_RAW_SLOT = "id,venue_id,start_at,end_at,status,expires_at"
 
 
 def _client():
@@ -265,13 +273,30 @@ def list_venue_bookings_in_range(
             from datetime import timedelta
             start_at = (s_dt - timedelta(minutes=buffer_minutes)).isoformat()
             end_at = (e_dt + timedelta(minutes=buffer_minutes)).isoformat()
-        result = _client().table("venue_bookings").select(
-            "id,venue_id,start_at,end_at,status,occupied_start,occupied_end,expires_at"
-        ).eq("venue_id", venue_id).in_(
-            # SCRUM-79: a tentative hold occupies the slot, so the calendar must show it.
-            "status", ["Confirmed", "Requested", "Pending", "Held", "Blocked"]
-        ).lt("start_at", end_at).gt("end_at", start_at).execute()
-        return result.data or []
+        def read(columns: str) -> list[dict]:
+            return _client().table("venue_bookings").select(columns).eq(
+                "venue_id", venue_id,
+            ).in_(
+                # SCRUM-79: a tentative hold occupies the slot, so the calendar shows it.
+                "status", ["Confirmed", "Requested", "Pending", "Held", "Blocked"],
+            ).lt("start_at", end_at).gt("end_at", start_at).execute().data or []
+
+        try:
+            return read(CALENDAR_COLUMNS_WITH_OCCUPANCY)
+        except ServiceUnavailable:
+            # An unconfigured or unreachable database is not a schema mismatch: report it
+            # rather than retrying the same failing call with fewer columns.
+            raise
+        except Exception:
+            # A database without SCRUM-137's occupied interval columns (audit R1) would
+            # otherwise make every venue page unopenable. The calendar already falls back
+            # to the raw slot per booking (D55), so fall back for the whole read too and
+            # record why: buffered occupancy is simply not shown until that migration lands.
+            current_app.logger.warning(
+                "venue_bookings lacks the SCRUM-137 occupied interval columns; "
+                "the calendar is falling back to raw booking slots (audit R1).",
+            )
+            return read(CALENDAR_COLUMNS_RAW_SLOT)
     except ServiceUnavailable:
         raise
     except Exception as error:

@@ -2,7 +2,7 @@
 
 import { useRef, useState, type FormEvent } from "react";
 import { ApiError, apiRequest } from "@/lib/api";
-import type { BookingRecord } from "@/lib/bookings";
+import { holdDeadlineClause, type BookingRecord } from "@/lib/bookings";
 
 // Venue Staff approve/reject a submitted booking request (SCRUM-32 / SCRUM-122).
 // Mirrors EventDecisionForm; adds the optional "suggested alternative" the AC allows on
@@ -87,8 +87,7 @@ export default function BookingDecisionForm({
 
       {held && (
         <p role="status" className="rounded-xl border border-border bg-muted/30 p-3.5 text-sm">
-          This booking is tentatively held
-          {booking.expires_at ? ` until ${new Date(booking.expires_at).toLocaleString()}` : ""}.
+          This booking is tentatively held{holdDeadlineClause(booking.expires_at)}.
           Approve or reject it before the deadline — once it passes, the hold expires and
           the venue is offered to other requests.
         </p>

@@ -167,3 +167,13 @@ it("a save with no buffer conflicts shows no conflict report", async () => {
   await screen.findByRole("status");
   expect(screen.queryByRole("region", { name: /now conflict/i })).toBeNull();
 });
+it("a single conflict with unnamed events still reads as one reviewable clash", async () => {
+  const slot = { booking_id: "booking-b", event_id: null, event_title: null, status: "Requested", start_at: "2099-10-20T04:00:00Z", end_at: "2099-10-20T06:00:00Z", occupied_start: "2099-10-20T03:30:00Z", occupied_end: "2099-10-20T06:45:00Z" };
+  api.mockResolvedValue({ venue: venueRecord, buffer_conflicts: [{ ...slot, booking_id: "booking-a", event_title: null, reason: "because", conflicts_with: [slot] }] });
+  render(<VenueForm venue={venueRecord} />);
+  fireEvent.submit(screen.getByRole("button", { name: "Save changes" }).closest("form")!);
+  const panel = await screen.findByRole("region", { name: /now conflict/i });
+  expect(panel.textContent).toContain("1 existing booking now conflict");
+  expect(panel.textContent).toContain("Untitled event");
+  expect(panel.textContent).toContain("another booking");
+});
