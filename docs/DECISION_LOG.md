@@ -2004,3 +2004,48 @@ auto-assign in D9) are recorded explicitly rather than left implicit.
 - **Owner / review required before merge.** Jessica owns the buffer policy, Ernest reviews
   locking, FCFS, privileges and migration, and Jerome/release owner owns hosted deployment.
   This entry records the agent's proposed design; it does not claim those reviews occurred.
+
+### D66 — Maintenance uses occupied windows and shares R1 write serialization (SCRUM-169 / R5)
+
+- **Context.** SCRUM-60 / Week 7 Change #2 permits outages over existing bookings, requires
+  identifying affected arrangements and informing coordinators, and preserves original
+  events. SCRUM-129 / Week 7 Change #1 makes setup and turnaround part of room occupation.
+  Search, the maintenance guard and affected-booking query previously used raw event times.
+- **Decision proposed for review.** Expand only the booking interval, never the maintenance
+  interval. Search uses the existing pure BookingInterval model; the database guard derives
+  NEW published times with current venue buffers; affected rows use R1's persisted occupied
+  times. All comparisons stay half-open, including exact touching endpoints. Expired
+  tentative rows and inactive statuses do not count as affected.
+- **Serialization.** Maintenance insert/update/delete acquires the same versioned per-venue
+  write guard as R1 (D65), before maintenance-overlap validation. It therefore cannot race
+  a booking or another block unnoticed, and REPEATABLE READ snapshots fail safely. A move
+  between venues takes guards in UUID order. This supersedes the initial local proposal
+  for a booking-table-wide lock, which was never merged or deployed. R1 is a prerequisite.
+- **Preservation.** Only new bookings or changes to venue/time/status/expiry must pass the
+  maintenance guard. Harmless metadata writes and R1 buffer refreshes preserve existing
+  records even when an outage affects them. Cancellation remains available. This does not
+  invent automatic replacement, cancellation or a new status transition.
+- **Notification contract.** Keep one targeted notice per affected coordinator as existing
+  tests require, naming every affected event rather than dropping all but the first. The
+  link opens the first affected event; the remaining titles direct further review. Current
+  coordinator is preferred, with the existing original-requester fallback. Response retains
+  all affected booking IDs. Missing recipients never cause broadcast notification.
+- **Calendar.** Operational blocks take display precedence over confirmed occupancy; otherwise
+  a confirmed booking's setup/turnaround colour hides an outage. The booking stays Confirmed
+  in storage and its event page. Existing labels/roles and confirmed-over-tentative behavior
+  are preserved; no existing test assertion is removed.
+- **Verification.** 14 of the initial 18 acceptance cases failed before the change. Expanded
+  API/DB, timezone, role, expiry, cancellation, boundary, and R1-interaction cases cover the
+  final behavior. Real two-session SQL checks cover both booking/block orders, stale snapshots
+  and two competing blocks. Two Playwright journeys cover block creation, affected IDs,
+  calendar, search, notification navigation, replacement approval and unchanged sibling
+  arrangements. Final execution evidence belongs in docs/SCRUM-169.md.
+- **Security and trade-off.** Internal trigger functions use an empty search_path and revoke
+  EXECUTE from public, anon, authenticated and service_role. Definer rights are needed for
+  R1's private guard; no role permission is broadened. Writes at one venue serialize and a
+  conflicting cross-resource transaction can abort safely and require retry. Existing block
+  persistence and notification calls remain separate transactions; this change does not
+  introduce an outbox or claim guaranteed delivery after an unrelated notification outage.
+- **Owner / review.** Jessica owns venue behavior; Ernest reviews database locking and
+  maintenance/calendar policy; release owner applies the migration after review. This is
+  an implementation proposal with test evidence, not a claim that human review occurred.

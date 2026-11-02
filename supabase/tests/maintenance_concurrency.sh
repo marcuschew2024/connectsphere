@@ -21,9 +21,12 @@ values ('$event','R5 concurrency','Preserve','Learn','Workshop','2099-10-20T02:0
 SQL
 booking="insert into public.venue_bookings(event_id,venue_id,start_at,end_at,expected_attendance,layout,requested_by,status) values('$event','$room','2099-10-20T02:00:00Z','2099-10-20T04:00:00Z',10,'Classroom',2,'Confirmed');"
 block="insert into public.venue_unavailability(venue_id,start_at,end_at,reason,created_by) values('$room','2099-10-20T01:45:00Z','2099-10-20T02:00:00Z','Maintenance',3);"
-for ordering in booking-first block-first; do
+for ordering in booking-first block-first repeatable-read two-blocks; do
   psql -Xq -c "delete from public.venue_unavailability where venue_id='$room'; delete from public.venue_bookings where event_id='$event';"
+  isolation='read committed'
   if [ "$ordering" = booking-first ]; then first=$booking; second=$block; else first=$block; second=$booking; fi
+  [ "$ordering" != repeatable-read ] || isolation='repeatable read'
+  [ "$ordering" != two-blocks ] || second=$block
   mkfifo "$scratch/input"
   PGAPPNAME=r5_first psql -XAt -v ON_ERROR_STOP=1 <"$scratch/input" >"$scratch/first" 2>&1 & first_pid=$!
   exec 3>"$scratch/input"
@@ -33,7 +36,7 @@ for ordering in booking-first block-first; do
     count=$((count+1)); [ "$count" -lt 100 ] || { cat "$scratch/first"; exit 1; }
     sleep 0.05
   done
-  PGAPPNAME=r5_second psql -XAt -v ON_ERROR_STOP=1 -c "$second" >"$scratch/second" 2>&1 & second_pid=$!
+  PGAPPNAME=r5_second psql -XAt -v ON_ERROR_STOP=1 -c "begin isolation level $isolation; $second commit;" >"$scratch/second" 2>&1 & second_pid=$!
   count=0
   until [ "$(psql -XAtc "select count(*) from pg_stat_activity where application_name='r5_second' and wait_event_type='Lock'")" = 1 ]; do
     count=$((count+1)); [ "$count" -lt 100 ] || { cat "$scratch/second"; exit 1; }
@@ -50,7 +53,14 @@ for ordering in booking-first block-first; do
     [ "$(psql -XAtc "select count(*) from public.venue_bookings b join public.venue_unavailability u on b.venue_id=u.venue_id where b.event_id='$event' and b.occupied_start<u.end_at and b.occupied_end>u.start_at")" = 1 ]
   else
     [ "$result" != 0 ]
-    grep -q 'unavailable during the event or its setup/turnaround time' "$scratch/second"
+    if [ "$ordering" = repeatable-read ]; then
+      grep -q 'could not serialize access' "$scratch/second"
+    elif [ "$ordering" = two-blocks ]; then
+      grep -q 'already blocked during this time period' "$scratch/second"
+      [ "$(psql -XAtc "select count(*) from public.venue_unavailability where venue_id='$room'")" = 1 ]
+    else
+      grep -q 'unavailable during the event or its setup/turnaround time' "$scratch/second"
+    fi
     [ "$(psql -XAtc "select count(*) from public.venue_bookings where event_id='$event'")" = 0 ]
   fi
   rm "$scratch/input"

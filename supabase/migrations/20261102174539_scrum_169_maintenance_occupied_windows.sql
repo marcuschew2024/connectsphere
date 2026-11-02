@@ -3,23 +3,40 @@
 -- are refused. Block creation is still followed by affected-booking notification.
 begin;
 
-create or replace function public.serialize_venue_block_writes()
-returns trigger language plpgsql security definer set search_path = '' as $$
+do $$
 begin
-    -- Booking writes already hold ROW EXCLUSIVE until commit. Taking a conflicting
-    -- lock before a block statement gives either ordering a complete result:
-    -- booking first => block reports it; block first => booking guard refuses it.
-    -- This short, table-wide lock is deliberately limited to rare block changes.
-    lock table public.venue_bookings in share row exclusive mode;
-    return null;
+    if to_regprocedure('public.lock_venue_buffer_writes(uuid)') is null then
+        raise exception 'SCRUM-169 requires the R1 preserve_buffer_conflicts migration first';
+    end if;
 end;
 $$;
-revoke all on function public.serialize_venue_block_writes() from public, anon, authenticated;
+
+-- R1 D65 is a prerequisite. Use the same versioned per-venue guard as booking
+-- and buffer writes, so READ COMMITTED waits/rechecks and stale snapshots abort.
+-- This also serializes two competing maintenance blocks at the same venue.
+create or replace function public.serialize_venue_block_writes()
+returns trigger language plpgsql security definer set search_path = '' as $$
+declare room uuid;
+begin
+    for room in select distinct id from unnest(case
+        when tg_op = 'INSERT' then array[new.venue_id]
+        when tg_op = 'DELETE' then array[old.venue_id]
+        else array[old.venue_id, new.venue_id] end) as rooms(id) order by id
+    loop
+        perform public.lock_venue_buffer_writes(room);
+    end loop;
+    if tg_op = 'DELETE' then return old; end if;
+    return new;
+end;
+$$;
+revoke all on function public.serialize_venue_block_writes()
+    from public, anon, authenticated, service_role;
 
 drop trigger if exists serialize_venue_block_writes on public.venue_unavailability;
-create trigger serialize_venue_block_writes
+drop trigger if exists a_venue_blocks_lock_buffers on public.venue_unavailability;
+create trigger a_venue_blocks_lock_buffers
 before insert or update or delete on public.venue_unavailability
-for each statement execute function public.serialize_venue_block_writes();
+for each row execute function public.serialize_venue_block_writes();
 
 create or replace function public.reject_booking_in_active_venue_block()
 returns trigger language plpgsql security definer set search_path = '' as $$
@@ -27,6 +44,16 @@ declare
     proposed_start timestamptz;
     proposed_end timestamptz;
 begin
+    -- New operational blocks may affect existing bookings without cancelling them.
+    -- A metadata edit or R1 buffer refresh must not become an implicit rebooking.
+    if tg_op = 'UPDATE' then
+        if (new.venue_id, new.start_at, new.end_at, new.status, new.expires_at)
+            is not distinct from (old.venue_id, old.start_at, old.end_at, old.status, old.expires_at)
+        then return new; end if;
+    end if;
+    if new.status in ('Requested', 'Pending', 'Held')
+       and new.expires_at is not null and new.expires_at <= now()
+    then return new; end if;
     if new.status in ('Requested', 'Pending', 'Held', 'Confirmed') then
         -- This trigger runs alphabetically before the R1 occupancy trigger. Derive
         -- from NEW times and the authoritative venue instead of reading stale or
@@ -47,7 +74,7 @@ begin
     return new;
 end;
 $$;
-revoke all on function public.reject_booking_in_active_venue_block() from public, anon, authenticated;
+revoke all on function public.reject_booking_in_active_venue_block() from public, anon, authenticated, service_role;
 
 notify pgrst, 'reload schema';
 commit;

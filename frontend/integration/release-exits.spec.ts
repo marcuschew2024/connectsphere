@@ -54,8 +54,8 @@ async function allocate(tech: Actor, coordinator: Actor, eventId: string) {
 }
 
 for (const [part, blockStart, blockEnd, calendarCell] of [
-  ["setup", "13:45", "14:00", "Tue 1pm: Blocked"],
-  ["turnaround", "15:00", "15:30", "Tue 3pm: Blocked"],
+  ["setup", "13:45", "14:00", "Tue 1pm: Blocked (maintenance)"],
+  ["turnaround", "15:00", "15:30", "Tue 3pm: Blocked (maintenance)"],
 ] as const) {
   test(`INTEGRATED-R5 ${part}-only maintenance notifies and supports a replacement`, async ({ as }) => {
     const { coordinator, staff, event, booking, room } = await setup(as);
@@ -74,7 +74,7 @@ for (const [part, blockStart, blockEnd, calendarCell] of [
     await staff.page.goto(`/venues/${room.id}?date=2099-10-20`);
     await staff.page.getByLabel("Start", { exact: true }).fill(`2099-10-20T${blockStart}`);
     await staff.page.getByLabel("End", { exact: true }).fill(`2099-10-20T${blockEnd}`);
-    await staff.page.getByLabel("Reason", { exact: true }).selectOption("Maintenance");
+    await staff.page.getByRole("combobox", { name: /Reason/ }).selectOption("Maintenance");
     const blocked = staff.page.waitForResponse(r => r.url().endsWith(`/venues/${room.id}/unavailability`) && r.request().method() === "POST");
     await staff.page.getByRole("button", { name: "Block venue", exact: true }).click();
     const response = await blocked;

@@ -180,7 +180,9 @@ def test_each_affected_event_is_named_in_coordinators_summary(maintenance):
     assert second["title"] in notices[0]["message"]
 
 
-@pytest.mark.parametrize("status", ["Cancelled", "Rejected", "Expired", "Held"])
+@pytest.mark.parametrize(
+    "status", ["Cancelled", "Rejected", "Expired", "Held", "Requested", "Pending"],
+)
 def test_inactive_or_expired_hold_is_not_reported_as_affected(maintenance, status):
     db, users, venue, event = maintenance
     row = event()
@@ -233,3 +235,68 @@ def test_nonstaff_cannot_create_or_clear_maintenance(maintenance, actor):
         f"/venues/{venue['id']}/unavailability/{result['block']['id']}", headers=ORIGIN,
     )
     assert response.status_code == 403
+
+
+@pytest.mark.parametrize("start,end", [("01:00", "01:30"), ("04:45", "05:00")])
+def test_block_touching_occupied_boundary_has_no_affected_ids_or_notices(maintenance, start, end):
+    db, users, venue, event = maintenance
+    row = event()
+    db.table("venue_bookings").insert({
+        **payload(venue, row), "requested_by": 2, "status": "Confirmed",
+    }).execute()
+    result = block(users, venue, f"2099-10-20T{start}:00Z", f"2099-10-20T{end}:00Z")
+    assert result["affected_booking_ids"] == []
+    assert db.table("notifications").select("id").eq("event_id", row["id"]).execute().data == []
+
+
+def test_existing_blocked_booking_survives_metadata_and_r1_buffer_refresh(maintenance):
+    db, users, venue, event = maintenance
+    row = event()
+    saved = db.table("venue_bookings").insert({
+        **payload(venue, row), "requested_by": 2, "status": "Confirmed",
+    }).execute().data[0]
+    result = block(users, venue, "2099-10-20T01:45:00Z", START)
+    assert result["affected_booking_ids"] == [saved["id"]]
+    updated = db.table("venue_bookings").update({"special_requirements": "Keep the record"}).eq(
+        "id", saved["id"],
+    ).execute().data[0]
+    assert updated["status"] == "Confirmed" and updated["start_at"] == saved["start_at"]
+    response = users[3].put(f"/venues/{venue['id']}", headers=ORIGIN, json={
+        "revision": venue["revision"], "setup_time_minutes": 45, "turnaround_time_minutes": 45,
+        **{key: venue[key] for key in (
+            "capacity", "facilities", "accessibility", "supported_layouts", "operating_hours",
+        )},
+    })
+    assert response.status_code == 200, response.json
+    current = db.table("venue_bookings").select("*").eq("id", saved["id"]).execute().data[0]
+    assert current["occupied_start"].startswith("2099-10-20T01:15:00")
+    assert current["status"] == "Confirmed" and current["event_id"] == row["id"]
+
+
+def test_approval_after_setup_only_block_is_refused_without_changing_booking(maintenance):
+    db, users, venue, event = maintenance
+    row = event()
+    saved = db.table("venue_bookings").insert({
+        **payload(venue, row), "requested_by": 2, "status": "Requested",
+    }).execute().data[0]
+    block(users, venue, "2099-10-20T01:45:00Z", START)
+    response = users[3].post(f"/venues/bookings/{saved['id']}/decision", headers=ORIGIN,
+                             json={"decision": "approve"})
+    assert response.status_code == 409, response.json
+    assert db.table("venue_bookings").select("*").eq("id", saved["id"]).execute().data == [saved]
+
+
+@pytest.mark.parametrize("status", ["Requested", "Pending", "Held"])
+def test_expired_tentative_row_does_not_claim_maintenance_window(maintenance, status):
+    db, users, venue, event = maintenance
+    row = event()
+    block(users, venue, "2099-10-20T01:45:00Z", START)
+    saved = db.table("venue_bookings").insert({
+        **payload(venue, row), "requested_by": 2, "status": status,
+        "expires_at": "2000-01-01T00:00:00Z",
+    }).execute().data[0]
+    with pytest.raises(APIError) as failure:
+        db.table("venue_bookings").update({"expires_at": "2100-01-01T00:00:00Z"}).eq(
+            "id", saved["id"],
+        ).execute()
+    assert failure.value.code == "23P01"

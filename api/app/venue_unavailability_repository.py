@@ -79,7 +79,7 @@ def find_affected_bookings(venue_id: str, start_at: str, end_at: str) -> list[di
         ).gt("occupied_end", start_at).execute()
         now = datetime.now(UTC)
         return [row for row in (result.data or []) if (
-            row.get("status") != "Held" or not row.get("expires_at")
+            row.get("status") not in {"Requested", "Pending", "Held"} or not row.get("expires_at")
             or datetime.fromisoformat(row["expires_at"].replace("Z", "+00:00")) > now
         )]
     except ServiceUnavailable:
