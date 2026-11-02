@@ -2,27 +2,29 @@ C4Container
     title C2 — Container: ConnectSphere
 
     Person(organiser, "Event Organiser", "Raises & tracks requests")
-    Person(coordinator, "Coordinator", "Reviews / approves / assigns")
+    Person(coordinator, "Event Coordinator", "Reviews / approves / manages")
+    Person(lead, "Event Coordinator Lead", "Assigns / reassigns Coordinators")
     Person(venueStaff, "Venue Staff", "Books venues")
     Person(techSupport, "Technical Support", "Books equipment")
     Person(attendee, "Attendee", "Registers for events")
+    Person(safetyOfficer, "Safety Officer", "Reviews operational safety")
 
     System_Boundary(cs, "ConnectSphere") {
         Container(webapp, "Web Application", "Next.js (React) + Tailwind CSS", "Serves the UI and handles client-side interaction for all roles")
-        Container(api, "Backend API", "Python Flask REST API", "Implements event lifecycle logic: requests, approvals, assignments, bookings, registrations, confirmations")
+        Container(api, "Backend API", "Python Flask REST API", "Event lifecycle logic plus Flask session login and in-app notifications")
     }
 
-    System_Ext(supabase, "Supabase", "Postgres database + authentication (SaaS)")
-    System_Ext(email, "Email / Notification Service", "Sends confirmations & notifications")
+    System_Ext(supabase, "Supabase", "Postgres database (SaaS, not run locally)")
 
     Rel(organiser, webapp, "Uses", "HTTPS")
     Rel(coordinator, webapp, "Uses", "HTTPS")
+    Rel(lead, webapp, "Uses", "HTTPS")
     Rel(venueStaff, webapp, "Uses", "HTTPS")
     Rel(techSupport, webapp, "Uses", "HTTPS")
     Rel(attendee, webapp, "Uses", "HTTPS")
+    Rel(safetyOfficer, webapp, "Uses", "HTTPS")
 
     Rel(webapp, api, "Makes API calls to", "HTTPS/JSON (REST)")
-    Rel(api, supabase, "Reads/writes event data; verifies auth via", "HTTPS/JSON")
-    Rel(api, email, "Sends confirmation & notification emails via", "HTTPS/SMTP")
+    Rel(api, supabase, "Reads/writes event data & in-app notifications in", "HTTPS/JSON (Postgres)")
 
     UpdateLayoutConfig($c4ShapeInRow="3", $c4BoundaryInRow="1")
