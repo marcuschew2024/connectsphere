@@ -108,7 +108,7 @@ def _notify_affected_coordinators(venue: dict, report: list[dict]) -> None:
             "venue_buffer_conflict",
             f'A setup/turnaround change at "{venue.get("name", "a venue")}" now conflicts '
             f'with the booking for "{slot.get("event_title", "your event")}". '
-            f"Review the booking and request an alternative time or venue.",
+            f"Review the booking and change or cancel it if a different time or venue is needed.",
         )
 
 
