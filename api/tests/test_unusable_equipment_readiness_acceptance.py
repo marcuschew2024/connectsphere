@@ -5,7 +5,7 @@ Tech Support marks the item Damaged or Under Maintenance, and count again once r
 """
 
 import os
-from datetime import datetime, timedelta
+from datetime import datetime
 
 import pytest
 
@@ -35,9 +35,11 @@ def approved_booking(db, event, venue):
     # treats it as a reschedule orphan and blocks (SCRUM-159). Derive it from the event
     # so this equipment-readiness test exercises the equipment rule, not a date mismatch.
     start = datetime.fromisoformat(event["event_datetime"].replace("Z", "+00:00"))
+    # SCRUM-166: the approved booking must cover the event's whole time, start to end.
+    end = datetime.fromisoformat(event["event_end_datetime"].replace("Z", "+00:00"))
     db.table("venue_bookings").insert({
         "venue_id": venue["id"], "event_id": event["id"], "requested_by": 2,
-        "start_at": start.isoformat(), "end_at": (start + timedelta(hours=1)).isoformat(),
+        "start_at": start.isoformat(), "end_at": end.isoformat(),
         "expected_attendance": 20, "layout": "Classroom", "status": "Confirmed",
     }).execute()
 
@@ -49,7 +51,10 @@ def test_reserved_stock_that_becomes_unusable_blocks_confirmation(live, conditio
     event = make_event()
     approved_booking(db, event, venue)
     saved = create_request(users, event, [item])
-    reserved = reserve(users, saved, allocation(saved, [item], [1]))
+    # SCRUM-166: the reservation window must also cover the event's whole time.
+    reserved = reserve(users, saved, allocation(saved, [item], [1],
+                                                start_at=event["event_datetime"],
+                                                end_at=event["event_end_datetime"]))
     assert reserved.status_code == 200 and reserved.json["request"]["status"] == "Reserved"
 
     set_condition(users, item["equipment_id"], condition)

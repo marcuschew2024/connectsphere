@@ -244,3 +244,9 @@ done
 psql -v ON_ERROR_STOP=1 -f /sql/tests/venue_calendar_buffers.sql
 psql -v ON_ERROR_STOP=1 -f /sql/tests/venue_hold_release.sql
 sh /sql/tests/venue_buffer_concurrency.sh
+
+# SCRUM-166: an approved reschedule returns a Confirmed/Preparation event to Planning.
+for pass in 1 2; do
+  psql -v ON_ERROR_STOP=1 -f /sql/migrations/20261103090000_scrum_166_reschedule_returns_to_planning.sql > /tmp/migration-output.txt
+  echo "Reschedule returns to Planning migration pass $pass: PASS"
+done

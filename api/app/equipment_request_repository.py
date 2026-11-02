@@ -89,7 +89,11 @@ def list_confirmation_requests(event_id: str) -> list[dict]:
                 if reservation["status"] == "Reserved"
             ]
             _summarize_reservations(row)
-        return [{"id": row["id"], "status": row["status"]} for row in rows]
+        # SCRUM-166: the gate also checks each reservation window against the event;
+        # a request without a recorded window is passed on unchanged.
+        return [{"id": row["id"], "status": row["status"],
+                 **{key: row[key] for key in ("reservation_start_at", "reservation_end_at")
+                    if row.get(key) is not None}} for row in rows]
     except Exception as error:
         raise ServiceUnavailable(
             "Could not verify technical arrangements. Please try again."

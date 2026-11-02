@@ -1,6 +1,6 @@
 -- SCRUM-137 / R1: current occupied windows, preserved legacy conflicts, serialized writes.
 -- Prerequisites: SCRUM-129 buffers, SCRUM-137 occupied columns, SCRUM-79 hold release.
--- Review D64 before deployment. No booking is deleted, cancelled, or rescheduled here.
+-- Review D65 before deployment. No booking is deleted, cancelled, or rescheduled here.
 begin;
 
 -- Stop writes during the atomic change of enforcement; readers may continue.

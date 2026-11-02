@@ -17,7 +17,7 @@ contracts; no production Python or frontend change is required for R1.
 cover raw intervals as defence in depth. Occupied-window enforcement is provided by the
 new guarded trigger. Checking only whether an exclusion mentions `occupied_start` is no
 longer a valid deployment test: an unconditional occupied exclusion conflicts with the
-requirement to preserve/flag buffer-induced overlaps. See Decision Log D64.
+requirement to preserve/flag buffer-induced overlaps. See Decision Log D65.
 
 ## Acceptance and verification
 
@@ -39,7 +39,7 @@ recorded below after execution; this document is not a substitute for green CI.
 
 ## Hosted deployment: what the release owner must do
 
-1. Review D64 and the migration with Jessica/Ernest. Work is isolated in
+1. Review D65 and the migration with Jessica/Ernest. Work is isolated in
    `feature/SCRUM-137-buffer-update-conflicts`, based on `e602a44`; it is not deployed or merged.
 2. Confirm the target is `pqdkfrvqjeqlsdwvddcd` (SPM ConnectSphere). Use the read-only preflight
    below. Take the team's normal backup before deployment. Preserve bookings; do not delete
@@ -110,7 +110,7 @@ A full rollback requires human reconciliation of affected bookings first.
 - **Evidence:** new real DB/API and Playwright cases, replay and simultaneous SQL tests,
   plus full regression/lint/build results below and CI before merge.
 - **Human review:** database locking, snapshot behavior, raw-exclusion/trigger division,
-  privileges, report lifecycle and deployment order (D64).
+  privileges, report lifecycle and deployment order (D65).
 - **Accountability:** Jessica (policy), Ernest (database review), Jerome/release owner
   (hosted deployment). Agent implementation is not human sign-off.
 
