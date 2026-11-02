@@ -1793,3 +1793,33 @@ auto-assign in D9) are recorded explicitly rather than left implicit.
 - **Trade-off.** The panel now shows fewer controls than before on confirmed bookings. That
   is the point: the removed control never worked.
 - **Owner.** Jessica Ang. Presentation fix to D57; no new authorisation decision.
+
+### D61 — The booking change form uses the same choice groups as the request form
+
+- **Context.** User request during manual verification. "Change venue booking" collected
+  layout as free text and requirements as one textarea, while "Request venue" collects
+  layout, facilities and accessibility as checkbox groups with an Other entry. The same
+  arrangement was therefore described two different ways depending on which screen you
+  opened, and a Coordinator editing a booking had to retype catalogue values by hand.
+- **Decision.** The change form now renders the same three choice groups. Values still
+  travel to the API unchanged -- `layout` and `special_requirements` remain comma-joined
+  strings -- so no contract, validation or schema changes.
+- **Round-tripping an existing booking.** `special_requirements` is stored as a single list,
+  so a value matching neither the facility nor the accessibility catalogue cannot be
+  attributed to either group. Such a value is preserved under **Facilities > Other** rather
+  than dropped. This is a presentation compromise, not data loss: what was saved is what
+  comes back. The same applies to a custom layout, which lands under **Layout > Other**.
+- **Changed existing tests — reviewable.** The old form's fields no longer exist, so the
+  tests that typed into them now tick checkboxes:
+  `booking-pages.test.tsx` (the save path, the retained-edit path, and the legacy-value path,
+  which now asserts the value survives as an Other chip) and
+  `e2e/booking-edit-release.spec.ts` (same change, plus it now asserts the selections survive
+  reopening). Every assertion is preserved or strengthened; none was removed. Flagged per the
+  root AGENTS.md test-protection rule.
+- **Verification.** `src/lib/venue-hold-presentation.test.ts` covers the split/rejoin helpers
+  including empty, blank, duplicate, case-mismatched and unknown values, and a full
+  round-trip. The unit and browser suites cover the form itself.
+- **Trade-off.** A Coordinator can no longer type an arbitrary layout directly into the
+  field; they tick Other and add it, which is one extra click but keeps the two forms
+  consistent and the stored vocabulary aligned with the catalogue.
+- **Owner.** Jessica Ang. Presentation only; no authorisation or contract decision.

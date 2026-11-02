@@ -1,7 +1,8 @@
 // SCRUM-79 + SCRUM-129: the wording the hold and buffer-conflict screens depend on.
 // These are pure so each fallback is asserted directly rather than through a rendered page.
 import { describe, expect, it } from "vitest";
-import { bookingChangeRefusal, canCancelBooking, canChangeBooking, holdDeadlineClause,
+import { bookingChangeRefusal, canCancelBooking, canChangeBooking, extraValues,
+  holdDeadlineClause, joinRequirements, presetValues, requirementValues,
   type BookingRecord, type BookingStatus } from "./bookings";
 import { conflictCountLabel, conflictEventLabel } from "./venues";
 
@@ -97,5 +98,54 @@ describe("canChangeBooking / canCancelBooking", () => {
     // Older responses carry no can_manage; the server still refuses an unauthorised write.
     expect(canChangeBooking(booking("Requested"))).toBe(true);
     expect(canCancelBooking(booking("Confirmed"))).toBe(true);
+  });
+});
+
+describe("requirement value round-tripping", () => {
+  const LAYOUTS = ["Theatre", "Classroom", "Boardroom"];
+  const FACILITIES = ["Projector", "Microphone"];
+  const ACCESS = ["Elevator", "Ramp"];
+
+  it.each([
+    ["Projector, Elevator", ["Projector", "Elevator"]],
+    ["  Projector ,, Elevator  ", ["Projector", "Elevator"]],
+    ["", []],
+    [null, []],
+    [undefined, []],
+  ])("splits %s into its entries", (stored, expected) => {
+    expect(requirementValues(stored)).toEqual(expected);
+  });
+
+  it("matches presets case-insensitively and returns the catalogue's spelling", () => {
+    expect(presetValues(["theatre", "CLASSROOM"], LAYOUTS)).toEqual(["Theatre", "Classroom"]);
+  });
+
+  it("returns no presets when none are named", () => {
+    expect(presetValues(["Hammock"], LAYOUTS)).toEqual([]);
+  });
+
+  it("keeps values that match no catalogue so a custom entry survives an edit", () => {
+    const stored = requirementValues("Projector, Accessible route, Elevator");
+    expect(extraValues(stored, FACILITIES, ACCESS)).toEqual(["Accessible route"]);
+  });
+
+  it("treats a value matching any group as known", () => {
+    expect(extraValues(["Projector", "Ramp"], FACILITIES, ACCESS)).toEqual([]);
+  });
+
+  it("rejoins groups without duplicates or blanks", () => {
+    expect(joinRequirements(["Projector"], [" Elevator "], [], ["Projector"]))
+      .toBe("Projector, Elevator");
+  });
+
+  it("round-trips a stored value through the form and back", () => {
+    const stored = "Projector, Accessible route, Elevator";
+    const values = requirementValues(stored);
+    const rebuilt = joinRequirements(
+      presetValues(values, FACILITIES),
+      extraValues(values, FACILITIES, ACCESS),
+      presetValues(values, ACCESS),
+    );
+    expect(requirementValues(rebuilt).sort()).toEqual(values.sort());
   });
 });

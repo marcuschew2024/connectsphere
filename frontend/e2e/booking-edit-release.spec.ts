@@ -22,8 +22,11 @@ test("Coordinator changes one Requested booking and the changes survive reopenin
   await page.getByLabel("Start", { exact: true }).fill("2099-10-21T14:00");
   await page.getByLabel("End", { exact: true }).fill("2099-10-21T16:00");
   await page.getByLabel("Expected attendance").fill("30");
-  await page.getByLabel("Layout", { exact: true }).fill("Classroom");
-  await page.getByLabel("Special requirements").fill("Projector");
+  // Layout, facilities and accessibility are checkbox groups, matching the request form.
+  // The booking is stored as Theatre, so switching layout means unticking it.
+  await page.getByRole("checkbox", { name: "Theatre", exact: true }).uncheck();
+  await page.getByRole("checkbox", { name: "Classroom", exact: true }).check();
+  await page.getByRole("checkbox", { name: "Projector", exact: true }).check();
   await page.getByRole("button", { name: "Save booking change" }).click();
   await expect(page).toHaveURL(/\/events\/event-1$/);
   expect(writes).toBe(1);
@@ -31,7 +34,9 @@ test("Coordinator changes one Requested booking and the changes survive reopenin
     start_at: "2099-10-21T06:00:00.000Z", end_at: "2099-10-21T08:00:00.000Z", special_requirements: "Projector" });
   await page.goto(`/venues/bookings/${id}/edit`);
   await expect(page.getByRole("combobox", { name: /^Venue/ })).toHaveValue("venue-2");
-  await expect(page.getByLabel("Special requirements")).toHaveValue("Projector");
+  await expect(page.getByRole("checkbox", { name: "Projector", exact: true })).toBeChecked();
+  await expect(page.getByRole("checkbox", { name: "Classroom", exact: true })).toBeChecked();
+  await expect(page.getByRole("checkbox", { name: "Theatre", exact: true })).not.toBeChecked();
 });
 for (const scenario of [{ status: "Confirmed", requested_by: 2 }, { status: "Requested", requested_by: 7 }]) {
   test(`direct edit URL is read-only for ${scenario.status} booking owned by ${scenario.requested_by}`, async ({ page }) => {

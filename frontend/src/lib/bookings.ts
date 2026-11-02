@@ -56,6 +56,32 @@ export function BookingStatusBadge({ status }: { status: BookingStatus }) {
   );
 }
 
+// The booking form stores layout and requirements as comma-joined text, but is edited as
+// checkbox groups. These split a stored value back into "presets that are ticked" and
+// "anything else", so an existing booking round-trips without losing a custom entry.
+
+/** Split a stored comma-joined value into its individual entries. */
+export function requirementValues(text: string | null | undefined): string[] {
+  return (text ?? "").split(",").map((value) => value.trim()).filter(Boolean);
+}
+
+/** The presets these values name, in the preset's own spelling. */
+export function presetValues(values: string[], presets: string[]): string[] {
+  return presets.filter((preset) =>
+    values.some((value) => value.toLowerCase() === preset.toLowerCase()));
+}
+
+/** Values matching none of the given preset groups, so a custom entry survives an edit. */
+export function extraValues(values: string[], ...presetGroups: string[][]): string[] {
+  const known = presetGroups.flat().map((preset) => preset.toLowerCase());
+  return values.filter((value) => !known.includes(value.toLowerCase()));
+}
+
+/** Rejoin selected groups into the stored comma-joined form, without duplicates. */
+export function joinRequirements(...groups: string[][]): string {
+  return [...new Set(groups.flat().map((value) => value.trim()).filter(Boolean))].join(", ");
+}
+
 // D52: the API permits a change only on a Requested booking, and only to the Coordinator
 // who currently holds the event (SCRUM-21/130). Where a change is refused, say which of
 // those two reasons applies — "not yours" and "already decided" are different problems and
