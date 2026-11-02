@@ -411,3 +411,80 @@ def test_an_organiser_is_never_told_they_may_manage_a_booking(app, monkeypatch):
     assert client.get("/venues/bookings/event/event-1", headers=ORIGIN).json["bookings"][0][
         "can_manage"
     ] is False
+
+
+# ==============================================================================
+# The persistence these routes rely on. The route tests patch the repository, and the
+# live-database acceptance tests need Docker, so these cover the success paths directly:
+# R3 changed the filters in update_requested_booking and cancel_booking, and that change
+# should be provable without the disposable database.
+# ==============================================================================
+
+
+def _repo_client(monkeypatch, rows):
+    """A fake PostgREST client that records its filters and returns `rows`."""
+    from app import booking_repository as repo
+
+    recorded: dict = {}
+    client = MagicMock()
+    query = MagicMock()
+
+    def record(name):
+        def capture(column, value):
+            recorded.setdefault(name, {})[column] = value
+            return query
+        return capture
+
+    def update(payload):
+        recorded["payload"] = payload
+        return query
+
+    query.select.return_value = query
+    query.update.side_effect = update
+    query.eq.side_effect = record("eq")
+    query.in_.side_effect = record("in")
+    query.order.return_value = query
+    query.execute.return_value = SimpleNamespace(data=rows)
+    client.table.return_value = query
+    monkeypatch.setattr(repo, "get_supabase_client", lambda: client)
+    return repo, recorded
+
+
+def test_changing_a_booking_filters_on_state_alone_and_records_the_author(monkeypatch):
+    """R3: `requested_by` is no longer an authorisation filter; the route owns authority."""
+    repo, recorded = _repo_client(monkeypatch, [{"id": "booking-a", "layout": "Theatre"}])
+
+    saved = repo.update_requested_booking("booking-a", {"layout": "Theatre"}, 7)
+
+    assert saved == {"id": "booking-a", "layout": "Theatre"}
+    assert recorded["eq"] == {"id": "booking-a", "status": "Requested"}
+    assert "requested_by" not in recorded["eq"], "authority is the event's, not the requester's"
+    assert recorded["payload"]["last_changed_by"] == 7
+
+
+def test_cancelling_a_booking_filters_on_state_alone_and_records_the_author(monkeypatch):
+    repo, recorded = _repo_client(monkeypatch, [{"id": "booking-a", "status": "Cancelled"}])
+
+    saved = repo.cancel_booking("booking-a", 7)
+
+    assert saved["status"] == "Cancelled"
+    assert recorded["eq"] == {"id": "booking-a"}
+    assert "requested_by" not in recorded["eq"]
+    assert recorded["in"]["status"] == ["Requested", "Confirmed"]
+    assert recorded["payload"]["last_changed_by"] == 7
+
+
+def test_the_event_detail_listing_returns_every_arrangement(monkeypatch):
+    repo, recorded = _repo_client(monkeypatch, [{"id": "booking-a"}, {"id": "booking-b"}])
+
+    assert repo.list_bookings_for_event_detail("event-1") == [
+        {"id": "booking-a"}, {"id": "booking-b"},
+    ]
+    assert recorded["eq"] == {"event_id": "event-1"}
+
+
+def test_the_confirmation_gate_listing_returns_every_arrangement(monkeypatch):
+    repo, recorded = _repo_client(monkeypatch, [{"id": "booking-a", "status": "Confirmed"}])
+
+    assert repo.list_bookings_for_event("event-1") == [{"id": "booking-a", "status": "Confirmed"}]
+    assert recorded["eq"] == {"event_id": "event-1"}
