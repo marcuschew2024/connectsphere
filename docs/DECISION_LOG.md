@@ -1953,3 +1953,54 @@ auto-assign in D9) are recorded explicitly rather than left implicit.
 - **Owner.** Ernest Wong. Status-transition and confirmation-gate change: human review
   required before merge. The migration must be applied to the shared Supabase project
   after merge.
+
+### D65 — Preserve buffer-induced conflicts while enforcing new occupied windows (SCRUM-137)
+
+- **Context.** Week 7 Change #1 / SCRUM-129 AC3 requires existing bookings made conflicting
+  by a buffer increase to be identified, not silently removed. The original SCRUM-137
+  migration bulk-refreshed occupied intervals under an unconditional occupied exclusion:
+  a 15-minute setup / 30→60-minute turnaround change rejected the venue save with 23P01,
+  surfaced as 503, before the report or SCRUM-167 notifications could execute.
+- **Decision proposed for human review.** Keep current venue buffers materialized into every
+  booking's occupied interval, preserving published times, status, identity and event data.
+  Replace the blanket occupied exclusion with a serialized database trigger for new or
+  changed slots. Retain raw-time exclusions as defence in depth. Every booking writer and
+  venue buffer refresh updates a private per-venue guard row and holds its lock to commit.
+  The row version update (not just an advisory lock) also causes stale REPEATABLE READ
+  transactions to abort rather than check an obsolete snapshot. Moving between venues
+  acquires guards in UUID order. The guard executes before expiry and occupied triggers.
+- **Conflict policy.** Preserve the existing FCFS tiers: hard-vs-hard and live tentative-vs-
+  tentative overlaps are refused; confirmation can supersede a tentative hold. API request
+  checks remain stricter. Only inserts and changes to venue, published time, status or hold
+  expiry must pass the guard; buffer recalculation and harmless metadata changes preserve
+  existing conflicts. Caller-supplied occupied fields/buffers are always recomputed. No
+  caller-controlled flag or trigger-depth escape is used.
+- **Reports.** Refresh normalized buffer-only pairs atomically on buffer changes and booking
+  insert/change/cancellation/deletion. Raw overlaps allowed by cross-tier FCFS are excluded,
+  as in the existing Python report. Expired tentative holds and inactive bookings are
+  excluded. The persisted table is a current snapshot at the last write, not an immutable
+  audit log; as time passes the on-demand API report remains authoritative for expired holds.
+  FK cascades delete report records only, never their bookings. Historical bookings follow
+  the same existing refresh policy; no new historical cutoff is invented.
+- **Constraints.** Functions have an empty search_path and no EXECUTE privilege for public,
+  anon, authenticated or service_role. Trigger definer rights access the otherwise private
+  guard/report tables; no application CRUD privilege or authorisation rule is broadened.
+  The migration holds table write locks during the atomic enforcement switch. It requires
+  the original buffer/occupied/hold-release migrations. Do not replay old SCRUM-137 over it.
+- **Verification.** Nine new real HTTP/PostgreSQL tests failed on the original schema and
+  passed after this migration. Expanded acceptance covers search/calendar consistency,
+  inactive and expired rows, forged occupied fields and multirow inserts. A two-session SQL
+  test proves booking-first/buffer-first ordering, simultaneous inserts, concurrent approvals,
+  and REPEATABLE READ safety. The full migration harness replays the follow-up twice and
+  re-runs the unchanged occupied-boundary and hold-release tests. Final counts live in
+  docs/SCRUM-137.md. No existing assertions are weakened.
+- **Trade-off.** Buffered enforcement is now a trigger plus transactional serialization,
+  not a single GiST exclusion. Writes at one venue serialize; other venues remain separate.
+  Large venue refreshes update all its rows and regenerate pairs. Cross-resource transactions
+  may deadlock and abort safely; callers must retry a refused transaction, never assume it
+  committed. This prioritizes correctness at Release 1 scale. Read-only reports/search are
+  not reservations. Deployment and rollback must use the documented preflight; reverting
+  to unconditional occupied exclusions while flagged conflicts exist will fail.
+- **Owner / review required before merge.** Jessica owns the buffer policy, Ernest reviews
+  locking, FCFS, privileges and migration, and Jerome/release owner owns hosted deployment.
+  This entry records the agent's proposed design; it does not claim those reviews occurred.
