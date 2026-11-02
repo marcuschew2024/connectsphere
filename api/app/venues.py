@@ -162,8 +162,7 @@ def venue_bookings(venue_id):
     if not start_at or not end_at:
         raise BadRequest("Provide 'from' and 'to' timestamps.")
     venue = get_venue(venue_id)
-    # SCRUM-79: the calendar shows live holds, so lapsed ones are released before the read
-    # and never appear as occupying a slot that is in fact free.
+    # SCRUM-79: the calendar shows live holds, so release lapsed ones before the read.
     release_expired_holds(venue_id)
     bookings = list_venue_bookings_in_range(
         venue_id,

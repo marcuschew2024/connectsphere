@@ -269,8 +269,8 @@ def booking_detail(booking_id):
     else:
         require_role(user, "Coordinator", action="view_venue_booking")
         require_related_user(user, event or booking, action="view_venue_booking")
-    # D52: the UI offers a change only where the API would permit one, so the server
-    # decides. A Coordinator manages the booking only while they hold the event.
+    # D62: the UI offers an action only where the API accepts one, so the server answers
+    # it. Authority is the event's current Coordinator (D59), not the requester (D52).
     booking["can_manage"] = (
         user.get("role") == "Coordinator"
         and _current_coordinator(booking, event) == user["id"]
@@ -302,8 +302,7 @@ def event_bookings(event_id):
         booking["capacity_warning"] = (
             CapacityRule().evaluate(event, booking.get("venue") or {}) if active else None
         )
-        # D52 + SCRUM-21/130: the panel offers an action only where the API would accept
-        # one, and authority is the event's current Coordinator.
+        # Same contract as the detail endpoint above.
         booking["can_manage"] = manages_event
     return jsonify({"bookings": bookings}), 200
 
@@ -342,8 +341,7 @@ def cancel_one_booking(booking_id):
     event = get_event_by_id(booking["event_id"]) if booking.get("event_id") else None
     if event is None:
         raise NotFound("Event not found.")
-    # SCRUM-21/130: as with a change, only the event's current Coordinator may cancel its
-    # venue arrangements. Authorise before revealing the event's state.
+    # SCRUM-21/130: authorise before revealing the event's state, as on change.
     require_related_user(user, event, action="cancel_venue_booking")
     if event.get("status") == "Completed":
         # SCRUM-132: a completed event's bookings are part of its closed record.

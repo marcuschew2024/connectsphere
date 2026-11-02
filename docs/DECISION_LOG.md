@@ -1699,7 +1699,7 @@ auto-assign in D9) are recorded explicitly rather than left implicit.
 - **Owner.** Jessica Ang (Sprint 4 overlap and availability owner). Overlap-engine,
   status-transition and schema changes: human review required before merge.
 
-### D59 — Booking management follows the event's current Coordinator (SCRUM-21 / SCRUM-130)
+### D59 — Booking management follows the event's current Coordinator (SCRUM-21 / SCRUM-130; supersedes D52's requester condition)
 
 - **Context.** Audit R3. `PATCH /venues/bookings/<id>` and `POST .../cancel` authorised on
   the booking's `requested_by`. Reassignment (D26) changes `events.coordinator_id` but not

@@ -288,13 +288,12 @@ def list_venue_bookings_in_range(
             # rather than retrying the same failing call with fewer columns.
             raise
         except Exception:
-            # A database without SCRUM-137's occupied interval columns (audit R1) would
-            # otherwise make every venue page unopenable. The calendar already falls back
-            # to the raw slot per booking (D55), so fall back for the whole read too and
-            # record why: buffered occupancy is simply not shown until that migration lands.
+            # A database without SCRUM-137's occupied interval columns would otherwise make
+            # every venue page unopenable. The calendar already falls back to the raw slot
+            # per booking (D55), so fall back for the whole read too and record why.
             current_app.logger.warning(
                 "venue_bookings lacks the SCRUM-137 occupied interval columns; "
-                "the calendar is falling back to raw booking slots (audit R1).",
+                "the calendar is falling back to raw booking slots.",
             )
             return read(CALENDAR_COLUMNS_RAW_SLOT)
     except ServiceUnavailable:

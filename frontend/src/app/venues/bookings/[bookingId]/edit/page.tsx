@@ -141,8 +141,8 @@ export default function EditBookingPage() {
     }).catch((requestError) => setError(requestError instanceof ApiError ? requestError.message : "Could not load this booking."));
   }, [params.bookingId]);
 
-  // D52: the server decides who may change a booking. SCRUM-21/130 moved that authority
-  // to the event's current Coordinator, so read can_manage rather than comparing
+  // D59: SCRUM-21/130 moved change authority from the booking's requester (D52) to the
+  // event's current Coordinator, so read the server's can_manage rather than comparing
   // requested_by -- after a reassignment those two disagree.
   const refusal = booking && bookingChangeRefusal(booking.status, {
     isCoordinator: role === "Coordinator",

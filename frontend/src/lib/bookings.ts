@@ -60,7 +60,6 @@ export function BookingStatusBadge({ status }: { status: BookingStatus }) {
 // checkbox groups. These split a stored value back into "presets that are ticked" and
 // "anything else", so an existing booking round-trips without losing a custom entry.
 
-/** Split a stored comma-joined value into its individual entries. */
 export function requirementValues(text: string | null | undefined): string[] {
   return (text ?? "").split(",").map((value) => value.trim()).filter(Boolean);
 }
@@ -82,10 +81,10 @@ export function joinRequirements(...groups: string[][]): string {
   return [...new Set(groups.flat().map((value) => value.trim()).filter(Boolean))].join(", ");
 }
 
-// D52: the API permits a change only on a Requested booking, and only to the Coordinator
-// who currently holds the event (SCRUM-21/130). Where a change is refused, say which of
-// those two reasons applies — "not yours" and "already decided" are different problems and
-// a reader who is told the wrong one will go looking in the wrong place.
+// D59: the API permits a change only on a Requested booking, and only to the Coordinator
+// who currently holds the event (SCRUM-21/130) -- not its requester, as D52 had it. Where a
+// change is refused, say which of those two reasons applies (D62): "not yours" and "already
+// decided" are different problems, and the wrong one sends a reader looking in the wrong place.
 export function bookingChangeRefusal(
   status: BookingStatus,
   options: { isCoordinator: boolean; canManage: boolean },
