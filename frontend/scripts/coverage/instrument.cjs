@@ -20,7 +20,7 @@ function instrument(source, file) {
 function sources(dir = path.join(root, 'src')) {
   return fs.readdirSync(dir, { withFileTypes: true }).flatMap(entry => {
     const file = path.join(dir, entry.name);
-    return entry.isDirectory() ? sources(file) : eligible(file) ? [file] : [];
+    return entry.isDirectory() ? sources(file) : eligible(file) ? [normalise(file)] : [];
   }).sort();
 }
 function digest(source) { return crypto.createHash('sha256').update(source).digest('hex'); }
@@ -38,4 +38,4 @@ function prepare() {
   fs.writeFileSync(path.join(dataDir, 'baseline.json'), JSON.stringify(baseline));
   fs.writeFileSync(path.join(dataDir, 'sources.json'), JSON.stringify(hashes, null, 2));
 }
-module.exports = { root, dataDir, eligible, instrument, sources, digest, prepare };
+module.exports = { root, dataDir, eligible, instrument, normalise, sources, digest, prepare };
