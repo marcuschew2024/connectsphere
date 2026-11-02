@@ -14,7 +14,11 @@ Gate (Week 7 change #3, multi-venue). An event may be confirmed only when:
     blocks, AND
   * no approved booking's slot has drifted from the event's date/time
     (SCRUM-159: a reschedule must not leave an orphaned booking - NFR-d), AND
-  * the technical arrangements are resolved.
+  * when the event has an end time, its approved bookings together cover the event
+    from start to end with no gap (SCRUM-166 / audit R4: a 1-hour booking cannot
+    satisfy a 3-hour event; a main hall plus a shorter breakout room can), AND
+  * the technical arrangements are resolved, and every Reserved request's reservation
+    window covers the event's time (SCRUM-166).
 
 Rejected and cancelled bookings are settled history and do not block. The
 `from_arrangements` requires every equipment request to be Reserved; the
@@ -61,6 +65,8 @@ class EventConfirmation:
         booking_statuses,
         technical_resolved: bool = True,
         mismatched_bookings: int = 0,
+        uncovered: bool = False,
+        mistimed_equipment: int = 0,
     ):
         statuses = [self._clean(status) for status in booking_statuses]
         self._confirmed = sum(1 for status in statuses if status == "Confirmed")
@@ -69,6 +75,10 @@ class EventConfirmation:
         self._technical_resolved = bool(technical_resolved)
         # Approved bookings whose slot no longer covers the event's date/time.
         self._mismatched = int(mismatched_bookings)
+        # SCRUM-166: part of the event's start-end span has no approved booking.
+        self._uncovered = bool(uncovered)
+        # SCRUM-166: Reserved requests whose reservation window misses the event's time.
+        self._mistimed_equipment = int(mistimed_equipment)
 
     @staticmethod
     def _clean(status) -> str:
@@ -90,12 +100,43 @@ class EventConfirmation:
             return True
         return start <= event_dt < end
 
+    @staticmethod
+    def _window(row: dict, start_key: str, end_key: str):
+        """A readable [start, end) window, or None when it cannot be judged."""
+        start, end = _as_instant(row.get(start_key)), _as_instant(row.get(end_key))
+        if start is None or end is None or end <= start:
+            return None
+        return start, end
+
+    @staticmethod
+    def _span(event_datetime, event_end) -> tuple[datetime, datetime] | None:
+        """The event's [start, end) span, or None when it has no usable end time."""
+        start = _as_instant(event_datetime) if event_datetime is not None else None
+        end = _as_instant(event_end) if event_end is not None else None
+        if start is None or end is None or end <= start:
+            return None
+        return start, end
+
+    @staticmethod
+    def _covers_span(windows, span) -> bool:
+        """True when the union of half-open windows covers the whole half-open span."""
+        reached = span[0]
+        for start, end in sorted(windows):
+            if start > reached:
+                break  # A gap before this window starts.
+            reached = max(reached, end)
+            if reached >= span[1]:
+                return True
+        return reached >= span[1]
+
     @classmethod
     def from_bookings(
         cls,
         bookings,
         technical_resolved: bool = True,
         event_datetime=None,
+        event_end=None,
+        mistimed_equipment: int = 0,
     ) -> "EventConfirmation":
         """Build the gate from venue-booking rows (each a dict with 'status').
 
@@ -110,36 +151,71 @@ class EventConfirmation:
             for booking in bookings
         ]
         mismatched = 0
+        uncovered = False
+        approved = [
+            booking for booking in bookings
+            if isinstance(booking, dict) and cls._clean(booking.get("status")) == "Confirmed"
+        ]
+        span = cls._span(event_datetime, event_end)
         event_dt = _as_instant(event_datetime) if event_datetime is not None else None
-        if event_dt is not None:
-            mismatched = sum(
-                1
-                for booking in bookings
-                if isinstance(booking, dict)
-                and cls._clean(booking.get("status")) == "Confirmed"
-                and not cls._slot_covers(booking, event_dt)
-            )
+        if span is not None:
+            # SCRUM-166: judge the whole event, not only its start instant.
+            windows = [w for b in approved if (w := cls._window(b, "start_at", "end_at"))]
+            # An approved booking that does not touch the event at all is an orphan.
+            mismatched = sum(1 for start, end in windows
+                             if not (start < span[1] and span[0] < end))
+            # Unreadable slots never invent a conflict (see _as_instant).
+            if windows:
+                uncovered = not cls._covers_span(windows, span)
+        elif event_dt is not None:
+            mismatched = sum(1 for booking in approved
+                             if not cls._slot_covers(booking, event_dt))
         return cls(
             statuses,
             technical_resolved=technical_resolved,
             mismatched_bookings=mismatched,
+            uncovered=uncovered,
+            mistimed_equipment=mistimed_equipment,
         )
 
     @classmethod
     def from_arrangements(
-        cls, bookings, equipment_requests, event_datetime=None
+        cls, bookings, equipment_requests, event_datetime=None, event_end=None
     ) -> "EventConfirmation":
-        """No equipment requests means none are needed; every recorded request must be ready."""
+        """No equipment requests means none are needed; every recorded request must be ready.
+
+        SCRUM-166: a Reserved request also needs its reservation window to cover the
+        event's time - start to end when the event has an end, else its start instant.
+        A window that cannot be read is not counted as mistimed.
+        """
         if not isinstance(equipment_requests, list):
             raise ValueError("Equipment requests must be a list of request records.")
         technical_resolved = all(
             isinstance(row, dict) and cls._clean(row.get("status")) == "Reserved"
             for row in equipment_requests
         )
+        span = cls._span(event_datetime, event_end)
+        event_dt = _as_instant(event_datetime) if event_datetime is not None else None
+        mistimed = 0
+        for row in equipment_requests:
+            if not isinstance(row, dict) or cls._clean(row.get("status")) != "Reserved":
+                continue
+            window = cls._window(row, "reservation_start_at", "reservation_end_at")
+            if window is None:
+                continue
+            if span is not None:
+                covered = window[0] <= span[0] and span[1] <= window[1]
+            elif event_dt is not None:
+                covered = window[0] <= event_dt < window[1]
+            else:
+                covered = True
+            mistimed += 0 if covered else 1
         return cls.from_bookings(
             bookings,
             technical_resolved=technical_resolved,
             event_datetime=event_datetime,
+            event_end=event_end,
+            mistimed_equipment=mistimed,
         )
 
     @property
@@ -149,7 +225,9 @@ class EventConfirmation:
             self._confirmed >= 1
             and not self._pending
             and self._mismatched == 0
+            and not self._uncovered
             and self._technical_resolved
+            and self._mistimed_equipment == 0
         )
 
     @property
@@ -167,6 +245,16 @@ class EventConfirmation:
                 f"{self._mismatched} approved venue booking(s) no longer match the "
                 "event's date/time and must be re-checked."
             )
+        if self._uncovered:
+            reasons.append(
+                "The approved venue bookings do not cover the event's full time; "
+                "book a venue for the uncovered part."
+            )
         if not self._technical_resolved:
             reasons.append("Technical arrangements are not yet resolved.")
+        if self._mistimed_equipment:
+            reasons.append(
+                f"{self._mistimed_equipment} equipment reservation(s) do not cover the "
+                "event's time and must be re-reserved."
+            )
         return reasons

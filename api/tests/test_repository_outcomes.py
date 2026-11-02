@@ -213,3 +213,32 @@ def test_legacy_change_review_history_is_restored_once(store, monkeypatch):
     assert history[1]["changed_by"] == 2
     assert history[1]["note"] == "Investigating"
     assert history[1]["event_id"] == "event"
+
+
+def test_history_entries_sharing_a_timestamp_keep_their_recorded_order(store, monkeypatch):
+    # SCRUM-166: one approval writes several entries at the same instant; the database
+    # may return them in any order, but the history must read approval -> consequence.
+    same = "2026-11-02T16:43:06.716345+00:00"
+    store(events, [{"id": 190, "action": "rescheduled_returned_to_planning", "changed_at": same},
+                   {"id": 188, "action": "change_requested",
+                    "changed_at": "2026-11-02T16:42:13+00:00"},
+                   {"id": 189, "action": "change_request_approved_re_review", "changed_at": same}])
+    monkeypatch.setattr(events, "get_change_requests", lambda _: [
+        {"id": 9, "status": "Approved", "reviewed_at": same, "reviewed_by": 2}])
+    history = events.get_status_history("event")
+    # ... and the re-review approval is not shadowed by a restored plain "Approved".
+    assert [row["action"] for row in history] == [
+        "change_requested", "change_request_approved_re_review",
+        "rescheduled_returned_to_planning",
+    ]
+
+
+def test_a_plain_approval_without_a_recorded_entry_is_still_restored(store, monkeypatch):
+    # Boundary: only the re-review variant covers an approval; a different review does not.
+    store(events, [{"id": 1, "action": "change_requested", "changed_at": "2026-10-01"},
+                   {"id": 2, "action": "change_request_rejected", "changed_at": "2026-10-02"}])
+    monkeypatch.setattr(events, "get_change_requests", lambda _: [
+        {"id": 10, "status": "Approved", "reviewed_at": "2026-10-03", "reviewed_by": 2}])
+    assert [row["action"] for row in events.get_status_history("event")] == [
+        "change_requested", "change_request_rejected", "change_request_approved",
+    ]

@@ -9,6 +9,7 @@ describe("historyActionLabel", () => {
     ["change_request_approved_re_review", "Change Request Approved — Re-review Required"],
     ["event_completed", "Event completed"],
     ["event_cancelled", "Event cancelled"],
+    ["rescheduled_returned_to_planning", "Rescheduled — Returned to Planning"],
   ])("labels %s", (action, label) => {
     expect(historyActionLabel(action)).toBe(label);
   });
