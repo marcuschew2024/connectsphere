@@ -86,8 +86,17 @@ development (it requires `APP_ENV=development` and `DEV_ROLE_SWITCHER_ENABLED=tr
 
 ## Running locally
 
-- API: `cd api && source .venv/bin/activate && python -m flask --app app run --port 5001`
-- Frontend: `cd frontend && npm run dev` → http://localhost:3000
+Run the release build (this is the deployed experience: real `/login`, no dev switcher):
+
+1. **API:** `cd api && source .venv/bin/activate && python -m flask --app app run --port 5001`
+   (with `APP_ENV=development` in `api/.env` so the session cookie works over http — see Setup.)
+2. **Frontend:** `cd frontend && npm run build && npm start` → http://localhost:3000
+
+Opening http://localhost:3000 redirects to `/login`. Sign in with a demo account (see above).
+
+> For frontend development with hot reload, use `npm run dev` instead. Note that the dev
+> server (`NODE_ENV=development`) shows the role-switcher home and does **not** redirect to
+> `/login` — so use `npm run build && npm start` to see the actual release behaviour.
 
 ## Testing
 
