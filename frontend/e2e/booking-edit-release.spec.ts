@@ -51,3 +51,60 @@ for (const scenario of [{ status: "Confirmed", requested_by: 2 }, { status: "Req
     expect(writes).toBe(0);
   });
 }
+
+// D63: layout, facilities and accessibility are checkbox groups here, each with an Other
+// box that reveals a free-text list. Unticking Other must discard what was typed, so a
+// Coordinator who changes their mind cannot save a requirement they can no longer see.
+const CUSTOM = [
+  { group: "Layout", box: "Layout Other", field: "Other layouts", value: "Thrust stage" },
+  { group: "Facilities", box: "Facilities Other", field: "Other facilities", value: "Rehearsal piano" },
+  { group: "Accessibility", box: "Accessibility Other", field: "Other accessibility features", value: "Quiet room" },
+];
+
+for (const { group, box, field, value } of CUSTOM) {
+  test(`unticking ${group} Other discards the custom entry instead of keeping it hidden`, async ({ page }) => {
+    await page.route(`**/venues/bookings/${id}`, route => route.fulfill({ json: { booking } }));
+    await page.goto(`/venues/bookings/${id}/edit`);
+
+    await page.getByRole("checkbox", { name: box, exact: true }).check();
+    await page.getByRole("textbox", { name: field, exact: true }).fill(value);
+    await page.getByRole("textbox", { name: field, exact: true }).press("Enter");
+    await expect(page.getByRole("button", { name: `Remove ${value}` })).toBeVisible();
+
+    await page.getByRole("checkbox", { name: box, exact: true }).uncheck();
+    await expect(page.getByRole("textbox", { name: field, exact: true })).toHaveCount(0);
+
+    // Re-ticking shows an empty list: the entry was discarded, not merely hidden behind
+    // the checkbox and still waiting to be saved.
+    await page.getByRole("checkbox", { name: box, exact: true }).check();
+    await expect(page.getByRole("textbox", { name: field, exact: true })).toBeVisible();
+    await expect(page.getByRole("button", { name: `Remove ${value}` })).toHaveCount(0);
+  });
+}
+
+test("a custom entry in every group reaches the API alongside the ticked presets", async ({ page }) => {
+  let saved: Record<string, unknown> | null = null;
+  await page.route(`**/venues/bookings/${id}`, async route => {
+    if (route.request().method() === "PATCH") saved = route.request().postDataJSON();
+    await route.fulfill({ json: { booking } });
+  });
+  await page.route("**/events/event-1", route => route.fulfill({ status: 503, json: { error: "Event view is outside this booking-edit scenario" } }));
+  await page.goto(`/venues/bookings/${id}/edit`);
+
+  await page.getByRole("checkbox", { name: "Projector", exact: true }).check();
+  await page.getByRole("checkbox", { name: "Ramp", exact: true }).check();
+  for (const { box, field, value } of CUSTOM) {
+    await page.getByRole("checkbox", { name: box, exact: true }).check();
+    await page.getByRole("textbox", { name: field, exact: true }).fill(value);
+    await page.getByRole("textbox", { name: field, exact: true }).press("Enter");
+  }
+  await page.getByRole("button", { name: "Save booking change" }).click();
+
+  await expect(page).toHaveURL(/\/events\/event-1$/);
+  // Facilities and accessibility share one stored column, so their customs join the same
+  // list; a layout custom must stay out of it.
+  const body = saved as unknown as { layout: string; special_requirements: string };
+  expect(body.layout).toBe("Theatre, Thrust stage");
+  expect(body.special_requirements.split(", ").sort())
+    .toEqual(["Projector", "Quiet room", "Ramp", "Rehearsal piano"]);
+});
