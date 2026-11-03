@@ -180,6 +180,29 @@ def test_approval_refused_and_returned_to_planning_when_no_valid_venue_remains(
     assert entry["action"] == "safety_arrangements_invalidated"
 
 
+# SCRUM-175: even if the audit row fails while reverting a stale event to Planning, the
+# revert already happened, so the approval is still refused with 409 (best-effort history).
+def test_revert_to_planning_survives_a_failed_history_write(
+    app, event_database, database, monkeypatch
+):
+    monkeypatch.setattr(
+        "app.events.list_bookings_for_event", lambda event_id: [{"status": "Cancelled"}]
+    )
+    monkeypatch.setattr(
+        "app.events.add_status_history",
+        lambda *a, **k: (_ for _ in ()).throw(ServiceUnavailable("history down")),
+    )
+    client = _as_safety_officer(app, database)
+    event = _seed_planning_event(event_database, status="Confirmed")
+
+    response = client.post(
+        f"/events/{event['id']}/safety-check", json={"decision": "approve"}, headers=ORIGIN
+    )
+
+    assert response.status_code == 409
+    assert event["status"] == "Planning"  # reverted despite the lost audit row
+
+
 # Cancelling one of several venues still leaves a valid approved venue: approval proceeds.
 def test_approval_proceeds_when_a_valid_venue_still_remains(
     app, event_database, database, monkeypatch
