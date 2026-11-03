@@ -27,7 +27,7 @@ The API continues to enforce ownership; the frontend also restricts the workspac
 
 Seven controlled browser tests cover navigation, active/past records, draft/foreign filtering, empty/error/retry states, role restrictions and 55 records. INTEGRATED-03 uses real password login, UI submission, sign-out/sign-in, rediscovery and a second Organiser to check API isolation. The two existing real lifecycle journeys also pass against the combined branch.
 
-Local verification: production webpack build, frontend lint, 67 unit tests, 261 controlled browser tests and three real browser/API/database journeys passed. Desktop and 390-pixel mobile views were inspected; no horizontal overflow. The backend was unchanged from SCRUM-135's 1,952-test verified commit b081852. See docs/testing/organiser-requests-verification.json for exact evidence.
+Historical feature verification checked the production build, lint, browser/API/database journeys and desktop/390-pixel mobile layouts. See the [original execution snapshot](archive/testing/organiser-requests-verification.json) for its counts, baseline and limits. Use the [generated release checklist](testing/release-verification/requirements.md) for the current recorded results.
 
 Manual test: sign in as Organiser, submit a request, open View my requests, sign out, sign back in, then open My submitted requests from Home and select the same event. Its unassigned state remains visible even without an assignment notification. No shared database was changed. Existing local test data was preserved.
 

@@ -1,45 +1,57 @@
 {
-  "source_sha256": "afe37a8de4e34cf122f39e06c6f63ff999acb769cc292a3a553de7d86f36968d",
-  "sql_harness_exit_code": 0,
-  "sql_migration_replay_passes": 2,
-  "validation": {
-    "ruff": "passed",
-    "eslint": "passed",
-    "typescript": "passed in production build",
-    "tooling_tests": 7,
-    "production_webpack_build": "passed",
-    "default_production_build": "hosted CI required",
-    "hosted_ci": "pending push",
-    "human_acceptance": "owner authorised combined push and merge after green CI"
-  },
+  "evidence_kind": "reassembled_existing_ci_results",
+  "run_id": 41573118557,
+  "run_url": "https://github.com/marcuschew2024/connectsphere/actions/runs/41573118557",
+  "tested_revision": "9b7973b24e037b6bd96faf47742561594370ce36",
+  "note": "Documentation mappings updated locally; application and test code are unchanged from tested revision. Not a new full-suite execution, not a post-fix release acceptance. Final run awaits outstanding audit fixes.",
   "artifacts": {
-    "browser.junit.xml": {
-      "sha256": "3d03c44b1093ea4025a6815d16bd08093ea5cbfec55c24b68c629529509bf380",
-      "bytes": 39981
-    },
-    "sql.txt": {
-      "sha256": "feeabd4d9a2793622645362e1e4a79121e6d44be0c883cbf105f28ac647698f6",
-      "bytes": 20438
-    },
-    "frontend.coverage-summary.json": {
-      "sha256": "453b422ac7e5d2ab6e27d968fc02efbd888f9b7132f41ff69ae64cbe046325e9",
-      "bytes": 27542
-    },
-    "frontend.junit.xml": {
-      "sha256": "4c876cef805deaa76c1fd18310da9f0974f2db1edbe042e80f9f63be28324dda",
-      "bytes": 14130
-    },
-    "integrated.junit.xml": {
-      "sha256": "2dda69ca8f51f9421071d0021e11a87091b9d1123b1dc5fb505d8ba57a1b2d01",
-      "bytes": 623
+    "backend.junit.xml": {
+      "artifact_id": 13202118601,
+      "archive_path": "pytest.xml",
+      "sha256": "dfa237467e02de44b7fdcc4efd40cf9db79cb463b0e566039ce8542722efd0bf",
+      "bytes": 352497
     },
     "backend.coverage.json": {
-      "sha256": "d697764b2af91b6cd1f87b87e8675a7ce08d5a7facc7ec95b61c2e1d57c359a6",
-      "bytes": 367931
+      "artifact_id": 13202118601,
+      "archive_path": "coverage.json",
+      "sha256": "51eb86d06368d7adc886b4bc62bff5d853b55a5d20d9ee773385c67afc4ea89d",
+      "bytes": 405175
     },
-    "backend.junit.xml": {
-      "sha256": "c3aa6243ad962f82caf9e1e18264e051cbf3b4b8e3a28bf6e0b6e5c1fec2a5cd",
-      "bytes": 260165
+    "integrated.junit.xml": {
+      "artifact_id": 13202277951,
+      "archive_path": "test-results/integrated.xml",
+      "sha256": "bb0cfe03b455782d17d1ee9762be0991ea3804d01370416036e0e4ab7f474b93",
+      "bytes": 4051
+    },
+    "frontend.junit.xml": {
+      "artifact_id": 13203150083,
+      "archive_path": "test-results/unit.xml",
+      "sha256": "5f8a6fa1e10c517f7155aa61deca08d1e3beeb4fb94c21a681125f348f988fa4",
+      "bytes": 202980
+    },
+    "browser.junit.xml": {
+      "artifact_id": 13203150083,
+      "archive_path": "test-results/browser.xml",
+      "sha256": "995eceea55dadec84137b7d2677ff5f82678898df4475ef1c4a03ebbd09053f1",
+      "bytes": 56330
+    },
+    "frontend.coverage-summary.json": {
+      "artifact_id": 13203150083,
+      "archive_path": "coverage/coverage-summary.json",
+      "sha256": "36a8da0e88e3434a80f56a822e0c4508ead22509b4ddfab224d840cb0b3073de",
+      "bytes": 31995
+    },
+    "frontend.combined.coverage-summary.json": {
+      "artifact_id": 13203150083,
+      "archive_path": "coverage-combined/combined/coverage-summary.json",
+      "sha256": "8fee95798718bfc3777080fa98b2619835d930937967752b15b1532dabbf706d",
+      "bytes": 31619
+    },
+    "sql.txt": {
+      "source": "CI log extract",
+      "sha256": "65e0cfb148af114e4abd987ce42ceb9c06bf59b531c4bf00bf3fabfcc900670d",
+      "bytes": 51716
     }
-  }
+  },
+  "human_acceptance": "pending"
 }

@@ -360,10 +360,15 @@
           "lane": "frontend",
           "path": "frontend/src/app/events/[eventId]/panels-coverage.test.tsx",
           "test": "keeps the venue options out of the grid that lays out the simple fields"
+        },
+        {
+          "lane": "backend",
+          "path": "api/tests/test_reschedule_returns_to_planning_acceptance.py",
+          "test": "test_rescheduling_a_confirmed_or_preparing_event_returns_it_to_planning"
         }
       ],
       "gaps": [
-        "SCRUM-138/152/156 and SCRUM-48 apply significant changes, preserve existing resources and show re-review; INTEGRATED-10 proves approval through implementation with real persistence. Implementation relies on Coordinator attestation rather than enforced venue/technical re-approvals. Final acceptance of that re-review policy remains human-owned."
+        "SCRUM-138/152/156/48/166 apply significant changes, preserve resources and return Confirmed/Preparation date changes to Planning. Other significant changes remain flag-only under D36/D43/D64; final policy acceptance remains human-owned."
       ],
       "sql": []
     },
@@ -449,7 +454,7 @@
         "SCRUM-30",
         "SCRUM-129"
       ],
-      "intent": "Internal users can retrieve range bookings; calendar cells distinguish booked/blocked/free and closed hours with half-open raw-time boundaries.",
+      "intent": "Internal users see occupied booking intervals and maintenance in the calendar; maintenance remains visible over existing confirmed occupation. Half-open occupied boundaries remain compatible.",
       "checks": [
         {
           "lane": "backend",
@@ -465,12 +470,23 @@
           "lane": "browser",
           "path": "frontend/e2e/venue-calendar.spec.ts",
           "test": "coordinator sees the availability calendar with a confirmed slot"
+        },
+        {
+          "lane": "backend",
+          "path": "api/tests/test_buffer_update_acceptance.py",
+          "test": "test_search_calendar_and_api_request_agree_after_buffer_change"
+        },
+        {
+          "lane": "integrated",
+          "path": "frontend/integration/release-exits.spec.ts",
+          "test": "INTEGRATED-R1"
         }
       ],
-      "gaps": [
-        "Application calendar classification uses the buffer-aware overlap engine, but complete database-enforced parity remains blocked by the SCRUM-137 migration/harness gap under W7-01."
-      ],
-      "sql": []
+      "gaps": [],
+      "sql": [
+        "supabase/tests/venue_buffers_137.sql",
+        "supabase/tests/venue_buffer_concurrency.sh"
+      ]
     },
     {
       "id": "CORE-10",
@@ -500,13 +516,36 @@
           "lane": "integrated",
           "path": "frontend/integration/venue-flows.spec.ts",
           "test": "INTEGRATED-14"
+        },
+        {
+          "lane": "backend",
+          "path": "api/tests/test_buffer_update_acceptance.py",
+          "test": "test_search_calendar_and_api_request_agree_after_buffer_change"
+        },
+        {
+          "lane": "integrated",
+          "path": "frontend/integration/release-exits.spec.ts",
+          "test": "INTEGRATED-R1"
+        },
+        {
+          "lane": "backend",
+          "path": "api/tests/test_maintenance_buffers_acceptance.py",
+          "test": "test_search_and_new_booking_agree_on_maintenance_window"
+        },
+        {
+          "lane": "backend",
+          "path": "api/tests/test_maintenance_buffers_acceptance.py",
+          "test": "test_database_itself_refuses_buffer_only_maintenance"
         }
       ],
       "gaps": [
-        "Search uses buffer-aware overlap evaluation; this does not prove atomic buffer enforcement for competing database writes. See W7-01."
+        "Availability is evaluated at read time; a later competing booking can still produce an honest conflict on submission. R1/R5 SQL concurrency checks cover enforcement, not a reservation guarantee from a search result."
       ],
       "sql": [
-        "supabase/tests/venues.sql"
+        "supabase/tests/venues.sql",
+        "supabase/tests/venue_buffers_137.sql",
+        "supabase/tests/venue_buffer_concurrency.sh",
+        "supabase/tests/maintenance_concurrency.sh"
       ]
     },
     {
@@ -545,7 +584,8 @@
       "owner": "Ernest",
       "stories": [
         "SCRUM-31",
-        "SCRUM-126"
+        "SCRUM-126",
+        "SCRUM-166"
       ],
       "intent": "An assigned Coordinator submits independent bookings for one event. Editing/cancelling one booking must preserve its sibling and parent; persistence failures must not report success.",
       "checks": [
@@ -573,10 +613,25 @@
           "lane": "browser",
           "path": "frontend/e2e/booking-edit-release.spec.ts",
           "test": "direct edit URL is read-only"
+        },
+        {
+          "lane": "backend",
+          "path": "api/tests/test_reschedule_returns_to_planning_acceptance.py",
+          "test": "test_confirmation_requires_the_bookings_to_cover_the_whole_event"
+        },
+        {
+          "lane": "backend",
+          "path": "api/tests/test_reschedule_returns_to_planning_acceptance.py",
+          "test": "test_confirmation_requires_reservations_to_cover_the_event"
+        },
+        {
+          "lane": "backend",
+          "path": "api/tests/test_reschedule_returns_to_planning_acceptance.py",
+          "test": "test_after_a_reschedule_the_old_booking_blocks_and_a_new_one_lets_it_confirm"
         }
       ],
       "gaps": [
-        "Venue/equipment bookings can have timing independent of the event; cross-feature alignment policy is not fully enforced."
+        "SCRUM-166 now checks approved venue union coverage and equipment reservation timing at confirmation. Audit A1/A2 remain: expired holds block confirmation, and booking cancellation after confirmation does not invalidate readiness before safety approval."
       ],
       "sql": [
         "supabase/tests/venue_overlap.sql"
@@ -648,14 +703,26 @@
           "lane": "integrated",
           "path": "frontend/integration/event-lifecycle.spec.ts",
           "test": "INTEGRATED-02"
+        },
+        {
+          "lane": "backend",
+          "path": "api/tests/test_buffer_update_acceptance.py",
+          "test": "test_search_calendar_and_api_request_agree_after_buffer_change"
+        },
+        {
+          "lane": "integrated",
+          "path": "frontend/integration/release-exits.spec.ts",
+          "test": "INTEGRATED-R1"
         }
       ],
       "gaps": [
-        "Concurrent approval of published-adjacent bookings with overlapping buffers needs independent SQL enforcement evidence."
+        "Audit A3 (3 November 2026): increasing buffers can introduce a conflict with pre-existing maintenance without identifying/notifying affected existing bookings. The buffer-change report currently compares bookings only."
       ],
       "sql": [
         "supabase/tests/venue_overlap.sql",
-        "supabase/tests/venue_holds.sql"
+        "supabase/tests/venue_holds.sql",
+        "supabase/tests/venue_buffers_137.sql",
+        "supabase/tests/venue_buffer_concurrency.sh"
       ]
     },
     {
@@ -887,10 +954,15 @@
           "lane": "backend",
           "path": "api/tests/test_change_request_apply_acceptance.py",
           "test": "test_rescheduling_applies_the_new_date_and_flags_re_review"
+        },
+        {
+          "lane": "backend",
+          "path": "api/tests/test_reschedule_returns_to_planning_acceptance.py",
+          "test": "test_rescheduling_a_confirmed_or_preparing_event_returns_it_to_planning"
         }
       ],
       "gaps": [
-        "SCRUM-138/152/156 and SCRUM-48 apply significant changes, preserve existing resources and show re-review; INTEGRATED-10 proves approval through implementation with real persistence. Implementation relies on Coordinator attestation rather than enforced venue/technical re-approvals. Final acceptance of that re-review policy remains human-owned."
+        "SCRUM-138/152/156/48/166 apply significant changes, preserve resources and return Confirmed/Preparation date changes to Planning. Other significant changes remain flag-only under D36/D43/D64; final policy acceptance remains human-owned."
       ],
       "sql": []
     },
@@ -900,7 +972,9 @@
       "owner": "Marcus",
       "stories": [
         "SCRUM-49",
-        "SCRUM-51"
+        "SCRUM-51",
+        "SCRUM-164",
+        "SCRUM-167"
       ],
       "intent": "Private and role-pool notifications reach only their intended readers; key request/assignment/booking/registration outcomes are emitted.",
       "checks": [
@@ -943,10 +1017,22 @@
           "lane": "integrated",
           "path": "frontend/integration/release-exits.spec.ts",
           "test": "INTEGRATED-08"
+        },
+        {
+          "lane": "backend",
+          "path": "api/tests/test_event_confirmation_route.py",
+          "test": "test_confirm_notifies_organiser_not_the_acting_coordinator"
+        },
+        {
+          "lane": "backend",
+          "path": "api/tests/test_venue_buffer_notification.py",
+          "test": "test_each_affected_coordinator_is_notified_once"
         }
       ],
       "gaps": [
-        "Cancellation, applied changes and venue-unavailability notices have real-database evidence; INTEGRATED-06/08 prove notification click-through. A complete trigger-by-recipient matrix and persisted hold-expiry notices remain unproven."
+        "Audit A4 (3 November 2026): confirmation writes status/history/notification separately; notification failure can return 503 after confirmation and retry is refused. A complete trigger-by-recipient and failure-recovery matrix remains outstanding.",
+        "Attendee venue-change notices are explicitly deferred by Marcus in D57/SCRUM-165; date/time and cancellation notices remain in scope. Reconcile SCRUM-51 description with that recorded scope decision.",
+        "Hold-expiry notice persistence limitations remain under W7-04; passing mocked sweep tests do not establish a real browser/API/database notification journey."
       ],
       "sql": []
     },
@@ -955,7 +1041,9 @@
       "name": "Venue setup and turnaround buffers",
       "owner": "Jessica",
       "stories": [
-        "SCRUM-129"
+        "SCRUM-129",
+        "SCRUM-137",
+        "SCRUM-167"
       ],
       "intent": "Venue setup/turnaround expand occupied windows; touching expanded boundaries remain non-conflicting; newly conflicting existing bookings are flagged.",
       "checks": [
@@ -968,13 +1056,50 @@
           "lane": "backend",
           "path": "api/tests/test_venue_overlap.py",
           "test": "test_identify_problematic_existing_bookings_when_buffers_introduced"
+        },
+        {
+          "lane": "backend",
+          "path": "api/tests/test_buffer_update_acceptance.py",
+          "test": "test_search_calendar_and_api_request_agree_after_buffer_change"
+        },
+        {
+          "lane": "integrated",
+          "path": "frontend/integration/release-exits.spec.ts",
+          "test": "INTEGRATED-R1"
+        },
+        {
+          "lane": "backend",
+          "path": "api/tests/test_buffer_update_acceptance.py",
+          "test": "test_buffer_increase_saves_flags_and_preserves_existing_bookings"
+        },
+        {
+          "lane": "backend",
+          "path": "api/tests/test_buffer_update_acceptance.py",
+          "test": "test_new_writes_use_latest_buffers_after_existing_pair_is_flagged"
+        },
+        {
+          "lane": "backend",
+          "path": "api/tests/test_buffer_update_acceptance.py",
+          "test": "test_conflict_resolution_cancellation_clears_report_but_preserves_history"
+        },
+        {
+          "lane": "backend",
+          "path": "api/tests/test_buffer_update_acceptance.py",
+          "test": "test_conflicting_time_edit_rolls_back_and_cannot_forge_occupied_columns"
+        },
+        {
+          "lane": "backend",
+          "path": "api/tests/test_venue_buffer_notification.py",
+          "test": "test_each_affected_coordinator_is_notified_once"
         }
       ],
       "gaps": [
-        "Application search, calendar and booking paths use the buffer-aware overlap engine. The SCRUM-137 buffered exclusion migration has an IF terminated by END instead of END IF and is omitted from the SQL test harness. Buffered concurrent writes and migration replay must be verified after the separately owned migration correction; application tests alone cannot prove this requirement."
+        "Audit A3 (3 November 2026): increasing buffers can introduce a conflict with pre-existing maintenance without identifying/notifying affected existing bookings. The buffer-change report currently compares bookings only."
       ],
       "sql": [
-        "supabase/tests/venue_buffers.sql"
+        "supabase/tests/venue_buffers.sql",
+        "supabase/tests/venue_buffers_137.sql",
+        "supabase/tests/venue_buffer_concurrency.sh"
       ]
     },
     {
@@ -982,7 +1107,8 @@
       "name": "Venue becomes unavailable after booking",
       "owner": "Jessica",
       "stories": [
-        "SCRUM-60"
+        "SCRUM-60",
+        "SCRUM-169"
       ],
       "intent": "Venue Staff mark temporary unavailability with reason, retain affected events, notify Coordinators, and support replacement venue arrangements.",
       "checks": [
@@ -1010,12 +1136,50 @@
           "lane": "backend",
           "path": "api/tests/test_release_venue_blocks_acceptance.py",
           "test": "test_venue_block_lists_only_overlaps_notifies_and_preserves_unblock_audit"
+        },
+        {
+          "lane": "backend",
+          "path": "api/tests/test_maintenance_buffers_acceptance.py",
+          "test": "test_search_and_new_booking_agree_on_maintenance_window"
+        },
+        {
+          "lane": "backend",
+          "path": "api/tests/test_maintenance_buffers_acceptance.py",
+          "test": "test_database_itself_refuses_buffer_only_maintenance"
+        },
+        {
+          "lane": "backend",
+          "path": "api/tests/test_maintenance_buffers_acceptance.py",
+          "test": "test_new_block_flags_existing_booking_notifies_and_preserves_event"
+        },
+        {
+          "lane": "backend",
+          "path": "api/tests/test_maintenance_buffers_acceptance.py",
+          "test": "test_block_touching_occupied_boundary_has_no_affected_ids_or_notices"
+        },
+        {
+          "lane": "backend",
+          "path": "api/tests/test_maintenance_buffers_acceptance.py",
+          "test": "test_edit_into_buffer_only_maintenance_is_atomic"
+        },
+        {
+          "lane": "backend",
+          "path": "api/tests/test_maintenance_buffers_acceptance.py",
+          "test": "test_each_affected_event_is_named_in_coordinators_summary"
+        },
+        {
+          "lane": "integrated",
+          "path": "frontend/integration/release-exits.spec.ts",
+          "test": "-only maintenance notifies and supports a replacement"
         }
       ],
       "gaps": [
-        "Real-database acceptance plus INTEGRATED-08 now prove block persistence, affected-booking notification, click-through and replacement without deleting the event. Competing block/booking writes and rollback under concurrent database failures remain unproven."
+        "Audit A3 (3 November 2026): increasing buffers can introduce a conflict with pre-existing maintenance without identifying/notifying affected existing bookings. The buffer-change report currently compares bookings only.",
+        "Block creation and coordinator notifications use separate writes (D66). Persistence-failure recovery remains a documented limitation; concurrency enforcement does not prove atomic notification delivery."
       ],
-      "sql": []
+      "sql": [
+        "supabase/tests/maintenance_concurrency.sh"
+      ]
     },
     {
       "id": "W7-03",
@@ -1077,13 +1241,30 @@
           "lane": "backend",
           "path": "api/tests/test_booking_decision_route.py",
           "test": "test_tc_79_07_hold_with_past_or_late_expiry_is_rejected"
+        },
+        {
+          "lane": "backend",
+          "path": "api/tests/test_venue_hold_expiry.py",
+          "test": "test_the_deadline_is_inclusive"
+        },
+        {
+          "lane": "backend",
+          "path": "api/tests/test_venue_hold_expiry.py",
+          "test": "test_the_sweep_releases_the_slot_and_notifies_the_current_coordinator"
+        },
+        {
+          "lane": "backend",
+          "path": "api/tests/test_venue_hold_expiry.py",
+          "test": "test_a_failed_notice_does_not_abandon_the_remaining_releases"
         }
       ],
       "gaps": [
-        "Expiry exists in the value object and expires_at storage, but no automatic release/notification worker or equivalent persisted expiry workflow is established. SQL raw status constraints still need expiry/concurrency parity review."
+        "Audit A1 (3 November 2026): an Expired historical hold is treated as pending by event confirmation, so even an approved replacement cannot unblock confirmation. Add an integrated expiry-to-replacement-to-confirmation regression after fixing the gate.",
+        "Expiry uses an opportunistic application sweep and a database trigger (D58), not a scheduler. Sweep notice tests use controlled dependencies; trigger-only releases and notification failures do not establish reliable persisted notice delivery."
       ],
       "sql": [
-        "supabase/tests/venue_holds.sql"
+        "supabase/tests/venue_holds.sql",
+        "supabase/tests/venue_hold_release.sql"
       ]
     },
     {
@@ -1119,7 +1300,8 @@
         }
       ],
       "gaps": [
-        "Week 7 original own-events wording and later SCRUM-54 view-all decision require final owner acceptance of D28; list visibility must not be presented as edit permission."
+        "Week 7 original own-events wording and later SCRUM-54 view-all decision require final owner acceptance of D28; list visibility must not be presented as edit permission.",
+        "PR #101 leaves Lead access to booking records unresolved. Direct booking read/change/cancel endpoints exclude the Lead; widening access requires an explicit owner decision and authorization review."
       ],
       "sql": [
         "supabase/tests/coordinator_assignment.sql"
@@ -1157,11 +1339,14 @@
           "test": "INTEGRATED-01"
         }
       ],
-      "gaps": [],
+      "gaps": [
+        "Audit A2 (3 November 2026): cancelling the only confirmed venue booking leaves the event Confirmed and the safety endpoint can approve Preparation without rechecking current resources.",
+        "SCRUM-128 requires emergency access, crowd movement, restrictions and equipment placement information. Current UI prompts and catalogue equipment location do not establish event-specific detail; owner acceptance or additional implementation remains required."
+      ],
       "sql": [
         "supabase/tests/safety_officer.sql"
       ]
     }
   ],
-  "reviewed_against": "SCRUM-161 permission/failure-path mappings updated against main 3acb2b5 on 1 November 2026; other rows retain their prior scope review and recorded gaps."
+  "reviewed_against": "Reconciled 3 November 2026 against main 9b7973b: merged PRs #101/#102/#103/#104/#107; retain audit A1-A4 and unresolved acceptance decisions. Evidence replay is not a new full-suite execution or release acceptance."
 }

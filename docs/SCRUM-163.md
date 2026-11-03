@@ -139,7 +139,7 @@ not changes to production code. Their nonzero test exits are successful defect-d
 checks, not passing application tests.
 
 Final audit results, including source/artifact SHA256s, are saved in
-[`testing/venue-flow-audit-2026-11-01.json`](testing/venue-flow-audit-2026-11-01.json).
+[`archive/testing/venue-flow-audit-2026-11-01.json`](archive/testing/venue-flow-audit-2026-11-01.json).
 
 | Final check | Result |
 | --- | --- |
@@ -185,7 +185,7 @@ from `frontend/`. For the real suite, use the fresh-database instructions above 
 `POSTGREST_TEST_URL=http://127.0.0.1:55434 npm run test:integrated` (set `QA_PYTHON`
 when needed). Both commands execute all tests in their respective suites.
 
-[Machine-readable verification](testing/venue-flow-pr94-verification-2026-11-02.json)
+[Machine-readable verification](archive/testing/venue-flow-pr94-verification-2026-11-02.json)
 records the baseline, source hashes and result-artifact hashes. The earlier
 mutation checks and combined coverage remain separately dated historical evidence;
 they were not rerun for this follow-up. No full backend acceptance, cross-browser,

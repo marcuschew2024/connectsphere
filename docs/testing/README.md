@@ -6,11 +6,21 @@ workflows and unresolved policy decisions even when related tests pass.
 
 - [Reviewed requirement mappings](requirements.json) record intent, accountable
   owners, Jira stories, executable test names, SQL assertion files and open gaps.
-- [Latest executed checklist](release-verification/requirements.md) joins those
+- [Latest evidence checklist](release-verification/requirements.md) joins those
   mappings to real JUnit results. Its companion JSON retains the matched case names,
   outcomes, coverage denominators and verification-source digest.
+- The 3 November refresh reassembles existing main CI run **41573118557** at
+  **9b7973b** with corrected mappings; it is not a new suite execution or final
+  release acceptance. [Execution provenance](release-verification/execution.json)
+  records the tested revision, source artifacts and hashes. Audit A1–A4 and owner
+  acceptance gaps remain visible. Final verification waits for those fixes to merge.
 - [SCRUM-146 handoff](../SCRUM-146.md) records the implementation, verification and
   human review required before merge.
+- [Release closeout](release-closeout.md) tracks current findings and pending decisions.
+  Earlier matrices and feature-run snapshots live in the
+  [historical testing archive](../archive/testing/README.md). Maintain mappings in
+  `requirements.json` and generate the readable checklist rather than updating a
+  second manual status table.
 
 ## What each test layer proves
 
@@ -22,7 +32,7 @@ workflows and unresolved policy decisions even when related tests pass.
 | Frontend unit tests | `frontend/src/**/*.test.{ts,tsx}` | Vitest/V8 covers all `src` TS/TSX files, including unimported UI. Test files and declaration files are excluded. Browser execution is not added to this denominator. |
 | Combined frontend source coverage | `npm run test:coverage:combined` | Identical original-source Istanbul counters for units and the controlled browser suite; merged by source location with untouched files retained. Excludes server-render execution, not server-only files. |
 | Controlled browser tests | `frontend/e2e/` | Real browser and production Next.js with prepared HTTP responses. Useful UI evidence; not browser-to-database evidence. |
-| Integrated journeys | `frontend/integration/` | Real password sessions, Flask and disposable database. One event crosses all seven roles through Preparation. Cancellation, completion, changes, rejection and venue replacement also have real journeys. SCRUM-163 adds venue create/edit/retire forms, combined search filters and booking submission/approval with a real Coordinator notification and slot conflicts. Prerequisite resource/event setup may use real HTTP calls; see each scenario's scope. Automatic hold expiry remains an explicit gap. |
+| Integrated journeys | `frontend/integration/` | Real password sessions, Flask and disposable database. One event crosses all seven roles through Preparation. Cancellation, completion, changes, rejection and venue replacement also have real journeys. SCRUM-163 covers venue forms, filters and booking approval. R1 covers buffer edits preserving conflicts; R5 covers setup/turnaround-only maintenance and replacement. Prerequisite setup may use real HTTP calls. Hold release has SQL and controlled sweep tests, but expiry → replacement → event confirmation remains an open interaction (A1). |
 
 SCRUM-161 raises the backend regression gate to 100% with branches enabled. Run the
 complete suite against the disposable database: a unit-only run cannot satisfy this

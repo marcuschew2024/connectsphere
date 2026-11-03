@@ -1,26 +1,31 @@
-C4Context
-    title C1 — System Context: ConnectSphere
-
-    Person(organiser, "Event Organiser", "Raises an event request and tracks it through to confirmation")
-    Person(coordinator, "Event Coordinator", "Reviews, approves, and manages assigned event requests")
-    Person(lead, "Event Coordinator Lead", "Oversees intake; assigns and reassigns Coordinators")
-    Person(venueStaff, "Venue Staff", "Handles venue booking for approved events")
-    Person(techSupport, "Technical Support", "Handles equipment booking and technical setup")
-    Person(attendee, "Attendee", "Registers for events and receives confirmations")
-    Person(safetyOfficer, "Safety Officer", "Reviews operational safety of confirmed events")
-
-    System(connectSphere, "ConnectSphere", "Manages the event lifecycle: request, review/approve/assign, venue & equipment booking, attendee registration, confirmation. Authenticates users (Flask login) and sends in-app notifications")
-
-    System_Ext(supabase, "Supabase", "Managed SaaS: Postgres database (not run locally)")
-
-    Rel(organiser, connectSphere, "Raises event requests & tracks status", "HTTPS")
-    Rel(coordinator, connectSphere, "Reviews, approves & manages assigned events", "HTTPS")
-    Rel(lead, connectSphere, "Assigns & reassigns Coordinators", "HTTPS")
-    Rel(venueStaff, connectSphere, "Books venues for approved events", "HTTPS")
-    Rel(techSupport, connectSphere, "Books equipment & sets up tech support", "HTTPS")
-    Rel(attendee, connectSphere, "Registers for events & gets confirmations", "HTTPS")
-    Rel(safetyOfficer, connectSphere, "Reviews operational safety of confirmed events", "HTTPS")
-
-    Rel(connectSphere, supabase, "Reads from & writes to", "HTTPS/JSON (Postgres)")
-
-    UpdateLayoutConfig($c4ShapeInRow="3", $c4BoundaryInRow="2")
+---
+title: "C1 — System Context: ConnectSphere"
+config:
+  flowchart:
+    curve: linear
+    nodeSpacing: 30
+    rankSpacing: 100
+---
+flowchart LR
+    %% C4 semantics with automatic edge routing for readable exported diagrams.
+    organiser["Event Organiser<br/>[Person]<br/>Raises and tracks event requests"]:::person
+    coordinator["Event Coordinator<br/>[Person]<br/>Reviews and manages assigned events"]:::person
+    lead["Event Coordinator Lead<br/>[Person]<br/>Assigns and reassigns Coordinators"]:::person
+    venueStaff["Venue Staff<br/>[Person]<br/>Reviews venue bookings"]:::person
+    techSupport["Technical Support<br/>[Person]<br/>Arranges equipment and technical support"]:::person
+    attendee["Attendee<br/>[Person]<br/>Registers and receives updates"]:::person
+    safetyOfficer["Safety Officer<br/>[Person]<br/>Reviews operational safety"]:::person
+    connectSphere["ConnectSphere<br/>[Software System]<br/>Event lifecycle, venue and equipment arrangements,<br/>registration, Flask login and in-app notifications"]:::system
+    supabase["Supabase<br/>[External Software System]<br/>Managed PostgreSQL database"]:::external
+    organiser -->|"Raises requests and tracks status<br/>HTTPS"| connectSphere
+    coordinator -->|"Reviews and manages events<br/>HTTPS"| connectSphere
+    lead -->|"Assigns and reassigns<br/>HTTPS"| connectSphere
+    venueStaff -->|"Manages venue bookings<br/>HTTPS"| connectSphere
+    techSupport -->|"Arranges equipment and support<br/>HTTPS"| connectSphere
+    attendee -->|"Registers and receives updates<br/>HTTPS"| connectSphere
+    safetyOfficer -->|"Reviews operational safety<br/>HTTPS"| connectSphere
+    connectSphere -->|"Reads and writes data<br/>HTTPS / JSON"| supabase
+    classDef person fill:#08427b,color:#ffffff,stroke:#05335e
+    classDef system fill:#1168bd,color:#ffffff,stroke:#08427b
+    classDef container fill:#438dd5,color:#ffffff,stroke:#1168bd
+    classDef external fill:#666666,color:#ffffff,stroke:#444444

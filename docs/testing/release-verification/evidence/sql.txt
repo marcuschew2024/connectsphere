@@ -1,272 +1,270 @@
-CREATE ROLE
-CREATE ROLE
-CREATE ROLE
-GRANT
-ALTER DEFAULT PRIVILEGES
-psql:/sql/create_events.sql:49: NOTICE:  column "last_status_changed_by" of relation "events" already exists, skipping
-psql:/sql/create_events.sql:49: NOTICE:  column "last_status_changed_at" of relation "events" already exists, skipping
-psql:/sql/auto_assign_coordinator.sql:48: NOTICE:  trigger "events_assign_coordinator" for relation "public.events" does not exist, skipping
-psql:/sql/auto_assign_coordinator.sql:53: NOTICE:  constraint "events_submitted_assignment_check" of relation "events" does not exist, skipping
-psql:/sql/create_venue_bookings.sql:30: NOTICE:  column "suggested_alternative" of relation "venue_bookings" already exists, skipping
-psql:/sql/create_venue_bookings.sql:34: NOTICE:  column "updated_at" of relation "venue_bookings" already exists, skipping
-psql:/sql/create_venue_bookings.sql:34: NOTICE:  column "last_changed_by" of relation "venue_bookings" already exists, skipping
-psql:/sql/create_venue_bookings.sql:34: NOTICE:  column "last_changed_at" of relation "venue_bookings" already exists, skipping
-psql:/sql/create_venue_bookings.sql:45: NOTICE:  constraint "venue_bookings_no_overlap" of relation "venue_bookings" does not exist, skipping
-psql:/sql/create_venue_bookings.sql:46: NOTICE:  constraint "venue_bookings_no_overlap_hard" of relation "venue_bookings" does not exist, skipping
-psql:/sql/create_venue_bookings.sql:47: NOTICE:  constraint "venue_bookings_one_tentative_hold" of relation "venue_bookings" does not exist, skipping
-psql:/sql/create_equipment_reservations.sql:5: NOTICE:  extension "btree_gist" already exists, skipping
-psql:/sql/create_equipment_reservations.sql:45: NOTICE:  trigger "trg_release_equipment_on_event_cancel" for relation "public.events" does not exist, skipping
-psql:/sql/migrations/20261025000000_scrum_46_change_requests.sql:16: NOTICE:  relation "event_change_requests" already exists, skipping
-psql:/sql/migrations/20261025000000_scrum_46_change_requests.sql:19: NOTICE:  relation "event_change_requests_event_idx" already exists, skipping
-psql:/sql/migrations/20261025000000_scrum_46_change_requests.sql:21: NOTICE:  relation "event_change_requests_reviewer_idx" already exists, skipping
-Migration pass 1: PASS
-psql:/sql/seed_users.sql:14: NOTICE:  relation "app_users" already exists, skipping
-psql:/sql/create_events.sql:45: NOTICE:  relation "events" already exists, skipping
-psql:/sql/create_events.sql:49: NOTICE:  column "last_status_changed_by" of relation "events" already exists, skipping
-psql:/sql/create_events.sql:49: NOTICE:  column "last_status_changed_at" of relation "events" already exists, skipping
-psql:/sql/create_events.sql:60: NOTICE:  relation "events_organiser_created_idx" already exists, skipping
-psql:/sql/create_events.sql:62: NOTICE:  relation "events_status_created_idx" already exists, skipping
-psql:/sql/create_events.sql:70: NOTICE:  relation "event_participants" already exists, skipping
-psql:/sql/create_events.sql:73: NOTICE:  relation "event_participants_user_idx" already exists, skipping
-psql:/sql/create_events.sql:82: NOTICE:  relation "event_status_history" already exists, skipping
-psql:/sql/create_events.sql:85: NOTICE:  relation "event_status_history_event_idx" already exists, skipping
-psql:/sql/create_events.sql:213: NOTICE:  relation "event_change_requests" already exists, skipping
-psql:/sql/create_events.sql:216: NOTICE:  relation "event_change_requests_event_idx" already exists, skipping
-psql:/sql/create_events.sql:218: NOTICE:  relation "event_change_requests_reviewer_idx" already exists, skipping
-psql:/sql/login_auth.sql:11: NOTICE:  column "email" of relation "app_users" already exists, skipping
-psql:/sql/login_auth.sql:11: NOTICE:  column "password_hash" of relation "app_users" already exists, skipping
-psql:/sql/login_auth.sql:11: NOTICE:  column "failed_attempts" of relation "app_users" already exists, skipping
-psql:/sql/login_auth.sql:11: NOTICE:  column "locked_until" of relation "app_users" already exists, skipping
-psql:/sql/login_auth.sql:23: NOTICE:  relation "auth_audit_log" already exists, skipping
-psql:/sql/login_auth.sql:26: NOTICE:  relation "auth_audit_log_user_idx" already exists, skipping
-psql:/sql/login_auth.sql:28: NOTICE:  relation "auth_audit_log_occurred_idx" already exists, skipping
-psql:/sql/rbac.sql:23: NOTICE:  relation "access_denied_log" already exists, skipping
-psql:/sql/rbac.sql:26: NOTICE:  relation "access_denied_log_actor_idx" already exists, skipping
-psql:/sql/rbac.sql:28: NOTICE:  relation "access_denied_log_occurred_idx" already exists, skipping
-psql:/sql/edit_planning.sql:18: NOTICE:  relation "event_edit_log" already exists, skipping
-psql:/sql/edit_planning.sql:21: NOTICE:  relation "event_edit_log_event_idx" already exists, skipping
-psql:/sql/event_decision_notifications.sql:8: NOTICE:  column "decision_reason" of relation "events" already exists, skipping
-psql:/sql/event_decision_notifications.sql:8: NOTICE:  column "decision_by" of relation "events" already exists, skipping
-psql:/sql/event_decision_notifications.sql:8: NOTICE:  column "decision_at" of relation "events" already exists, skipping
-psql:/sql/event_decision_notifications.sql:18: NOTICE:  relation "notifications" already exists, skipping
-psql:/sql/event_decision_notifications.sql:21: NOTICE:  relation "notifications_recipient_idx" already exists, skipping
-psql:/sql/auto_assign_coordinator.sql:6: NOTICE:  column "coordinator_assigned_at" of relation "events" already exists, skipping
-psql:/sql/auto_assign_coordinator.sql:62: NOTICE:  relation "events_coordinator_queue_idx" already exists, skipping
-psql:/sql/request_clarification.sql:7: NOTICE:  column "action" of relation "event_status_history" already exists, skipping
-psql:/sql/request_clarification.sql:7: NOTICE:  column "note" of relation "event_status_history" already exists, skipping
-psql:/sql/request_clarification.sql:18: NOTICE:  relation "event_clarifications" already exists, skipping
-psql:/sql/request_clarification.sql:22: NOTICE:  relation "event_clarifications_pending_idx" already exists, skipping
-psql:/sql/request_clarification.sql:25: NOTICE:  relation "event_clarifications_event_idx" already exists, skipping
-psql:/sql/create_venues.sql:61: NOTICE:  relation "venues" already exists, skipping
-psql:/sql/create_venues.sql:67: NOTICE:  relation "venues_name_location_unique" already exists, skipping
-psql:/sql/create_venues.sql:68: NOTICE:  relation "venues_created_idx" already exists, skipping
-psql:/sql/create_venue_bookings.sql:4: NOTICE:  extension "btree_gist" already exists, skipping
-psql:/sql/create_venue_bookings.sql:26: NOTICE:  relation "venue_bookings" already exists, skipping
-psql:/sql/create_venue_bookings.sql:30: NOTICE:  column "suggested_alternative" of relation "venue_bookings" already exists, skipping
-psql:/sql/create_venue_bookings.sql:34: NOTICE:  column "updated_at" of relation "venue_bookings" already exists, skipping
-psql:/sql/create_venue_bookings.sql:34: NOTICE:  column "last_changed_by" of relation "venue_bookings" already exists, skipping
-psql:/sql/create_venue_bookings.sql:34: NOTICE:  column "last_changed_at" of relation "venue_bookings" already exists, skipping
-psql:/sql/create_venue_bookings.sql:37: NOTICE:  relation "venue_bookings_requested_idx" already exists, skipping
-psql:/sql/create_venue_bookings.sql:39: NOTICE:  relation "venue_bookings_event_idx" already exists, skipping
-psql:/sql/create_venue_bookings.sql:41: NOTICE:  relation "venue_bookings_venue_idx" already exists, skipping
-psql:/sql/create_venue_bookings.sql:45: NOTICE:  constraint "venue_bookings_no_overlap" of relation "venue_bookings" does not exist, skipping
-psql:/sql/venue_search.sql:4: NOTICE:  column "is_retired" of relation "venues" already exists, skipping
-psql:/sql/update_venues.sql:3: NOTICE:  column "revision" of relation "venues" already exists, skipping
-psql:/sql/update_venues.sql:4: NOTICE:  column "updated_at" of relation "venues" already exists, skipping
-psql:/sql/update_venues.sql:13: NOTICE:  relation "venue_update_history" already exists, skipping
-psql:/sql/update_venues.sql:15: NOTICE:  relation "venue_update_history_venue_idx" already exists, skipping
-psql:/sql/create_equipment.sql:23: NOTICE:  relation "equipment_items" already exists, skipping
-psql:/sql/create_equipment.sql:25: NOTICE:  relation "equipment_catalogue_order" already exists, skipping
-psql:/sql/create_equipment.sql:35: NOTICE:  relation "equipment_item_history" already exists, skipping
-psql:/sql/create_equipment.sql:37: NOTICE:  relation "equipment_history_order" already exists, skipping
-psql:/sql/create_equipment_requests.sql:11: NOTICE:  relation "equipment_requests" already exists, skipping
-psql:/sql/create_equipment_requests.sql:13: NOTICE:  relation "equipment_requests_order" already exists, skipping
-psql:/sql/create_equipment_requests.sql:14: NOTICE:  relation "equipment_requests_event" already exists, skipping
-psql:/sql/create_equipment_requests.sql:27: NOTICE:  relation "equipment_request_items" already exists, skipping
-psql:/sql/create_equipment_reservations.sql:5: NOTICE:  extension "btree_gist" already exists, skipping
-psql:/sql/create_equipment_reservations.sql:21: NOTICE:  relation "equipment_reservations" already exists, skipping
-psql:/sql/create_equipment_reservations.sql:24: NOTICE:  relation "equipment_reservations_equipment_idx" already exists, skipping
-psql:/sql/create_equipment_reservations.sql:27: NOTICE:  relation "equipment_reservations_event_idx" already exists, skipping
-psql:/sql/create_equipment_reservations.sql:30: NOTICE:  relation "equipment_reservations_status_idx" already exists, skipping
-psql:/sql/migrations/20261025000000_scrum_46_change_requests.sql:16: NOTICE:  relation "event_change_requests" already exists, skipping
-psql:/sql/migrations/20261025000000_scrum_46_change_requests.sql:19: NOTICE:  relation "event_change_requests_event_idx" already exists, skipping
-psql:/sql/migrations/20261025000000_scrum_46_change_requests.sql:21: NOTICE:  relation "event_change_requests_reviewer_idx" already exists, skipping
-psql:/sql/migrations/20261018111728_scrum_38_equipment_request_status.sql:13: NOTICE:  column "revision" of relation "equipment_requests" already exists, skipping
-psql:/sql/migrations/20261018111728_scrum_38_equipment_request_status.sql:13: NOTICE:  column "update_notes" of relation "equipment_requests" already exists, skipping
-psql:/sql/migrations/20261018111728_scrum_38_equipment_request_status.sql:13: NOTICE:  column "updated_by" of relation "equipment_requests" already exists, skipping
-psql:/sql/migrations/20261018111728_scrum_38_equipment_request_status.sql:13: NOTICE:  column "updated_at" of relation "equipment_requests" already exists, skipping
-psql:/sql/migrations/20261018111728_scrum_38_equipment_request_status.sql:25: NOTICE:  relation "equipment_request_history" already exists, skipping
-psql:/sql/migrations/20261018111728_scrum_38_equipment_request_status.sql:27: NOTICE:  relation "equipment_request_history_actor" already exists, skipping
-psql:/sql/migrations/20261018111728_scrum_38_equipment_request_status.sql:29: NOTICE:  relation "equipment_requests_updater" already exists, skipping
-Migration pass 2: PASS
-BEGIN
-CREATE FUNCTION
-CREATE TRIGGER
-DO
-ROLLBACK
-drafts database checks: PASS
-BEGIN
-DO
-ROLLBACK
-assignment database checks: PASS
-BEGIN
-DO
-ROLLBACK
-venues database checks: PASS
-BEGIN
-CREATE FUNCTION
-CREATE TRIGGER
-DO
-ROLLBACK
-venue_updates database checks: PASS
-BEGIN
-DO
-ROLLBACK
-venue_overlap database checks: PASS
-BEGIN
-DO
-SELECT 1
-CREATE FUNCTION
-CREATE TRIGGER
-DO
-ROLLBACK
-equipment database checks: PASS
-BEGIN
-DO
-ROLLBACK
-equipment_requests database checks: PASS
-BEGIN
-DO
-INSERT 0 1
-INSERT 0 1
-CREATE FUNCTION
-CREATE TRIGGER
-DO
-ROLLBACK
-equipment_request_status database checks: PASS
-INSERT 0 2
-GRANT
-GRANT
-GRANT
-GRANT
-GRANT
-GRANT
-NOTIFY
-Safety Officer migration pass 1: PASS
-Safety Officer migration pass 2: PASS
-DO
-Event Coordinator Lead migration pass 1: PASS
-Event Coordinator Lead migration pass 2: PASS
-Role accounts seed pass 1: PASS
-psql:/sql/seed_role_accounts.sql:15: NOTICE:  schema "extensions" already exists, skipping
-psql:/sql/seed_role_accounts.sql:16: NOTICE:  extension "pgcrypto" already exists, skipping
-Role accounts seed pass 2: PASS
-psql:/sql/migrations/20261018134736_link_equipment_request_reservations.sql:47: NOTICE:  trigger "equipment_reservation_capacity" for relation "public.equipment_reservations" does not exist, skipping
-Request reservations migration pass 1: PASS
-psql:/sql/migrations/20261018134736_link_equipment_request_reservations.sql:5: NOTICE:  column "request_id" of relation "equipment_reservations" already exists, skipping
-psql:/sql/migrations/20261018134736_link_equipment_request_reservations.sql:7: NOTICE:  relation "equipment_reservations_request_item" already exists, skipping
-psql:/sql/migrations/20261018134736_link_equipment_request_reservations.sql:10: NOTICE:  column "reservation_start_at" of relation "equipment_requests" already exists, skipping
-psql:/sql/migrations/20261018134736_link_equipment_request_reservations.sql:10: NOTICE:  column "reservation_end_at" of relation "equipment_requests" already exists, skipping
-psql:/sql/migrations/20261018134736_link_equipment_request_reservations.sql:12: NOTICE:  column "reservation_snapshot" of relation "equipment_request_history" already exists, skipping
-Request reservations migration pass 2: PASS
-BEGIN
-DO
-INSERT 0 1
-INSERT 0 1
-INSERT 0 1
-INSERT 0 1
-CREATE FUNCTION
-CREATE TRIGGER
-DO
-ROLLBACK
-Venue buffers migration pass 1: PASS
-psql:/sql/migrations/20261023193600_scrum_129_venue_buffers.sql:9: NOTICE:  column "setup_time_minutes" of relation "venues" already exists, skipping
-psql:/sql/migrations/20261023193600_scrum_129_venue_buffers.sql:9: NOTICE:  column "turnaround_time_minutes" of relation "venues" already exists, skipping
-Venue buffers migration pass 2: PASS
-BEGIN
-DO
-ROLLBACK
-Tentative venue holds migration pass 1: PASS
-psql:/sql/migrations/20261029170000_scrum_79_tentative_venue_holds.sql:9: NOTICE:  column "expires_at" of relation "venue_bookings" already exists, skipping
-Tentative venue holds migration pass 2: PASS
-BEGIN
-DO
-ROLLBACK
-BEGIN
-DO
-ROLLBACK
-venue_fcfs database checks: PASS
-Event completion migration pass 1: PASS
-Event completion migration pass 2: PASS
-psql:/sql/migrations/20261026150854_scrum_41_registration_capacity.sql:10: NOTICE:  constraint "events_registration_capacity_check" of relation "events" does not exist, skipping
-Registration capacity migration pass 1: PASS
-psql:/sql/migrations/20261026150854_scrum_41_registration_capacity.sql:8: NOTICE:  column "registration_capacity" of relation "events" already exists, skipping
-psql:/sql/migrations/20261026150854_scrum_41_registration_capacity.sql:8: NOTICE:  column "registered_count" of relation "events" already exists, skipping
-psql:/sql/migrations/20261026150854_scrum_41_registration_capacity.sql:26: NOTICE:  relation "event_registrations" already exists, skipping
-psql:/sql/migrations/20261026150854_scrum_41_registration_capacity.sql:28: NOTICE:  relation "event_registrations_attendee_idx" already exists, skipping
-Registration capacity migration pass 2: PASS
-BEGIN
-INSERT 0 101
-DO
-DO
-ROLLBACK
-INSERT 0 2
-GRANT
-GRANT
-psql:/sql/migrations/20261029044510_scrum_40_attendee_registration.sql:10: NOTICE:  constraint "events_registration_period_check" of relation "events" does not exist, skipping
-Attendee registration migration pass 1: PASS
-psql:/sql/migrations/20261029044510_scrum_40_attendee_registration.sql:9: NOTICE:  column "registration_opens_at" of relation "events" already exists, skipping
-psql:/sql/migrations/20261029044510_scrum_40_attendee_registration.sql:9: NOTICE:  column "registration_closes_at" of relation "events" already exists, skipping
-psql:/sql/migrations/20261029044510_scrum_40_attendee_registration.sql:17: NOTICE:  column "information" of relation "event_registrations" already exists, skipping
-Attendee registration migration pass 2: PASS
-BEGIN
-DO
-ROLLBACK
-Initial confirmed capacity migration pass 1: PASS
-Initial confirmed capacity migration pass 2: PASS
-DO
-psql:/sql/migrations/20261030120000_scrum_130_unassigned_queue.sql:30: NOTICE:  trigger "events_stamp_coordinator_assignment" for relation "public.events" does not exist, skipping
-psql:/sql/migrations/20261030120000_scrum_130_unassigned_queue.sql:39: NOTICE:  constraint "events_coordinator_assignment_check" of relation "events" does not exist, skipping
-Unassigned queue migration pass 1: PASS
-psql:/sql/migrations/20261030120000_scrum_130_unassigned_queue.sql:11: NOTICE:  trigger "events_assign_coordinator" for relation "public.events" does not exist, skipping
-psql:/sql/migrations/20261030120000_scrum_130_unassigned_queue.sql:12: NOTICE:  function public.assign_event_coordinator() does not exist, skipping
-psql:/sql/migrations/20261030120000_scrum_130_unassigned_queue.sql:38: NOTICE:  constraint "events_submitted_assignment_check" of relation "events" does not exist, skipping
-psql:/sql/migrations/20261030120000_scrum_130_unassigned_queue.sql:47: NOTICE:  relation "events_unassigned_queue_idx" already exists, skipping
-Unassigned queue migration pass 2: PASS
-BEGIN
-DO
-ROLLBACK
-coordinator_assignment database checks: PASS
-psql:/sql/migrations/20261030015221_scrum_49_notification_recipient_role.sql:15: NOTICE:  constraint "notifications_recipient_role_allowed" of relation "notifications" does not exist, skipping
-psql:/sql/migrations/20261030015221_scrum_49_notification_recipient_role.sql:24: NOTICE:  constraint "notifications_recipient_target" of relation "notifications" does not exist, skipping
-Notification recipient-role migration pass 1: PASS
-psql:/sql/migrations/20261030015221_scrum_49_notification_recipient_role.sql:9: NOTICE:  column "recipient_role" of relation "notifications" already exists, skipping
-psql:/sql/migrations/20261030015221_scrum_49_notification_recipient_role.sql:30: NOTICE:  relation "notifications_recipient_role_idx" already exists, skipping
-Notification recipient-role migration pass 2: PASS
-Registration withdrawal migration pass 1: PASS
-psql:/sql/migrations/20261030062503_scrum_43_withdraw_registration.sql:5: NOTICE:  column "withdrawal_closes_at" of relation "events" already exists, skipping
-Registration withdrawal migration pass 2: PASS
-BEGIN
-DO
-DO
-ROLLBACK
-Atomic failed-login migration pass 1: PASS
-Atomic failed-login migration pass 2: PASS
-Event cancellation migration pass 1: PASS
-Event cancellation migration pass 2: PASS
-psql:/sql/migrations/20261030220000_scrum_60_venue_unavailability.sql:49: NOTICE:  trigger "reject_overlapping_venue_block" for relation "public.venue_unavailability" does not exist, skipping
-psql:/sql/migrations/20261030220000_scrum_60_venue_unavailability.sql:73: NOTICE:  trigger "reject_booking_in_active_venue_block" for relation "public.venue_bookings" does not exist, skipping
-Venue unavailability migration pass 1: PASS
-psql:/sql/migrations/20261030220000_scrum_60_venue_unavailability.sql:23: NOTICE:  relation "venue_unavailability" already exists, skipping
-psql:/sql/migrations/20261030220000_scrum_60_venue_unavailability.sql:27: NOTICE:  relation "venue_unavailability_active_idx" already exists, skipping
-Venue unavailability migration pass 2: PASS
-psql:/sql/migrations/20261031090000_scrum_26_retire_venue.sql:100: NOTICE:  trigger "reject_booking_on_retired_venue" for relation "public.venue_bookings" does not exist, skipping
-Venue retirement migration pass 1: PASS
-psql:/sql/migrations/20261031090000_scrum_26_retire_venue.sql:11: NOTICE:  column "retired_at" of relation "venues" already exists, skipping
-psql:/sql/migrations/20261031090000_scrum_26_retire_venue.sql:12: NOTICE:  column "retired_by" of relation "venues" already exists, skipping
-Venue retirement migration pass 2: PASS
-Change request apply migration pass 1: PASS
-psql:/sql/migrations/20261031120000_scrum_138_apply_change_request.sql:7: NOTICE:  column "requested_changes" of relation "event_change_requests" already exists, skipping
-psql:/sql/migrations/20261031120000_scrum_138_apply_change_request.sql:8: NOTICE:  column "applied_changes" of relation "event_change_requests" already exists, skipping
-psql:/sql/migrations/20261031120000_scrum_138_apply_change_request.sql:9: NOTICE:  column "significant" of relation "event_change_requests" already exists, skipping
-Change request apply migration pass 2: PASS
+Source: GitHub CI run 41573118557, main 9b7973b. Selected SQL/test evidence lines from the completed run; not a fresh local run.
+Real browser API and database journeys	Initialise disposable database and verify SQL contracts	2026-11-03T03:36:54.9973180Z psql:/sql/migrations/20261025000000_scrum_46_change_requests.sql:16: NOTICE:  relation "event_change_requests" already exists, skipping
+Real browser API and database journeys	Initialise disposable database and verify SQL contracts	2026-11-03T03:36:54.9975946Z psql:/sql/migrations/20261025000000_scrum_46_change_requests.sql:19: NOTICE:  relation "event_change_requests_event_idx" already exists, skipping
+Real browser API and database journeys	Initialise disposable database and verify SQL contracts	2026-11-03T03:36:54.9977491Z psql:/sql/migrations/20261025000000_scrum_46_change_requests.sql:21: NOTICE:  relation "event_change_requests_reviewer_idx" already exists, skipping
+Real browser API and database journeys	Initialise disposable database and verify SQL contracts	2026-11-03T03:36:55.0428268Z Migration pass 1: PASS
+Real browser API and database journeys	Initialise disposable database and verify SQL contracts	2026-11-03T03:36:55.4703995Z psql:/sql/migrations/20261025000000_scrum_46_change_requests.sql:16: NOTICE:  relation "event_change_requests" already exists, skipping
+Real browser API and database journeys	Initialise disposable database and verify SQL contracts	2026-11-03T03:36:55.4727915Z psql:/sql/migrations/20261025000000_scrum_46_change_requests.sql:19: NOTICE:  relation "event_change_requests_event_idx" already exists, skipping
+Real browser API and database journeys	Initialise disposable database and verify SQL contracts	2026-11-03T03:36:55.4732365Z psql:/sql/migrations/20261025000000_scrum_46_change_requests.sql:21: NOTICE:  relation "event_change_requests_reviewer_idx" already exists, skipping
+Real browser API and database journeys	Initialise disposable database and verify SQL contracts	2026-11-03T03:36:55.4959296Z psql:/sql/migrations/20261018111728_scrum_38_equipment_request_status.sql:13: NOTICE:  column "revision" of relation "equipment_requests" already exists, skipping
+Real browser API and database journeys	Initialise disposable database and verify SQL contracts	2026-11-03T03:36:55.4961326Z psql:/sql/migrations/20261018111728_scrum_38_equipment_request_status.sql:13: NOTICE:  column "update_notes" of relation "equipment_requests" already exists, skipping
+Real browser API and database journeys	Initialise disposable database and verify SQL contracts	2026-11-03T03:36:55.4962775Z psql:/sql/migrations/20261018111728_scrum_38_equipment_request_status.sql:13: NOTICE:  column "updated_by" of relation "equipment_requests" already exists, skipping
+Real browser API and database journeys	Initialise disposable database and verify SQL contracts	2026-11-03T03:36:55.4964133Z psql:/sql/migrations/20261018111728_scrum_38_equipment_request_status.sql:13: NOTICE:  column "updated_at" of relation "equipment_requests" already exists, skipping
+Real browser API and database journeys	Initialise disposable database and verify SQL contracts	2026-11-03T03:36:55.4965577Z psql:/sql/migrations/20261018111728_scrum_38_equipment_request_status.sql:25: NOTICE:  relation "equipment_request_history" already exists, skipping
+Real browser API and database journeys	Initialise disposable database and verify SQL contracts	2026-11-03T03:36:55.4967428Z psql:/sql/migrations/20261018111728_scrum_38_equipment_request_status.sql:27: NOTICE:  relation "equipment_request_history_actor" already exists, skipping
+Real browser API and database journeys	Initialise disposable database and verify SQL contracts	2026-11-03T03:36:55.4968700Z psql:/sql/migrations/20261018111728_scrum_38_equipment_request_status.sql:29: NOTICE:  relation "equipment_requests_updater" already exists, skipping
+Real browser API and database journeys	Initialise disposable database and verify SQL contracts	2026-11-03T03:36:55.4991392Z Migration pass 2: PASS
+Real browser API and database journeys	Initialise disposable database and verify SQL contracts	2026-11-03T03:36:55.5315535Z drafts database checks: PASS
+Real browser API and database journeys	Initialise disposable database and verify SQL contracts	2026-11-03T03:36:55.5619673Z assignment database checks: PASS
+Real browser API and database journeys	Initialise disposable database and verify SQL contracts	2026-11-03T03:36:55.5867681Z venues database checks: PASS
+Real browser API and database journeys	Initialise disposable database and verify SQL contracts	2026-11-03T03:36:55.6142109Z venue_updates database checks: PASS
+Real browser API and database journeys	Initialise disposable database and verify SQL contracts	2026-11-03T03:36:55.6497951Z venue_overlap database checks: PASS
+Real browser API and database journeys	Initialise disposable database and verify SQL contracts	2026-11-03T03:36:55.6838777Z equipment database checks: PASS
+Real browser API and database journeys	Initialise disposable database and verify SQL contracts	2026-11-03T03:36:55.7077826Z equipment_requests database checks: PASS
+Real browser API and database journeys	Initialise disposable database and verify SQL contracts	2026-11-03T03:36:55.7346851Z equipment_request_status database checks: PASS
+Real browser API and database journeys	Initialise disposable database and verify SQL contracts	2026-11-03T03:36:55.7900167Z Safety Officer migration pass 1: PASS
+Real browser API and database journeys	Initialise disposable database and verify SQL contracts	2026-11-03T03:36:55.8148315Z Safety Officer migration pass 2: PASS
+Real browser API and database journeys	Initialise disposable database and verify SQL contracts	2026-11-03T03:36:55.8625572Z Event Coordinator Lead migration pass 1: PASS
+Real browser API and database journeys	Initialise disposable database and verify SQL contracts	2026-11-03T03:36:55.8864707Z Event Coordinator Lead migration pass 2: PASS
+Real browser API and database journeys	Initialise disposable database and verify SQL contracts	2026-11-03T03:36:57.6482642Z Role accounts seed pass 1: PASS
+Real browser API and database journeys	Initialise disposable database and verify SQL contracts	2026-11-03T03:36:59.3916492Z Role accounts seed pass 2: PASS
+Real browser API and database journeys	Initialise disposable database and verify SQL contracts	2026-11-03T03:36:59.4139178Z psql:/sql/migrations/20261018134736_link_equipment_request_reservations.sql:47: NOTICE:  trigger "equipment_reservation_capacity" for relation "public.equipment_reservations" does not exist, skipping
+Real browser API and database journeys	Initialise disposable database and verify SQL contracts	2026-11-03T03:36:59.4179665Z Request reservations migration pass 1: PASS
+Real browser API and database journeys	Initialise disposable database and verify SQL contracts	2026-11-03T03:36:59.4384076Z psql:/sql/migrations/20261018134736_link_equipment_request_reservations.sql:5: NOTICE:  column "request_id" of relation "equipment_reservations" already exists, skipping
+Real browser API and database journeys	Initialise disposable database and verify SQL contracts	2026-11-03T03:36:59.4387022Z psql:/sql/migrations/20261018134736_link_equipment_request_reservations.sql:7: NOTICE:  relation "equipment_reservations_request_item" already exists, skipping
+Real browser API and database journeys	Initialise disposable database and verify SQL contracts	2026-11-03T03:36:59.4387840Z psql:/sql/migrations/20261018134736_link_equipment_request_reservations.sql:10: NOTICE:  column "reservation_start_at" of relation "equipment_requests" already exists, skipping
+Real browser API and database journeys	Initialise disposable database and verify SQL contracts	2026-11-03T03:36:59.4388562Z psql:/sql/migrations/20261018134736_link_equipment_request_reservations.sql:10: NOTICE:  column "reservation_end_at" of relation "equipment_requests" already exists, skipping
+Real browser API and database journeys	Initialise disposable database and verify SQL contracts	2026-11-03T03:36:59.4389332Z psql:/sql/migrations/20261018134736_link_equipment_request_reservations.sql:12: NOTICE:  column "reservation_snapshot" of relation "equipment_request_history" already exists, skipping
+Real browser API and database journeys	Initialise disposable database and verify SQL contracts	2026-11-03T03:36:59.4427572Z Request reservations migration pass 2: PASS
+Real browser API and database journeys	Initialise disposable database and verify SQL contracts	2026-11-03T03:36:59.5070148Z Venue buffers migration pass 1: PASS
+Real browser API and database journeys	Initialise disposable database and verify SQL contracts	2026-11-03T03:36:59.5370929Z psql:/sql/migrations/20261023193600_scrum_129_venue_buffers.sql:9: NOTICE:  column "setup_time_minutes" of relation "venues" already exists, skipping
+Real browser API and database journeys	Initialise disposable database and verify SQL contracts	2026-11-03T03:36:59.5371685Z psql:/sql/migrations/20261023193600_scrum_129_venue_buffers.sql:9: NOTICE:  column "turnaround_time_minutes" of relation "venues" already exists, skipping
+Real browser API and database journeys	Initialise disposable database and verify SQL contracts	2026-11-03T03:36:59.5390714Z Venue buffers migration pass 2: PASS
+Real browser API and database journeys	Initialise disposable database and verify SQL contracts	2026-11-03T03:36:59.5897953Z Tentative venue holds migration pass 1: PASS
+Real browser API and database journeys	Initialise disposable database and verify SQL contracts	2026-11-03T03:36:59.6132413Z psql:/sql/migrations/20261029170000_scrum_79_tentative_venue_holds.sql:9: NOTICE:  column "expires_at" of relation "venue_bookings" already exists, skipping
+Real browser API and database journeys	Initialise disposable database and verify SQL contracts	2026-11-03T03:36:59.6169945Z Tentative venue holds migration pass 2: PASS
+Real browser API and database journeys	Initialise disposable database and verify SQL contracts	2026-11-03T03:36:59.6728657Z venue_fcfs database checks: PASS
+Real browser API and database journeys	Initialise disposable database and verify SQL contracts	2026-11-03T03:36:59.6975101Z Event completion migration pass 1: PASS
+Real browser API and database journeys	Initialise disposable database and verify SQL contracts	2026-11-03T03:36:59.7201449Z Event completion migration pass 2: PASS
+Real browser API and database journeys	Initialise disposable database and verify SQL contracts	2026-11-03T03:36:59.7428457Z psql:/sql/migrations/20261026150854_scrum_41_registration_capacity.sql:10: NOTICE:  constraint "events_registration_capacity_check" of relation "events" does not exist, skipping
+Real browser API and database journeys	Initialise disposable database and verify SQL contracts	2026-11-03T03:36:59.7507826Z Registration capacity migration pass 1: PASS
+Real browser API and database journeys	Initialise disposable database and verify SQL contracts	2026-11-03T03:36:59.7776849Z psql:/sql/migrations/20261026150854_scrum_41_registration_capacity.sql:8: NOTICE:  column "registration_capacity" of relation "events" already exists, skipping
+Real browser API and database journeys	Initialise disposable database and verify SQL contracts	2026-11-03T03:36:59.7778317Z psql:/sql/migrations/20261026150854_scrum_41_registration_capacity.sql:8: NOTICE:  column "registered_count" of relation "events" already exists, skipping
+Real browser API and database journeys	Initialise disposable database and verify SQL contracts	2026-11-03T03:36:59.7787232Z psql:/sql/migrations/20261026150854_scrum_41_registration_capacity.sql:26: NOTICE:  relation "event_registrations" already exists, skipping
+Real browser API and database journeys	Initialise disposable database and verify SQL contracts	2026-11-03T03:36:59.7790156Z psql:/sql/migrations/20261026150854_scrum_41_registration_capacity.sql:28: NOTICE:  relation "event_registrations_attendee_idx" already exists, skipping
+Real browser API and database journeys	Initialise disposable database and verify SQL contracts	2026-11-03T03:36:59.7824515Z Registration capacity migration pass 2: PASS
+Real browser API and database journeys	Initialise disposable database and verify SQL contracts	2026-11-03T03:36:59.8475248Z psql:/sql/migrations/20261029044510_scrum_40_attendee_registration.sql:10: NOTICE:  constraint "events_registration_period_check" of relation "events" does not exist, skipping
+Real browser API and database journeys	Initialise disposable database and verify SQL contracts	2026-11-03T03:36:59.8508263Z Attendee registration migration pass 1: PASS
+Real browser API and database journeys	Initialise disposable database and verify SQL contracts	2026-11-03T03:36:59.8723374Z psql:/sql/migrations/20261029044510_scrum_40_attendee_registration.sql:9: NOTICE:  column "registration_opens_at" of relation "events" already exists, skipping
+Real browser API and database journeys	Initialise disposable database and verify SQL contracts	2026-11-03T03:36:59.8724206Z psql:/sql/migrations/20261029044510_scrum_40_attendee_registration.sql:9: NOTICE:  column "registration_closes_at" of relation "events" already exists, skipping
+Real browser API and database journeys	Initialise disposable database and verify SQL contracts	2026-11-03T03:36:59.8733366Z psql:/sql/migrations/20261029044510_scrum_40_attendee_registration.sql:17: NOTICE:  column "information" of relation "event_registrations" already exists, skipping
+Real browser API and database journeys	Initialise disposable database and verify SQL contracts	2026-11-03T03:36:59.8835310Z Attendee registration migration pass 2: PASS
+Real browser API and database journeys	Initialise disposable database and verify SQL contracts	2026-11-03T03:36:59.9353549Z Initial confirmed capacity migration pass 1: PASS
+Real browser API and database journeys	Initialise disposable database and verify SQL contracts	2026-11-03T03:36:59.9661335Z Initial confirmed capacity migration pass 2: PASS
+Real browser API and database journeys	Initialise disposable database and verify SQL contracts	2026-11-03T03:37:00.0127258Z psql:/sql/migrations/20261030120000_scrum_130_unassigned_queue.sql:30: NOTICE:  trigger "events_stamp_coordinator_assignment" for relation "public.events" does not exist, skipping
+Real browser API and database journeys	Initialise disposable database and verify SQL contracts	2026-11-03T03:37:00.0131676Z psql:/sql/migrations/20261030120000_scrum_130_unassigned_queue.sql:39: NOTICE:  constraint "events_coordinator_assignment_check" of relation "events" does not exist, skipping
+Real browser API and database journeys	Initialise disposable database and verify SQL contracts	2026-11-03T03:37:00.0159648Z Unassigned queue migration pass 1: PASS
+Real browser API and database journeys	Initialise disposable database and verify SQL contracts	2026-11-03T03:37:00.0376036Z psql:/sql/migrations/20261030120000_scrum_130_unassigned_queue.sql:11: NOTICE:  trigger "events_assign_coordinator" for relation "public.events" does not exist, skipping
+Real browser API and database journeys	Initialise disposable database and verify SQL contracts	2026-11-03T03:37:00.0377363Z psql:/sql/migrations/20261030120000_scrum_130_unassigned_queue.sql:12: NOTICE:  function public.assign_event_coordinator() does not exist, skipping
+Real browser API and database journeys	Initialise disposable database and verify SQL contracts	2026-11-03T03:37:00.0382747Z psql:/sql/migrations/20261030120000_scrum_130_unassigned_queue.sql:38: NOTICE:  constraint "events_submitted_assignment_check" of relation "events" does not exist, skipping
+Real browser API and database journeys	Initialise disposable database and verify SQL contracts	2026-11-03T03:37:00.0391204Z psql:/sql/migrations/20261030120000_scrum_130_unassigned_queue.sql:47: NOTICE:  relation "events_unassigned_queue_idx" already exists, skipping
+Real browser API and database journeys	Initialise disposable database and verify SQL contracts	2026-11-03T03:37:00.0408977Z Unassigned queue migration pass 2: PASS
+Real browser API and database journeys	Initialise disposable database and verify SQL contracts	2026-11-03T03:37:00.0707382Z coordinator_assignment database checks: PASS
+Real browser API and database journeys	Initialise disposable database and verify SQL contracts	2026-11-03T03:37:00.0945434Z psql:/sql/migrations/20261030015221_scrum_49_notification_recipient_role.sql:15: NOTICE:  constraint "notifications_recipient_role_allowed" of relation "notifications" does not exist, skipping
+Real browser API and database journeys	Initialise disposable database and verify SQL contracts	2026-11-03T03:37:00.0951935Z psql:/sql/migrations/20261030015221_scrum_49_notification_recipient_role.sql:24: NOTICE:  constraint "notifications_recipient_target" of relation "notifications" does not exist, skipping
+Real browser API and database journeys	Initialise disposable database and verify SQL contracts	2026-11-03T03:37:00.0971990Z Notification recipient-role migration pass 1: PASS
+Real browser API and database journeys	Initialise disposable database and verify SQL contracts	2026-11-03T03:37:00.1240099Z psql:/sql/migrations/20261030015221_scrum_49_notification_recipient_role.sql:9: NOTICE:  column "recipient_role" of relation "notifications" already exists, skipping
+Real browser API and database journeys	Initialise disposable database and verify SQL contracts	2026-11-03T03:37:00.1251401Z psql:/sql/migrations/20261030015221_scrum_49_notification_recipient_role.sql:30: NOTICE:  relation "notifications_recipient_role_idx" already exists, skipping
+Real browser API and database journeys	Initialise disposable database and verify SQL contracts	2026-11-03T03:37:00.1261295Z Notification recipient-role migration pass 2: PASS
+Real browser API and database journeys	Initialise disposable database and verify SQL contracts	2026-11-03T03:37:00.1555470Z Registration withdrawal migration pass 1: PASS
+Real browser API and database journeys	Initialise disposable database and verify SQL contracts	2026-11-03T03:37:00.1759094Z psql:/sql/migrations/20261030062503_scrum_43_withdraw_registration.sql:5: NOTICE:  column "withdrawal_closes_at" of relation "events" already exists, skipping
+Real browser API and database journeys	Initialise disposable database and verify SQL contracts	2026-11-03T03:37:00.1789835Z Registration withdrawal migration pass 2: PASS
+Real browser API and database journeys	Initialise disposable database and verify SQL contracts	2026-11-03T03:37:00.2316880Z Atomic failed-login migration pass 1: PASS
+Real browser API and database journeys	Initialise disposable database and verify SQL contracts	2026-11-03T03:37:00.2575785Z Atomic failed-login migration pass 2: PASS
+Real browser API and database journeys	Initialise disposable database and verify SQL contracts	2026-11-03T03:37:00.2868200Z Event cancellation migration pass 1: PASS
+Real browser API and database journeys	Initialise disposable database and verify SQL contracts	2026-11-03T03:37:00.3114845Z Event cancellation migration pass 2: PASS
+Real browser API and database journeys	Initialise disposable database and verify SQL contracts	2026-11-03T03:37:00.3359782Z psql:/sql/migrations/20261030220000_scrum_60_venue_unavailability.sql:49: NOTICE:  trigger "reject_overlapping_venue_block" for relation "public.venue_unavailability" does not exist, skipping
+Real browser API and database journeys	Initialise disposable database and verify SQL contracts	2026-11-03T03:37:00.3361896Z psql:/sql/migrations/20261030220000_scrum_60_venue_unavailability.sql:73: NOTICE:  trigger "reject_booking_in_active_venue_block" for relation "public.venue_bookings" does not exist, skipping
+Real browser API and database journeys	Initialise disposable database and verify SQL contracts	2026-11-03T03:37:00.3377054Z Venue unavailability migration pass 1: PASS
+Real browser API and database journeys	Initialise disposable database and verify SQL contracts	2026-11-03T03:37:00.3580358Z psql:/sql/migrations/20261030220000_scrum_60_venue_unavailability.sql:23: NOTICE:  relation "venue_unavailability" already exists, skipping
+Real browser API and database journeys	Initialise disposable database and verify SQL contracts	2026-11-03T03:37:00.3592507Z psql:/sql/migrations/20261030220000_scrum_60_venue_unavailability.sql:27: NOTICE:  relation "venue_unavailability_active_idx" already exists, skipping
+Real browser API and database journeys	Initialise disposable database and verify SQL contracts	2026-11-03T03:37:00.3611466Z Venue unavailability migration pass 2: PASS
+Real browser API and database journeys	Initialise disposable database and verify SQL contracts	2026-11-03T03:37:00.3834925Z psql:/sql/migrations/20261031090000_scrum_26_retire_venue.sql:100: NOTICE:  trigger "reject_booking_on_retired_venue" for relation "public.venue_bookings" does not exist, skipping
+Real browser API and database journeys	Initialise disposable database and verify SQL contracts	2026-11-03T03:37:00.3844178Z Venue retirement migration pass 1: PASS
+Real browser API and database journeys	Initialise disposable database and verify SQL contracts	2026-11-03T03:37:00.4050129Z psql:/sql/migrations/20261031090000_scrum_26_retire_venue.sql:11: NOTICE:  column "retired_at" of relation "venues" already exists, skipping
+Real browser API and database journeys	Initialise disposable database and verify SQL contracts	2026-11-03T03:37:00.4051118Z psql:/sql/migrations/20261031090000_scrum_26_retire_venue.sql:12: NOTICE:  column "retired_by" of relation "venues" already exists, skipping
+Real browser API and database journeys	Initialise disposable database and verify SQL contracts	2026-11-03T03:37:00.4082490Z Venue retirement migration pass 2: PASS
+Real browser API and database journeys	Initialise disposable database and verify SQL contracts	2026-11-03T03:37:00.4366356Z Change request apply migration pass 1: PASS
+Real browser API and database journeys	Initialise disposable database and verify SQL contracts	2026-11-03T03:37:00.4581179Z psql:/sql/migrations/20261031120000_scrum_138_apply_change_request.sql:7: NOTICE:  column "requested_changes" of relation "event_change_requests" already exists, skipping
+Real browser API and database journeys	Initialise disposable database and verify SQL contracts	2026-11-03T03:37:00.4582873Z psql:/sql/migrations/20261031120000_scrum_138_apply_change_request.sql:8: NOTICE:  column "applied_changes" of relation "event_change_requests" already exists, skipping
+Real browser API and database journeys	Initialise disposable database and verify SQL contracts	2026-11-03T03:37:00.4584029Z psql:/sql/migrations/20261031120000_scrum_138_apply_change_request.sql:9: NOTICE:  column "significant" of relation "event_change_requests" already exists, skipping
+Real browser API and database journeys	Initialise disposable database and verify SQL contracts	2026-11-03T03:37:00.4619985Z Change request apply migration pass 2: PASS
+Real browser API and database journeys	Initialise disposable database and verify SQL contracts	2026-11-03T03:37:00.4865549Z psql:/sql/migrations/20261030195932_scrum_135_status_transitions.sql:16: NOTICE:  trigger "events_keep_terminal_status" for relation "public.events" does not exist, skipping
+Real browser API and database journeys	Initialise disposable database and verify SQL contracts	2026-11-03T03:37:00.4884596Z Status transition migration pass 1: PASS
+Real browser API and database journeys	Initialise disposable database and verify SQL contracts	2026-11-03T03:37:00.5117608Z Status transition migration pass 2: PASS
+Real browser API and database journeys	Initialise disposable database and verify SQL contracts	2026-11-03T03:37:00.5382932Z Status transition database checks: PASS
+Real browser API and database journeys	Initialise disposable database and verify SQL contracts	2026-11-03T03:37:00.5645895Z psql:/sql/migrations/20261031040259_readable_record_references.sql:38: NOTICE:  trigger "keep_record_reference" for relation "public.events" does not exist, skipping
+Real browser API and database journeys	Initialise disposable database and verify SQL contracts	2026-11-03T03:37:00.5683236Z psql:/sql/migrations/20261031040259_readable_record_references.sql:38: NOTICE:  trigger "keep_record_reference" for relation "public.venue_bookings" does not exist, skipping
+Real browser API and database journeys	Initialise disposable database and verify SQL contracts	2026-11-03T03:37:00.5711275Z psql:/sql/migrations/20261031040259_readable_record_references.sql:38: NOTICE:  trigger "keep_record_reference" for relation "public.equipment_requests" does not exist, skipping
+Real browser API and database journeys	Initialise disposable database and verify SQL contracts	2026-11-03T03:37:00.5758113Z psql:/sql/migrations/20261031040259_readable_record_references.sql:38: NOTICE:  trigger "keep_record_reference" for relation "public.event_registrations" does not exist, skipping
+Real browser API and database journeys	Initialise disposable database and verify SQL contracts	2026-11-03T03:37:00.5780884Z psql:/sql/migrations/20261031040259_readable_record_references.sql:38: NOTICE:  trigger "keep_record_reference" for relation "public.venues" does not exist, skipping
+Real browser API and database journeys	Initialise disposable database and verify SQL contracts	2026-11-03T03:37:00.5807008Z psql:/sql/migrations/20261031040259_readable_record_references.sql:38: NOTICE:  trigger "keep_record_reference" for relation "public.equipment_items" does not exist, skipping
+Real browser API and database journeys	Initialise disposable database and verify SQL contracts	2026-11-03T03:37:00.5861284Z Readable references migration pass 1: PASS
+Real browser API and database journeys	Initialise disposable database and verify SQL contracts	2026-11-03T03:37:00.6133349Z psql:/sql/migrations/20261031040259_readable_record_references.sql:38: NOTICE:  column "reference_number" of relation "events" already exists, skipping
+Real browser API and database journeys	Initialise disposable database and verify SQL contracts	2026-11-03T03:37:00.6134718Z psql:/sql/migrations/20261031040259_readable_record_references.sql:38: NOTICE:  column "reference" of relation "events" already exists, skipping
+Real browser API and database journeys	Initialise disposable database and verify SQL contracts	2026-11-03T03:37:00.6135838Z psql:/sql/migrations/20261031040259_readable_record_references.sql:38: NOTICE:  relation "events_reference_key" already exists, skipping
+Real browser API and database journeys	Initialise disposable database and verify SQL contracts	2026-11-03T03:37:00.6142689Z psql:/sql/migrations/20261031040259_readable_record_references.sql:38: NOTICE:  column "reference_number" of relation "venue_bookings" already exists, skipping
+Real browser API and database journeys	Initialise disposable database and verify SQL contracts	2026-11-03T03:37:00.6145058Z psql:/sql/migrations/20261031040259_readable_record_references.sql:38: NOTICE:  column "reference" of relation "venue_bookings" already exists, skipping
+Real browser API and database journeys	Initialise disposable database and verify SQL contracts	2026-11-03T03:37:00.6147552Z psql:/sql/migrations/20261031040259_readable_record_references.sql:38: NOTICE:  relation "venue_bookings_reference_key" already exists, skipping
+Real browser API and database journeys	Initialise disposable database and verify SQL contracts	2026-11-03T03:37:00.6148992Z psql:/sql/migrations/20261031040259_readable_record_references.sql:38: NOTICE:  column "reference_number" of relation "equipment_requests" already exists, skipping
+Real browser API and database journeys	Initialise disposable database and verify SQL contracts	2026-11-03T03:37:00.6151304Z psql:/sql/migrations/20261031040259_readable_record_references.sql:38: NOTICE:  column "reference" of relation "equipment_requests" already exists, skipping
+Real browser API and database journeys	Initialise disposable database and verify SQL contracts	2026-11-03T03:37:00.6152699Z psql:/sql/migrations/20261031040259_readable_record_references.sql:38: NOTICE:  relation "equipment_requests_reference_key" already exists, skipping
+Real browser API and database journeys	Initialise disposable database and verify SQL contracts	2026-11-03T03:37:00.6154162Z psql:/sql/migrations/20261031040259_readable_record_references.sql:38: NOTICE:  column "reference_number" of relation "event_registrations" already exists, skipping
+Real browser API and database journeys	Initialise disposable database and verify SQL contracts	2026-11-03T03:37:00.6155783Z psql:/sql/migrations/20261031040259_readable_record_references.sql:38: NOTICE:  column "reference" of relation "event_registrations" already exists, skipping
+Real browser API and database journeys	Initialise disposable database and verify SQL contracts	2026-11-03T03:37:00.6157175Z psql:/sql/migrations/20261031040259_readable_record_references.sql:38: NOTICE:  relation "event_registrations_reference_key" already exists, skipping
+Real browser API and database journeys	Initialise disposable database and verify SQL contracts	2026-11-03T03:37:00.6158495Z psql:/sql/migrations/20261031040259_readable_record_references.sql:38: NOTICE:  column "reference_number" of relation "venues" already exists, skipping
+Real browser API and database journeys	Initialise disposable database and verify SQL contracts	2026-11-03T03:37:00.6159946Z psql:/sql/migrations/20261031040259_readable_record_references.sql:38: NOTICE:  column "reference" of relation "venues" already exists, skipping
+Real browser API and database journeys	Initialise disposable database and verify SQL contracts	2026-11-03T03:37:00.6161008Z psql:/sql/migrations/20261031040259_readable_record_references.sql:38: NOTICE:  relation "venues_reference_key" already exists, skipping
+Real browser API and database journeys	Initialise disposable database and verify SQL contracts	2026-11-03T03:37:00.6162264Z psql:/sql/migrations/20261031040259_readable_record_references.sql:38: NOTICE:  column "reference_number" of relation "equipment_items" already exists, skipping
+Real browser API and database journeys	Initialise disposable database and verify SQL contracts	2026-11-03T03:37:00.6163334Z psql:/sql/migrations/20261031040259_readable_record_references.sql:38: NOTICE:  column "reference" of relation "equipment_items" already exists, skipping
+Real browser API and database journeys	Initialise disposable database and verify SQL contracts	2026-11-03T03:37:00.6164345Z psql:/sql/migrations/20261031040259_readable_record_references.sql:38: NOTICE:  relation "equipment_items_reference_key" already exists, skipping
+Real browser API and database journeys	Initialise disposable database and verify SQL contracts	2026-11-03T03:37:00.6176947Z Readable references migration pass 2: PASS
+Real browser API and database journeys	Initialise disposable database and verify SQL contracts	2026-11-03T03:37:00.6802796Z Venue too-small flag migration pass 1: PASS
+Real browser API and database journeys	Initialise disposable database and verify SQL contracts	2026-11-03T03:37:00.7040342Z Venue too-small flag migration pass 2: PASS
+Real browser API and database journeys	Initialise disposable database and verify SQL contracts	2026-11-03T03:37:00.7280919Z Re-review presentation migration pass 1: PASS
+Real browser API and database journeys	Initialise disposable database and verify SQL contracts	2026-11-03T03:37:00.7543210Z Re-review presentation migration pass 2: PASS
+Real browser API and database journeys	Initialise disposable database and verify SQL contracts	2026-11-03T03:37:00.7778623Z Notification subject migration pass 1: PASS
+Real browser API and database journeys	Initialise disposable database and verify SQL contracts	2026-11-03T03:37:00.7992621Z psql:/sql/migrations/20261031200000_scrum_155_notification_subject.sql:7: NOTICE:  column "subject_id" of relation "notifications" already exists, skipping
+Real browser API and database journeys	Initialise disposable database and verify SQL contracts	2026-11-03T03:37:00.8012124Z Notification subject migration pass 2: PASS
+Real browser API and database journeys	Initialise disposable database and verify SQL contracts	2026-11-03T03:37:00.8479082Z Reschedule change request migration pass 1: PASS
+Real browser API and database journeys	Initialise disposable database and verify SQL contracts	2026-11-03T03:37:00.8728073Z Reschedule change request migration pass 2: PASS
+Real browser API and database journeys	Initialise disposable database and verify SQL contracts	2026-11-03T03:37:00.9235626Z psql:/sql/migrations/20261101140000_event_end_time.sql:11: NOTICE:  column "event_end_datetime" of relation "events" already exists, skipping
+Real browser API and database journeys	Initialise disposable database and verify SQL contracts	2026-11-03T03:37:00.9247767Z Event end time migration pass 1: PASS
+Real browser API and database journeys	Initialise disposable database and verify SQL contracts	2026-11-03T03:37:00.9475063Z psql:/sql/migrations/20261101140000_event_end_time.sql:11: NOTICE:  column "event_end_datetime" of relation "events" already exists, skipping
+Real browser API and database journeys	Initialise disposable database and verify SQL contracts	2026-11-03T03:37:00.9507590Z Event end time migration pass 2: PASS
+Real browser API and database journeys	Initialise disposable database and verify SQL contracts	2026-11-03T03:37:00.9751770Z Event end time reschedule migration pass 1: PASS
+Real browser API and database journeys	Initialise disposable database and verify SQL contracts	2026-11-03T03:37:01.0000174Z Event end time reschedule migration pass 2: PASS
+Real browser API and database journeys	Initialise disposable database and verify SQL contracts	2026-11-03T03:37:01.0243394Z psql:/sql/migrations/20261031163000_scrum_137_buffered_venue_overlap.sql:42: NOTICE:  trigger "venue_bookings_set_buffer_interval" for relation "public.venue_bookings" does not exist, skipping
+Real browser API and database journeys	Initialise disposable database and verify SQL contracts	2026-11-03T03:37:01.0245020Z psql:/sql/migrations/20261031163000_scrum_137_buffered_venue_overlap.sql:66: NOTICE:  trigger "venues_refresh_booking_buffers" for relation "public.venues" does not exist, skipping
+Real browser API and database journeys	Initialise disposable database and verify SQL contracts	2026-11-03T03:37:01.0315568Z Buffered venue occupancy migration pass 1: PASS
+Real browser API and database journeys	Initialise disposable database and verify SQL contracts	2026-11-03T03:37:01.0519680Z psql:/sql/migrations/20261031163000_scrum_137_buffered_venue_overlap.sql:10: NOTICE:  column "setup_minutes" of relation "venue_bookings" already exists, skipping
+Real browser API and database journeys	Initialise disposable database and verify SQL contracts	2026-11-03T03:37:01.0520959Z psql:/sql/migrations/20261031163000_scrum_137_buffered_venue_overlap.sql:10: NOTICE:  column "turnaround_minutes" of relation "venue_bookings" already exists, skipping
+Real browser API and database journeys	Initialise disposable database and verify SQL contracts	2026-11-03T03:37:01.0522428Z psql:/sql/migrations/20261031163000_scrum_137_buffered_venue_overlap.sql:10: NOTICE:  column "occupied_start" of relation "venue_bookings" already exists, skipping
+Real browser API and database journeys	Initialise disposable database and verify SQL contracts	2026-11-03T03:37:01.0523520Z psql:/sql/migrations/20261031163000_scrum_137_buffered_venue_overlap.sql:10: NOTICE:  column "occupied_end" of relation "venue_bookings" already exists, skipping
+Real browser API and database journeys	Initialise disposable database and verify SQL contracts	2026-11-03T03:37:01.0524564Z psql:/sql/migrations/20261031163000_scrum_137_buffered_venue_overlap.sql:18: NOTICE:  relation "problematic_venue_bookings" already exists, skipping
+Real browser API and database journeys	Initialise disposable database and verify SQL contracts	2026-11-03T03:37:01.0610327Z Buffered venue occupancy migration pass 2: PASS
+Real browser API and database journeys	Initialise disposable database and verify SQL contracts	2026-11-03T03:37:01.0927408Z Persisted calendar occupancy database checks: PASS
+Real browser API and database journeys	Initialise disposable database and verify SQL contracts	2026-11-03T03:37:01.1226517Z psql:/sql/migrations/20261102120000_scrum_79_release_expired_holds.sql:50: NOTICE:  trigger "venue_bookings_release_expired_holds" for relation "public.venue_bookings" does not exist, skipping
+Real browser API and database journeys	Initialise disposable database and verify SQL contracts	2026-11-03T03:37:01.1247587Z Expired hold release migration pass 1: PASS
+Real browser API and database journeys	Initialise disposable database and verify SQL contracts	2026-11-03T03:37:01.1461140Z psql:/sql/migrations/20261102120000_scrum_79_release_expired_holds.sql:19: NOTICE:  relation "venue_bookings_expiring_holds_idx" already exists, skipping
+Real browser API and database journeys	Initialise disposable database and verify SQL contracts	2026-11-03T03:37:01.1492285Z Expired hold release migration pass 2: PASS
+Real browser API and database journeys	Initialise disposable database and verify SQL contracts	2026-11-03T03:37:01.1781080Z Expired hold release database checks: PASS
+Real browser API and database journeys	Initialise disposable database and verify SQL contracts	2026-11-03T03:37:01.2027486Z psql:/sql/migrations/20261102171833_scrum_137_preserve_buffer_conflicts.sql:45: NOTICE:  trigger "a_venue_bookings_lock_buffers" for relation "public.venue_bookings" does not exist, skipping
+Real browser API and database journeys	Initialise disposable database and verify SQL contracts	2026-11-03T03:37:01.2067174Z psql:/sql/migrations/20261102171833_scrum_137_preserve_buffer_conflicts.sql:167: NOTICE:  trigger "venue_bookings_refresh_conflict_report" for relation "public.venue_bookings" does not exist, skipping
+Real browser API and database journeys	Initialise disposable database and verify SQL contracts	2026-11-03T03:37:01.2104526Z Buffer conflict preservation migration pass 1: PASS
+Real browser API and database journeys	Initialise disposable database and verify SQL contracts	2026-11-03T03:37:01.2330565Z psql:/sql/migrations/20261102171833_scrum_137_preserve_buffer_conflicts.sql:14: NOTICE:  relation "venue_buffer_write_guards" already exists, skipping
+Real browser API and database journeys	Initialise disposable database and verify SQL contracts	2026-11-03T03:37:01.2426152Z Buffer conflict preservation migration pass 2: PASS
+Real browser API and database journeys	Initialise disposable database and verify SQL contracts	2026-11-03T03:37:01.6416919Z Buffer concurrency booking-first: PASS
+Real browser API and database journeys	Initialise disposable database and verify SQL contracts	2026-11-03T03:37:01.8718802Z Buffer concurrency buffer-first: PASS
+Real browser API and database journeys	Initialise disposable database and verify SQL contracts	2026-11-03T03:37:02.0762947Z Buffer concurrency two-bookings: PASS
+Real browser API and database journeys	Initialise disposable database and verify SQL contracts	2026-11-03T03:37:02.2365187Z Buffer concurrency two-approvals: PASS
+Real browser API and database journeys	Initialise disposable database and verify SQL contracts	2026-11-03T03:37:02.4392632Z Buffer concurrency repeatable-read: PASS
+Real browser API and database journeys	Initialise disposable database and verify SQL contracts	2026-11-03T03:37:02.5619089Z Migration replay with unresolved buffer conflicts: PASS
+Real browser API and database journeys	Initialise disposable database and verify SQL contracts	2026-11-03T03:37:02.6176582Z Reschedule returns to Planning migration pass 1: PASS
+Real browser API and database journeys	Initialise disposable database and verify SQL contracts	2026-11-03T03:37:02.6409085Z Reschedule returns to Planning migration pass 2: PASS
+Real browser API and database journeys	Initialise disposable database and verify SQL contracts	2026-11-03T03:37:02.6634105Z psql:/sql/migrations/20261102174539_scrum_169_maintenance_occupied_windows.sql:35: NOTICE:  trigger "serialize_venue_block_writes" for relation "public.venue_unavailability" does not exist, skipping
+Real browser API and database journeys	Initialise disposable database and verify SQL contracts	2026-11-03T03:37:02.6635141Z psql:/sql/migrations/20261102174539_scrum_169_maintenance_occupied_windows.sql:36: NOTICE:  trigger "a_venue_blocks_lock_buffers" for relation "public.venue_unavailability" does not exist, skipping
+Real browser API and database journeys	Initialise disposable database and verify SQL contracts	2026-11-03T03:37:02.6658536Z Maintenance occupied-window migration pass 1: PASS
+Real browser API and database journeys	Initialise disposable database and verify SQL contracts	2026-11-03T03:37:02.6953637Z psql:/sql/migrations/20261102174539_scrum_169_maintenance_occupied_windows.sql:35: NOTICE:  trigger "serialize_venue_block_writes" for relation "public.venue_unavailability" does not exist, skipping
+Real browser API and database journeys	Initialise disposable database and verify SQL contracts	2026-11-03T03:37:02.6979934Z Maintenance occupied-window migration pass 2: PASS
+Real browser API and database journeys	Initialise disposable database and verify SQL contracts	2026-11-03T03:37:02.9717186Z Maintenance concurrency booking-first: PASS
+Real browser API and database journeys	Initialise disposable database and verify SQL contracts	2026-11-03T03:37:03.1710277Z Maintenance concurrency block-first: PASS
+Real browser API and database journeys	Initialise disposable database and verify SQL contracts	2026-11-03T03:37:03.3686125Z Maintenance concurrency repeatable-read: PASS
+Real browser API and database journeys	Initialise disposable database and verify SQL contracts	2026-11-03T03:37:03.6058343Z Maintenance concurrency two-blocks: PASS
+API (Flask)	Start isolated test database	2026-11-03T03:36:17.6523811Z Migration pass 1: PASS
+API (Flask)	Start isolated test database	2026-11-03T03:36:18.2821727Z Migration pass 2: PASS
+API (Flask)	Start isolated test database	2026-11-03T03:36:18.3281891Z drafts database checks: PASS
+API (Flask)	Start isolated test database	2026-11-03T03:36:18.3714354Z assignment database checks: PASS
+API (Flask)	Start isolated test database	2026-11-03T03:36:18.4043149Z venues database checks: PASS
+API (Flask)	Start isolated test database	2026-11-03T03:36:18.4419544Z venue_updates database checks: PASS
+API (Flask)	Start isolated test database	2026-11-03T03:36:18.4828995Z venue_overlap database checks: PASS
+API (Flask)	Start isolated test database	2026-11-03T03:36:18.5312940Z equipment database checks: PASS
+API (Flask)	Start isolated test database	2026-11-03T03:36:18.5650684Z equipment_requests database checks: PASS
+API (Flask)	Start isolated test database	2026-11-03T03:36:18.6024128Z equipment_request_status database checks: PASS
+API (Flask)	Start isolated test database	2026-11-03T03:36:18.6732413Z Safety Officer migration pass 1: PASS
+API (Flask)	Start isolated test database	2026-11-03T03:36:18.7084105Z Safety Officer migration pass 2: PASS
+API (Flask)	Start isolated test database	2026-11-03T03:36:18.7760752Z Event Coordinator Lead migration pass 1: PASS
+API (Flask)	Start isolated test database	2026-11-03T03:36:18.8081936Z Event Coordinator Lead migration pass 2: PASS
+API (Flask)	Start isolated test database	2026-11-03T03:36:21.1339456Z Role accounts seed pass 1: PASS
+API (Flask)	Start isolated test database	2026-11-03T03:36:23.4557800Z Role accounts seed pass 2: PASS
+API (Flask)	Start isolated test database	2026-11-03T03:36:23.4968067Z Request reservations migration pass 1: PASS
+API (Flask)	Start isolated test database	2026-11-03T03:36:23.5328408Z Request reservations migration pass 2: PASS
+API (Flask)	Start isolated test database	2026-11-03T03:36:23.6241958Z Venue buffers migration pass 1: PASS
+API (Flask)	Start isolated test database	2026-11-03T03:36:23.6586297Z Venue buffers migration pass 2: PASS
+API (Flask)	Start isolated test database	2026-11-03T03:36:23.7357079Z Tentative venue holds migration pass 1: PASS
+API (Flask)	Start isolated test database	2026-11-03T03:36:23.7713739Z Tentative venue holds migration pass 2: PASS
+API (Flask)	Start isolated test database	2026-11-03T03:36:23.8593762Z venue_fcfs database checks: PASS
+API (Flask)	Start isolated test database	2026-11-03T03:36:23.8948877Z Event completion migration pass 1: PASS
+API (Flask)	Start isolated test database	2026-11-03T03:36:23.9329403Z Event completion migration pass 2: PASS
+API (Flask)	Start isolated test database	2026-11-03T03:36:23.9848353Z Registration capacity migration pass 1: PASS
+API (Flask)	Start isolated test database	2026-11-03T03:36:24.0224888Z Registration capacity migration pass 2: PASS
+API (Flask)	Start isolated test database	2026-11-03T03:36:24.1301925Z Attendee registration migration pass 1: PASS
+API (Flask)	Start isolated test database	2026-11-03T03:36:24.1747237Z Attendee registration migration pass 2: PASS
+API (Flask)	Start isolated test database	2026-11-03T03:36:24.2458605Z Initial confirmed capacity migration pass 1: PASS
+API (Flask)	Start isolated test database	2026-11-03T03:36:24.2791391Z Initial confirmed capacity migration pass 2: PASS
+API (Flask)	Start isolated test database	2026-11-03T03:36:24.3560717Z Unassigned queue migration pass 1: PASS
+API (Flask)	Start isolated test database	2026-11-03T03:36:24.3946154Z Unassigned queue migration pass 2: PASS
+API (Flask)	Start isolated test database	2026-11-03T03:36:24.4369264Z coordinator_assignment database checks: PASS
+API (Flask)	Start isolated test database	2026-11-03T03:36:24.4720112Z Notification recipient-role migration pass 1: PASS
+API (Flask)	Start isolated test database	2026-11-03T03:36:24.5133169Z Notification recipient-role migration pass 2: PASS
+API (Flask)	Start isolated test database	2026-11-03T03:36:24.5511292Z Registration withdrawal migration pass 1: PASS
+API (Flask)	Start isolated test database	2026-11-03T03:36:24.5880784Z Registration withdrawal migration pass 2: PASS
+API (Flask)	Start isolated test database	2026-11-03T03:36:24.6685663Z Atomic failed-login migration pass 1: PASS
+API (Flask)	Start isolated test database	2026-11-03T03:36:24.7067366Z Atomic failed-login migration pass 2: PASS
+API (Flask)	Start isolated test database	2026-11-03T03:36:24.7457598Z Event cancellation migration pass 1: PASS
+API (Flask)	Start isolated test database	2026-11-03T03:36:24.7810471Z Event cancellation migration pass 2: PASS
+API (Flask)	Start isolated test database	2026-11-03T03:36:24.8197922Z Venue unavailability migration pass 1: PASS
+API (Flask)	Start isolated test database	2026-11-03T03:36:24.8544302Z Venue unavailability migration pass 2: PASS
+API (Flask)	Start isolated test database	2026-11-03T03:36:24.8949079Z Venue retirement migration pass 1: PASS
+API (Flask)	Start isolated test database	2026-11-03T03:36:24.9337862Z Venue retirement migration pass 2: PASS
+API (Flask)	Start isolated test database	2026-11-03T03:36:24.9720076Z Change request apply migration pass 1: PASS
+API (Flask)	Start isolated test database	2026-11-03T03:36:25.0081160Z Change request apply migration pass 2: PASS
+API (Flask)	Start isolated test database	2026-11-03T03:36:25.0437844Z Status transition migration pass 1: PASS
+API (Flask)	Start isolated test database	2026-11-03T03:36:25.0832769Z Status transition migration pass 2: PASS
+API (Flask)	Start isolated test database	2026-11-03T03:36:25.1230267Z Status transition database checks: PASS
+API (Flask)	Start isolated test database	2026-11-03T03:36:25.1925802Z Readable references migration pass 1: PASS
+API (Flask)	Start isolated test database	2026-11-03T03:36:25.2308141Z Readable references migration pass 2: PASS
+API (Flask)	Start isolated test database	2026-11-03T03:36:25.3303153Z Venue too-small flag migration pass 1: PASS
+API (Flask)	Start isolated test database	2026-11-03T03:36:25.3637974Z Venue too-small flag migration pass 2: PASS
+API (Flask)	Start isolated test database	2026-11-03T03:36:25.3969079Z Re-review presentation migration pass 1: PASS
+API (Flask)	Start isolated test database	2026-11-03T03:36:25.4328775Z Re-review presentation migration pass 2: PASS
+API (Flask)	Start isolated test database	2026-11-03T03:36:25.4693080Z Notification subject migration pass 1: PASS
+API (Flask)	Start isolated test database	2026-11-03T03:36:25.5047067Z Notification subject migration pass 2: PASS
+API (Flask)	Start isolated test database	2026-11-03T03:36:25.5745261Z Reschedule change request migration pass 1: PASS
+API (Flask)	Start isolated test database	2026-11-03T03:36:25.6116715Z Reschedule change request migration pass 2: PASS
+API (Flask)	Start isolated test database	2026-11-03T03:36:25.6839456Z Event end time migration pass 1: PASS
+API (Flask)	Start isolated test database	2026-11-03T03:36:25.7239060Z Event end time migration pass 2: PASS
+API (Flask)	Start isolated test database	2026-11-03T03:36:25.7591515Z Event end time reschedule migration pass 1: PASS
+API (Flask)	Start isolated test database	2026-11-03T03:36:25.7927238Z Event end time reschedule migration pass 2: PASS
+API (Flask)	Start isolated test database	2026-11-03T03:36:25.8367088Z Buffered venue occupancy migration pass 1: PASS
+API (Flask)	Start isolated test database	2026-11-03T03:36:25.8927216Z Buffered venue occupancy migration pass 2: PASS
+API (Flask)	Start isolated test database	2026-11-03T03:36:25.9469414Z Persisted calendar occupancy database checks: PASS
+API (Flask)	Start isolated test database	2026-11-03T03:36:25.9817369Z Expired hold release migration pass 1: PASS
+API (Flask)	Start isolated test database	2026-11-03T03:36:26.0162176Z Expired hold release migration pass 2: PASS
+API (Flask)	Start isolated test database	2026-11-03T03:36:26.0622610Z Expired hold release database checks: PASS
+API (Flask)	Start isolated test database	2026-11-03T03:36:26.1058940Z Buffer conflict preservation migration pass 1: PASS
+API (Flask)	Start isolated test database	2026-11-03T03:36:26.1517479Z Buffer conflict preservation migration pass 2: PASS
+API (Flask)	Start isolated test database	2026-11-03T03:36:26.5835560Z Buffer concurrency booking-first: PASS
+API (Flask)	Start isolated test database	2026-11-03T03:36:26.8716255Z Buffer concurrency buffer-first: PASS
+API (Flask)	Start isolated test database	2026-11-03T03:36:27.1149046Z Buffer concurrency two-bookings: PASS
+API (Flask)	Start isolated test database	2026-11-03T03:36:27.3215051Z Buffer concurrency two-approvals: PASS
+API (Flask)	Start isolated test database	2026-11-03T03:36:27.5641140Z Buffer concurrency repeatable-read: PASS
+API (Flask)	Start isolated test database	2026-11-03T03:36:27.7212441Z Migration replay with unresolved buffer conflicts: PASS
+API (Flask)	Start isolated test database	2026-11-03T03:36:27.8024105Z Reschedule returns to Planning migration pass 1: PASS
+API (Flask)	Start isolated test database	2026-11-03T03:36:27.8361957Z Reschedule returns to Planning migration pass 2: PASS
+API (Flask)	Start isolated test database	2026-11-03T03:36:27.8738326Z Maintenance occupied-window migration pass 1: PASS
+API (Flask)	Start isolated test database	2026-11-03T03:36:27.9140740Z Maintenance occupied-window migration pass 2: PASS
+API (Flask)	Start isolated test database	2026-11-03T03:36:28.1877993Z Maintenance concurrency booking-first: PASS
+API (Flask)	Start isolated test database	2026-11-03T03:36:28.4310902Z Maintenance concurrency block-first: PASS
+API (Flask)	Start isolated test database	2026-11-03T03:36:28.6705374Z Maintenance concurrency repeatable-read: PASS
+API (Flask)	Start isolated test database	2026-11-03T03:36:28.9450340Z Maintenance concurrency two-blocks: PASS

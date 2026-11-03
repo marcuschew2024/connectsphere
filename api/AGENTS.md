@@ -33,9 +33,11 @@ not embed rules inside route handlers or repositories.
 - **Overlap uses half-open intervals** `[start, end)` — back-to-back bookings are allowed;
   only true overlaps conflict. The engine applies the venue's setup/turnaround buffer to
   occupied windows `[start - setup, end + turnaround)` while keeping touching boundaries
-  compatible. The database enforces the same buffered invariant independently
-  (`EXCLUDE USING gist` on a buffered `tstzrange`) — keep the three read/write layers
-  consistent.
+  compatible. The database enforces new or meaningfully changed occupied windows with
+  a serialized per-venue trigger guard (D65); raw-time GiST exclusions remain as
+  defense in depth. Buffer-only refreshes preserve and report existing conflicts.
+  Maintenance shares this guard and uses occupied intervals (D66). Keep application
+  reads, writes and database enforcement consistent.
 - **Authorisation is server-side.** Enforce access with the central guards
   (`require_role`, `require_related_user`); the UI hiding an action is never the control.
 - **Gated transitions go through their endpoint**, not the generic status PATCH — e.g.

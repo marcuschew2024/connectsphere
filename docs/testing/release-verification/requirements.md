@@ -1,17 +1,19 @@
 # Release requirement verification
 
+**Evidence provenance:** existing [main CI run 41573118557](https://github.com/marcuschew2024/connectsphere/actions/runs/41573118557), tested revision `9b7973b`, reassembled with updated documentation mappings. This is **not a fresh full-suite run or final post-fix release acceptance**. See [execution metadata](execution.json) and [release closeout](../release-closeout.md).
+
 Complete release coverage is not established. Passing mapped checks support the listed intent; they do not approve an entire feature or close a recorded gap.
 
-Generated 2026-10-30T19:29:58.245159+00:00. Source baseline `6c029691be44199afd0b551d9c264f1872c1d791`; verification source SHA256 `afe37a8de4e34cf122f39e06c6f63ff999acb769cc292a3a553de7d86f36968d`.
+Generated 2026-11-03T05:43:37.333242+00:00. Source baseline `9b7973b24e037b6bd96faf47742561594370ce36`; verification source SHA256 `9d508e0dc247feba98d152afdefd532ad7236c47cc76d46e4cf05f9e0aef17a4`.
 
 ## Executed suites
 
 | Suite | Passed | Failed | Skipped |
 | --- | ---: | ---: | ---: |
-| backend | 1843 | 0 | 0 |
-| frontend | 67 | 0 | 0 |
-| browser | 254 | 0 | 0 |
-| integrated | 2 | 0 | 0 |
+| backend | 2466 | 0 | 0 |
+| frontend | 675 | 0 | 0 |
+| browser | 342 | 0 | 0 |
+| integrated | 17 | 0 | 0 |
 
 An empty suite means execution evidence was not supplied; it is not a pass.
 
@@ -19,8 +21,8 @@ An empty suite means execution evidence was not supplied; it is not a pass.
 
 | Scope | Statements | Branches |
 | --- | ---: | ---: |
-| Backend app | 96.35% | 93.30% |
-| Frontend src unit suite | 2.74% | 81.87% |
+| Backend app | 100.00% | 100.00% |
+| Frontend src unit suite | 96.10% | 89.87% |
 
 All src TS/TSX included. Browser execution is not instrumented here. V8 branch/function denominators do not prove unexecuted UI branches.
 
@@ -43,6 +45,7 @@ Password login resolves the stored role; record ownership and role restrict acti
 | backend | `api/tests/test_release_security_acceptance.py::test_registered_attendee_cannot_mutate_lifecycle_or_receive_private_fields` | passed (4 cases) |
 | integrated | `frontend/integration/event-lifecycle.spec.ts::INTEGRATED-01` | passed (1 cases) |
 | backend | `api/tests/test_role_accounts_acceptance.py::test_account_locks_after_real_consecutive_failures_then_recovers` | passed (1 cases) |
+| integrated | `frontend/integration/event-permissions.spec.ts::INTEGRATED-05` | passed (1 cases) |
 
 Acceptance: gap recorded.
 
@@ -93,10 +96,11 @@ Only the assigned Coordinator approves/rejects a submitted request; rejection re
 | backend | `api/tests/test_event_decisions.py::test_rejection_stores_reason_and_notifies_organiser` | passed (1 cases) |
 | backend | `api/tests/test_events.py::test_organiser_can_view_and_resubmit_clarified_request` | passed (1 cases) |
 | integrated | `frontend/integration/event-lifecycle.spec.ts::INTEGRATED-01` | passed (1 cases) |
+| integrated | `frontend/integration/release-exits.spec.ts::INTEGRATED-11` | passed (1 cases) |
 
 Acceptance: gap recorded.
 
-- Clarification source conflict J2 and section-specific acceptance still require owner confirmation. Real-browser clarification/rejection branches are not in the integrated lane.
+- INTEGRATED-11 proves clarification, same-request resubmission and persisted rejection in the real browser/API/database lane. Clarification source conflict J2 and section-specific acceptance still require owner confirmation.
 
 ### CORE-05 Coordinator assignment and reassignment
 
@@ -111,6 +115,7 @@ Submission enters an unassigned queue. The Lead assigns/reassigns; prior Coordin
 | backend | `api/tests/test_coordinator_assignment_acceptance.py::test_tc_130_04_coordinators_only_manage_events_assigned_to_them` | passed (1 cases) |
 | integrated | `frontend/integration/event-lifecycle.spec.ts::INTEGRATED-01` | passed (1 cases) |
 | backend | `api/tests/test_release_assignment_failures.py::test_assignment_rpc_refusals_preserve_safe_http_meaning` | passed (5 cases) |
+| integrated | `frontend/integration/release-exits.spec.ts::INTEGRATED-09` | passed (1 cases) |
 
 Acceptance: human acceptance pending.
 
@@ -132,14 +137,19 @@ Status presentation follows the actor; confirmation, safety and completion have 
 | backend | `api/tests/test_event_cancellation_acceptance.py::test_cancelling_releases_resources_and_notifies_registered_attendees` | passed (1 cases) |
 | backend | `api/tests/test_event_cancellation_acceptance.py::test_concurrent_cancellations_cancel_once_and_notify_once` | passed (1 cases) |
 | backend | `api/tests/test_event_cancellation_acceptance.py::test_a_cancelled_event_is_read_only_but_still_visible` | passed (1 cases) |
+| integrated | `frontend/integration/event-permissions.spec.ts::INTEGRATED-05` | passed (1 cases) |
+| backend | `api/tests/test_status_transition_acceptance.py::test_every_nonassigned_role_is_denied_without_mutation_and_logged` | passed (1 cases) |
+| integrated | `frontend/integration/release-exits.spec.ts::INTEGRATED-06` | passed (1 cases) |
+| integrated | `frontend/integration/release-exits.spec.ts::INTEGRATED-07` | passed (1 cases) |
+| integrated | `frontend/integration/release-exits.spec.ts::INTEGRATED-09` | passed (1 cases) |
 
 Acceptance: gap recorded.
 
-- SCRUM-135 remains partial: the generic route still needs a complete human-designed forward-only role/state matrix for Submitted, Planning and Rejected states. SCRUM-69 now provides dedicated atomic cancellation and a read-only Cancelled state; those previous gaps are closed by the mapped database tests.
+- The SCRUM-135 role/state matrix is implemented and real-database tested. SCRUM-161 adds browser evidence for read-only controls and unrelated-role denial. Related venue/technical staff retain existing planning read permissions; attendee public projection and no internal payload in denied mutation responses are separate assertions. Final policy acceptance remains human-owned.
 
 ### CORE-07 Event information management
 
-Owner: Marcus; Ernest for significant changes. Stories: SCRUM-23, SCRUM-46, SCRUM-47, SCRUM-48, SCRUM-138.
+Owner: Marcus; Ernest for significant changes. Stories: SCRUM-23, SCRUM-46, SCRUM-47, SCRUM-48, SCRUM-138, SCRUM-168.
 
 Planning edits preserve attribution and become read-only after confirmation. Important changes need reconsideration of existing resource arrangements.
 
@@ -151,26 +161,38 @@ Planning edits preserve attribution and become read-only after confirmation. Imp
 | backend | `api/tests/test_change_request_apply_acceptance.py::test_approving_applies_the_values_and_records_the_decision` | passed (1 cases) |
 | backend | `api/tests/test_change_request_apply_acceptance.py::test_a_significant_change_flags_re_review_and_keeps_every_arrangement` | passed (2 cases) |
 | backend | `api/tests/test_change_request_apply_acceptance.py::test_a_failed_apply_leaves_the_event_and_request_unchanged` | passed (1 cases) |
+| integrated | `frontend/integration/release-exits.spec.ts::INTEGRATED-10` | passed (1 cases) |
+| backend | `api/tests/test_change_request_apply_acceptance.py::test_rescheduling_applies_the_new_date_and_flags_re_review` | passed (1 cases) |
+| browser | `frontend/e2e/change-requests.spec.ts::the propose-values panel gives the venue options their own full-width rows` | passed (1 cases) |
+| frontend | `frontend/src/app/events/[eventId]/panels-coverage.test.tsx::keeps the venue options out of the grid that lays out the simple fields` | passed (1 cases) |
+| backend | `api/tests/test_reschedule_returns_to_planning_acceptance.py::test_rescheduling_a_confirmed_or_preparing_event_returns_it_to_planning` | passed (2 cases) |
 
 Acceptance: gap recorded.
 
-- SCRUM-138 now applies approved proposed fields atomically and flags affected arrangements for re-review without cancelling them. A structured re-approval workflow (SCRUM-47) and date/time rescheduling (SCRUM-48) remain outside that implemented slice.
+- SCRUM-138/152/156/48/166 apply significant changes, preserve resources and return Confirmed/Preparation date changes to Planning. Other significant changes remain flag-only under D36/D43/D64; final policy acceptance remains human-owned.
 
 ### CORE-08 Venue catalogue
 
-Owner: Jessica. Stories: SCRUM-24, SCRUM-25, SCRUM-60.
+Owner: Jessica. Stories: SCRUM-24, SCRUM-25, SCRUM-27, SCRUM-60.
 
-Venue details persist, duplicates and invalid capacities are rejected, and updates preserve booking records and audit.
+Venue details persist, duplicates and invalid capacities are rejected, updates preserve booking records and audit, and an opened venue shows its full record.
 
 | Layer | Executable check | Actual result |
 | --- | --- | --- |
 | backend | `api/tests/test_venue_acceptance.py::test_created_venue_is_persisted_and_immediately_in_coordinator_catalogue` | passed (1 cases) |
 | backend | `api/tests/test_venue_acceptance.py::test_duplicate_name_and_location_are_blocked_case_and_whitespace_insensitively` | passed (1 cases) |
 | backend | `api/tests/test_venue_acceptance.py::test_update_is_audited_searches_change_and_confirmed_booking_is_unchanged` | passed (1 cases) |
+| integrated | `frontend/integration/release-exits.spec.ts::INTEGRATED-08` | passed (1 cases) |
+| backend | `api/tests/test_release_venue_blocks_acceptance.py::test_venue_block_lists_only_overlaps_notifies_and_preserves_unblock_audit` | passed (1 cases) |
+| integrated | `frontend/integration/venue-flows.spec.ts::INTEGRATED-13` | passed (1 cases) |
+| frontend | `frontend/src/app/venues/[venueId]/detail.test.tsx::shows the complete catalogue record, not only name location and capacity` | passed (1 cases) |
+| frontend | `frontend/src/app/venues/[venueId]/detail.test.tsx::lists the opening hours of every day, including the days the venue is closed` | passed (1 cases) |
+| frontend | `frontend/src/app/venues/[venueId]/detail.test.tsx::marks a venue that is closed right now, naming the reason and when it reopens` | passed (1 cases) |
+| frontend | `frontend/src/app/venues/[venueId]/detail.test.tsx::offers a Coordinator no way to change the venue` | passed (1 cases) |
+| frontend | `frontend/src/lib/venue-status.test.ts::reports a retired venue as retired even while a closure is running` | passed (1 cases) |
 
-Acceptance: gap recorded.
+Acceptance: human acceptance pending.
 
-- SCRUM-60 now implements temporary venue unavailability. The real-browser/API/database replacement journey remains an evidence gap under W7-02.
 
 SQL assertions: `supabase/tests/venues.sql`, `supabase/tests/venue_updates.sql`.
 
@@ -178,17 +200,20 @@ SQL assertions: `supabase/tests/venues.sql`, `supabase/tests/venue_updates.sql`.
 
 Owner: Jessica. Stories: SCRUM-30, SCRUM-129.
 
-Internal users can retrieve range bookings; calendar cells distinguish booked/blocked/free and closed hours with half-open raw-time boundaries.
+Internal users see occupied booking intervals and maintenance in the calendar; maintenance remains visible over existing confirmed occupation. Half-open occupied boundaries remain compatible.
 
 | Layer | Executable check | Actual result |
 | --- | --- | --- |
 | backend | `api/tests/test_venue_calendar_routes.py::test_venue_bookings_returns_range` | passed (1 cases) |
 | backend | `api/tests/test_venue_calendar_routes.py::test_venue_bookings_requires_from_and_to` | passed (1 cases) |
 | browser | `frontend/e2e/venue-calendar.spec.ts::coordinator sees the availability calendar with a confirmed slot` | passed (1 cases) |
+| backend | `api/tests/test_buffer_update_acceptance.py::test_search_calendar_and_api_request_agree_after_buffer_change` | passed (1 cases) |
+| integrated | `frontend/integration/release-exits.spec.ts::INTEGRATED-R1` | passed (1 cases) |
 
-Acceptance: gap recorded.
+Acceptance: human acceptance pending.
 
-- The calendar classifier uses published booking times; buffer-expanded calendar parity is not established. See W7-01.
+
+SQL assertions: `supabase/tests/venue_buffers_137.sql`, `supabase/tests/venue_buffer_concurrency.sh`.
 
 ### CORE-10 Venue search and filtering
 
@@ -201,12 +226,17 @@ Combined filters run before pagination, reject malformed slots, and never claim 
 | backend | `api/tests/test_venue_search.py::test_combined_filters_match_case_whitespace_and_inclusive_capacity` | passed (1 cases) |
 | backend | `api/tests/test_venue_search.py::test_database_failure_never_claims_available` | passed (1 cases) |
 | backend | `api/tests/test_venue_acceptance.py::test_search_availability_with_real_bookings` | passed (7 cases) |
+| integrated | `frontend/integration/venue-flows.spec.ts::INTEGRATED-14` | passed (1 cases) |
+| backend | `api/tests/test_buffer_update_acceptance.py::test_search_calendar_and_api_request_agree_after_buffer_change` | passed (1 cases) |
+| integrated | `frontend/integration/release-exits.spec.ts::INTEGRATED-R1` | passed (1 cases) |
+| backend | `api/tests/test_maintenance_buffers_acceptance.py::test_search_and_new_booking_agree_on_maintenance_window` | passed (5 cases) |
+| backend | `api/tests/test_maintenance_buffers_acceptance.py::test_database_itself_refuses_buffer_only_maintenance` | passed (8 cases) |
 
 Acceptance: gap recorded.
 
-- Search uses raw overlap lookup; complete buffer-aware search/calendar/booking consistency is not established.
+- Availability is evaluated at read time; a later competing booking can still produce an honest conflict on submission. R1/R5 SQL concurrency checks cover enforcement, not a reservation guarantee from a search result.
 
-SQL assertions: `supabase/tests/venues.sql`.
+SQL assertions: `supabase/tests/venues.sql`, `supabase/tests/venue_buffers_137.sql`, `supabase/tests/venue_buffer_concurrency.sh`, `supabase/tests/maintenance_concurrency.sh`.
 
 ### CORE-11 Venue suitability checking
 
@@ -226,7 +256,7 @@ Acceptance: gap recorded.
 
 ### CORE-12 Venue booking request
 
-Owner: Ernest. Stories: SCRUM-31, SCRUM-126.
+Owner: Ernest. Stories: SCRUM-31, SCRUM-126, SCRUM-166.
 
 An assigned Coordinator submits independent bookings for one event. Editing/cancelling one booking must preserve its sibling and parent; persistence failures must not report success.
 
@@ -235,10 +265,15 @@ An assigned Coordinator submits independent bookings for one event. Editing/canc
 | backend | `api/tests/test_booking_persistence_acceptance.py::test_one_booking_changes_without_touching_its_sibling_or_parent` | passed (2 cases) |
 | backend | `api/tests/test_booking_persistence_acceptance.py::test_failed_database_write_is_not_reported_as_success` | passed (2 cases) |
 | integrated | `frontend/integration/event-lifecycle.spec.ts::INTEGRATED-01` | passed (1 cases) |
+| browser | `frontend/e2e/booking-edit-release.spec.ts::Coordinator changes one Requested booking and the changes survive reopening` | passed (1 cases) |
+| browser | `frontend/e2e/booking-edit-release.spec.ts::direct edit URL is read-only` | passed (2 cases) |
+| backend | `api/tests/test_reschedule_returns_to_planning_acceptance.py::test_confirmation_requires_the_bookings_to_cover_the_whole_event` | passed (4 cases) |
+| backend | `api/tests/test_reschedule_returns_to_planning_acceptance.py::test_confirmation_requires_reservations_to_cover_the_event` | passed (2 cases) |
+| backend | `api/tests/test_reschedule_returns_to_planning_acceptance.py::test_after_a_reschedule_the_old_booking_blocks_and_a_new_one_lets_it_confirm` | passed (1 cases) |
 
 Acceptance: gap recorded.
 
-- Venue/equipment bookings can have timing independent of the event; cross-feature alignment policy is not fully enforced.
+- SCRUM-166 now checks approved venue union coverage and equipment reservation timing at confirmation. Audit A1/A2 remain: expired holds block confirmation, and booking cancellation after confirmation does not invalidate readiness before safety approval.
 
 SQL assertions: `supabase/tests/venue_overlap.sql`.
 
@@ -254,6 +289,7 @@ Venue Staff approve/reject with reasons, confirmation affects availability, and 
 | backend | `api/tests/test_booking_decision_route.py::test_reject_requires_reason` | passed (1 cases) |
 | backend | `api/tests/test_booking_decision_route.py::test_overlapping_approve_conflicts` | passed (1 cases) |
 | integrated | `frontend/integration/event-lifecycle.spec.ts::INTEGRATED-02` | passed (1 cases) |
+| integrated | `frontend/integration/venue-flows.spec.ts::INTEGRATED-12` | passed (1 cases) |
 
 Acceptance: human acceptance pending.
 
@@ -271,12 +307,14 @@ Half-open boundaries, confirmed/blocked precedence and tentative holds prevent i
 | backend | `api/tests/test_venue_overlap.py::test_confirmed_overlap_is_hard_blocked` | passed (1 cases) |
 | backend | `api/tests/test_venue_overlap.py::test_tc_129_02_touching_occupied_boundaries_do_not_conflict` | passed (1 cases) |
 | integrated | `frontend/integration/event-lifecycle.spec.ts::INTEGRATED-02` | passed (1 cases) |
+| backend | `api/tests/test_buffer_update_acceptance.py::test_search_calendar_and_api_request_agree_after_buffer_change` | passed (1 cases) |
+| integrated | `frontend/integration/release-exits.spec.ts::INTEGRATED-R1` | passed (1 cases) |
 
 Acceptance: gap recorded.
 
-- Concurrent approval of published-adjacent bookings with overlapping buffers needs independent SQL enforcement evidence.
+- Audit A3 (3 November 2026): increasing buffers can introduce a conflict with pre-existing maintenance without identifying/notifying affected existing bookings. The buffer-change report currently compares bookings only.
 
-SQL assertions: `supabase/tests/venue_overlap.sql`, `supabase/tests/venue_holds.sql`.
+SQL assertions: `supabase/tests/venue_overlap.sql`, `supabase/tests/venue_holds.sql`, `supabase/tests/venue_buffers_137.sql`, `supabase/tests/venue_buffer_concurrency.sh`.
 
 ### CORE-15 Equipment request management
 
@@ -325,6 +363,7 @@ Allocations reduce shared stock, remain event-associated, reject stale revisions
 | backend | `api/tests/test_equipment_request_reservations_acceptance.py::test_capacity_failure_rolls_back_every_item_and_stale_retry_cannot_double_book` | passed (1 cases) |
 | backend | `api/tests/test_equipment_request_reservations_acceptance.py::test_cannot_adopt_another_events_booking` | passed (1 cases) |
 | integrated | `frontend/integration/event-lifecycle.spec.ts::INTEGRATED-01` | passed (1 cases) |
+| backend | `api/tests/test_release_equipment_failures_acceptance.py::test_invalid_reservations_do_not_consume_real_stock` | passed (1 cases) |
 
 Acceptance: human acceptance pending.
 
@@ -335,7 +374,7 @@ SQL assertions: `supabase/tests/equipment_request_reservations.sql`.
 
 Owner: Jerome. Stories: SCRUM-40, SCRUM-41, SCRUM-43, SCRUM-44, SCRUM-45.
 
-Attendees register once within capacity, retain their own receipt, and withdraw under the saved policy; competing final-place/withdrawal requests cannot duplicate capacity.
+Attendees register once within capacity, retain their own receipt, and withdraw under the saved policy; competing final-place/withdrawal requests cannot duplicate capacity. Only the owning Organiser and current assigned Coordinator can read the event roster and event-wide registration totals.
 
 | Layer | Executable check | Actual result |
 | --- | --- | --- |
@@ -343,10 +382,15 @@ Attendees register once within capacity, retain their own receipt, and withdraw 
 | backend | `api/tests/test_registration_withdrawal_acceptance.py::test_two_simultaneous_withdrawals_release_exactly_one_place_and_receipt` | passed (1 cases) |
 | backend | `api/tests/test_registration_withdrawal_acceptance.py::test_conditions_are_enforced_on_rpc_and_direct_update_without_partial_state` | passed (5 cases) |
 | integrated | `frontend/integration/event-lifecycle.spec.ts::INTEGRATED-01` | passed (1 cases) |
+| backend | `api/tests/test_event_registration_roster_acceptance.py::test_owner_and_current_coordinator_see_names_and_live_counts_without_private_data` | passed (1 cases) |
+| backend | `api/tests/test_event_registration_roster_acceptance.py::test_roster_denies_other_roles_foreign_owners_and_previous_coordinators` | passed (1 cases) |
+| backend | `api/tests/test_event_registration_roster_acceptance.py::test_roster_pagination_and_counts_are_complete_and_event_scoped` | passed (1 cases) |
+| browser | `frontend/e2e/event-registration-roster.spec.ts::sees names, references and event-wide totals across pages and filters` | passed (2 cases) |
+| backend | `api/tests/test_release_registration_errors.py::test_failed_registration_operation_never_returns_success_or_private_details` | passed (2 cases) |
 
 Acceptance: gap recorded.
 
-- SCRUM-45 organiser/coordinator registration roster remains unimplemented; aggregate counts do not establish appropriate individual registration visibility.
+- SCRUM-45 renders and counts Waitlisted, but real waiting-list records and promotion remain deferred SCRUM-80; the current schema only stores Registered and Withdrawn. Non-zero waitlisted presentation is controlled-browser evidence, not a live waitlist journey.
 - TC-43-02 waiting-list promotion remains deferred SCRUM-80; do not mark it passed. Owner must reconcile that documented case with the agreed release slice.
 - Registration closes when safety approval moves to Preparation; owner must verify the customer accepts that signup window.
 
@@ -366,14 +410,17 @@ The Organiser raises a request without silently editing the event; assigned Coor
 | backend | `api/tests/test_change_request_apply_acceptance.py::test_approving_applies_the_values_and_records_the_decision` | passed (1 cases) |
 | backend | `api/tests/test_change_request_apply_acceptance.py::test_a_significant_change_flags_re_review_and_keeps_every_arrangement` | passed (2 cases) |
 | backend | `api/tests/test_change_request_apply_acceptance.py::test_a_failed_apply_leaves_the_event_and_request_unchanged` | passed (1 cases) |
+| integrated | `frontend/integration/release-exits.spec.ts::INTEGRATED-10` | passed (1 cases) |
+| backend | `api/tests/test_change_request_apply_acceptance.py::test_rescheduling_applies_the_new_date_and_flags_re_review` | passed (1 cases) |
+| backend | `api/tests/test_reschedule_returns_to_planning_acceptance.py::test_rescheduling_a_confirmed_or_preparing_event_returns_it_to_planning` | passed (2 cases) |
 
 Acceptance: gap recorded.
 
-- SCRUM-138 now applies approved proposed fields atomically and flags affected arrangements for re-review without cancelling them. A structured re-approval workflow (SCRUM-47) and date/time rescheduling (SCRUM-48) remain outside that implemented slice.
+- SCRUM-138/152/156/48/166 apply significant changes, preserve resources and return Confirmed/Preparation date changes to Planning. Other significant changes remain flag-only under D36/D43/D64; final policy acceptance remains human-owned.
 
 ### CORE-20 Notifications
 
-Owner: Marcus. Stories: SCRUM-49, SCRUM-51.
+Owner: Marcus. Stories: SCRUM-49, SCRUM-51, SCRUM-164, SCRUM-167.
 
 Private and role-pool notifications reach only their intended readers; key request/assignment/booking/registration outcomes are emitted.
 
@@ -385,14 +432,20 @@ Private and role-pool notifications reach only their intended readers; key reque
 | backend | `api/tests/test_request_acceptance.py::test_notifications_are_newest_first_and_limited_to_50` | passed (1 cases) |
 | backend | `api/tests/test_event_cancellation_acceptance.py::test_cancelling_releases_resources_and_notifies_registered_attendees` | passed (1 cases) |
 | backend | `api/tests/test_venue_unavailability.py::test_venue_staff_can_create_block_and_notify_each_coordinator_once` | passed (1 cases) |
+| integrated | `frontend/integration/release-exits.spec.ts::INTEGRATED-06` | passed (1 cases) |
+| integrated | `frontend/integration/release-exits.spec.ts::INTEGRATED-08` | passed (1 cases) |
+| backend | `api/tests/test_event_confirmation_route.py::test_confirm_notifies_organiser_not_the_acting_coordinator` | passed (1 cases) |
+| backend | `api/tests/test_venue_buffer_notification.py::test_each_affected_coordinator_is_notified_once` | passed (1 cases) |
 
 Acceptance: gap recorded.
 
-- Cancellation and applied-change recipients now have database acceptance evidence; venue-unavailability notification wiring has route tests. A complete trigger-by-recipient matrix, persisted hold-expiry notices and full-stack replacement-venue notifications remain unproven.
+- Audit A4 (3 November 2026): confirmation writes status/history/notification separately; notification failure can return 503 after confirmation and retry is refused. A complete trigger-by-recipient and failure-recovery matrix remains outstanding.
+- Attendee venue-change notices are explicitly deferred by Marcus in D57/SCRUM-165; date/time and cancellation notices remain in scope. Reconcile SCRUM-51 description with that recorded scope decision.
+- Hold-expiry notice persistence limitations remain under W7-04; passing mocked sweep tests do not establish a real browser/API/database notification journey.
 
 ### W7-01 Venue setup and turnaround buffers
 
-Owner: Jessica. Stories: SCRUM-129.
+Owner: Jessica. Stories: SCRUM-129, SCRUM-137, SCRUM-167.
 
 Venue setup/turnaround expand occupied windows; touching expanded boundaries remain non-conflicting; newly conflicting existing bookings are flagged.
 
@@ -400,16 +453,23 @@ Venue setup/turnaround expand occupied windows; touching expanded boundaries rem
 | --- | --- | --- |
 | backend | `api/tests/test_venue_overlap.py::test_tc_129_01_booking_reserves_start_minus_setup_to_end_plus_turnaround` | passed (1 cases) |
 | backend | `api/tests/test_venue_overlap.py::test_identify_problematic_existing_bookings_when_buffers_introduced` | passed (1 cases) |
+| backend | `api/tests/test_buffer_update_acceptance.py::test_search_calendar_and_api_request_agree_after_buffer_change` | passed (1 cases) |
+| integrated | `frontend/integration/release-exits.spec.ts::INTEGRATED-R1` | passed (1 cases) |
+| backend | `api/tests/test_buffer_update_acceptance.py::test_buffer_increase_saves_flags_and_preserves_existing_bookings` | passed (2 cases) |
+| backend | `api/tests/test_buffer_update_acceptance.py::test_new_writes_use_latest_buffers_after_existing_pair_is_flagged` | passed (5 cases) |
+| backend | `api/tests/test_buffer_update_acceptance.py::test_conflict_resolution_cancellation_clears_report_but_preserves_history` | passed (1 cases) |
+| backend | `api/tests/test_buffer_update_acceptance.py::test_conflicting_time_edit_rolls_back_and_cannot_forge_occupied_columns` | passed (1 cases) |
+| backend | `api/tests/test_venue_buffer_notification.py::test_each_affected_coordinator_is_notified_once` | passed (1 cases) |
 
 Acceptance: gap recorded.
 
-- Pure overlap maths is covered. Search/calendar raw-time behaviour and database exclusion ranges do not prove consistent buffer enforcement across create/edit/approval or competing writes.
+- Audit A3 (3 November 2026): increasing buffers can introduce a conflict with pre-existing maintenance without identifying/notifying affected existing bookings. The buffer-change report currently compares bookings only.
 
-SQL assertions: `supabase/tests/venue_buffers.sql`.
+SQL assertions: `supabase/tests/venue_buffers.sql`, `supabase/tests/venue_buffers_137.sql`, `supabase/tests/venue_buffer_concurrency.sh`.
 
 ### W7-02 Venue becomes unavailable after booking
 
-Owner: Jessica. Stories: SCRUM-60.
+Owner: Jessica. Stories: SCRUM-60, SCRUM-169.
 
 Venue Staff mark temporary unavailability with reason, retain affected events, notify Coordinators, and support replacement venue arrangements.
 
@@ -418,10 +478,22 @@ Venue Staff mark temporary unavailability with reason, retain affected events, n
 | backend | `api/tests/test_venue_unavailability.py::test_venue_staff_can_create_block_and_notify_each_coordinator_once` | passed (1 cases) |
 | backend | `api/tests/test_venue_unavailability.py::test_block_rejects_overlapping_active_block` | passed (1 cases) |
 | browser | `frontend/e2e/venue-calendar.spec.ts::Venue Staff can create and unblock a venue period` | passed (1 cases) |
+| integrated | `frontend/integration/release-exits.spec.ts::INTEGRATED-08` | passed (1 cases) |
+| backend | `api/tests/test_release_venue_blocks_acceptance.py::test_venue_block_lists_only_overlaps_notifies_and_preserves_unblock_audit` | passed (1 cases) |
+| backend | `api/tests/test_maintenance_buffers_acceptance.py::test_search_and_new_booking_agree_on_maintenance_window` | passed (5 cases) |
+| backend | `api/tests/test_maintenance_buffers_acceptance.py::test_database_itself_refuses_buffer_only_maintenance` | passed (8 cases) |
+| backend | `api/tests/test_maintenance_buffers_acceptance.py::test_new_block_flags_existing_booking_notifies_and_preserves_event` | passed (2 cases) |
+| backend | `api/tests/test_maintenance_buffers_acceptance.py::test_block_touching_occupied_boundary_has_no_affected_ids_or_notices` | passed (2 cases) |
+| backend | `api/tests/test_maintenance_buffers_acceptance.py::test_edit_into_buffer_only_maintenance_is_atomic` | passed (1 cases) |
+| backend | `api/tests/test_maintenance_buffers_acceptance.py::test_each_affected_event_is_named_in_coordinators_summary` | passed (1 cases) |
+| integrated | `frontend/integration/release-exits.spec.ts::-only maintenance notifies and supports a replacement` | passed (2 cases) |
 
 Acceptance: gap recorded.
 
-- SCRUM-60 is now implemented with blocks, affected-booking notices, search/calendar integration and a replacement link. The mapped API tests use controlled persistence and the browser test mocks HTTP; a real DB block-to-notification-to-replacement journey and competing-write/rollback evidence are still needed.
+- Audit A3 (3 November 2026): increasing buffers can introduce a conflict with pre-existing maintenance without identifying/notifying affected existing bookings. The buffer-change report currently compares bookings only.
+- Block creation and coordinator notifications use separate writes (D66). Persistence-failure recovery remains a documented limitation; concurrency enforcement does not prove atomic notification delivery.
+
+SQL assertions: `supabase/tests/maintenance_concurrency.sh`.
 
 ### W7-03 Multiple venues per event
 
@@ -434,6 +506,8 @@ One event owns independent venue bookings; sibling edits/cancellations are isola
 | backend | `api/tests/test_booking_persistence_acceptance.py::test_one_booking_changes_without_touching_its_sibling_or_parent` | passed (2 cases) |
 | backend | `api/tests/test_event_confirmation_route.py::test_confirm_blocked_when_a_booking_is_pending` | passed (1 cases) |
 | integrated | `frontend/integration/event-lifecycle.spec.ts::INTEGRATED-01` | passed (1 cases) |
+| browser | `frontend/e2e/booking-edit-release.spec.ts::Coordinator changes one Requested booking and the changes survive reopening` | passed (1 cases) |
+| browser | `frontend/e2e/booking-edit-release.spec.ts::direct edit URL is read-only` | passed (2 cases) |
 
 Acceptance: human acceptance pending.
 
@@ -450,12 +524,16 @@ A hold has a future expiry before event start; exact-deadline expiry releases av
 | --- | --- | --- |
 | backend | `api/tests/test_venue_overlap.py::test_tc_79_03_expired_hold_releases_slot_at_exact_expiry_boundary` | passed (1 cases) |
 | backend | `api/tests/test_booking_decision_route.py::test_tc_79_07_hold_with_past_or_late_expiry_is_rejected` | passed (1 cases) |
+| backend | `api/tests/test_venue_hold_expiry.py::test_the_deadline_is_inclusive` | passed (1 cases) |
+| backend | `api/tests/test_venue_hold_expiry.py::test_the_sweep_releases_the_slot_and_notifies_the_current_coordinator` | passed (1 cases) |
+| backend | `api/tests/test_venue_hold_expiry.py::test_a_failed_notice_does_not_abandon_the_remaining_releases` | passed (1 cases) |
 
 Acceptance: gap recorded.
 
-- Expiry exists in the value object and expires_at storage, but no automatic release/notification worker or equivalent persisted expiry workflow is established. SQL raw status constraints still need expiry/concurrency parity review.
+- Audit A1 (3 November 2026): an Expired historical hold is treated as pending by event confirmation, so even an approved replacement cannot unblock confirmation. Add an integrated expiry-to-replacement-to-confirmation regression after fixing the gate.
+- Expiry uses an opportunistic application sweep and a database trigger (D58), not a scheduler. Sweep notice tests use controlled dependencies; trigger-only releases and notification failures do not establish reliable persisted notice delivery.
 
-SQL assertions: `supabase/tests/venue_holds.sql`.
+SQL assertions: `supabase/tests/venue_holds.sql`, `supabase/tests/venue_hold_release.sql`.
 
 ### W7-05 Event Coordinator Lead
 
@@ -468,10 +546,12 @@ Lead assigns/reassigns from the unassigned queue. Coordinator list visibility is
 | backend | `api/tests/test_coordinator_assignment_acceptance.py::test_tc_130_04_coordinators_only_manage_events_assigned_to_them` | passed (1 cases) |
 | backend | `api/tests/test_coordinator_assignment_acceptance.py::test_refusals_leave_the_assignment_unchanged` | passed (1 cases) |
 | integrated | `frontend/integration/event-lifecycle.spec.ts::INTEGRATED-01` | passed (1 cases) |
+| integrated | `frontend/integration/release-exits.spec.ts::INTEGRATED-09` | passed (1 cases) |
 
 Acceptance: gap recorded.
 
 - Week 7 original own-events wording and later SCRUM-54 view-all decision require final owner acceptance of D28; list visibility must not be presented as edit permission.
+- PR #101 leaves Lead access to booking records unresolved. Direct booking read/change/cancel endpoints exclude the Lead; widening access requires an explicit owner decision and authorization review.
 
 SQL assertions: `supabase/tests/coordinator_assignment.sql`.
 
@@ -488,7 +568,9 @@ Safety Officer sees scoped resource details and approves Confirmed to Preparatio
 | backend | `api/tests/test_safety_check_route.py::test_non_safety_officer_cannot_submit_safety_check` | passed (1 cases) |
 | integrated | `frontend/integration/event-lifecycle.spec.ts::INTEGRATED-01` | passed (1 cases) |
 
-Acceptance: human acceptance pending.
+Acceptance: gap recorded.
 
+- Audit A2 (3 November 2026): cancelling the only confirmed venue booking leaves the event Confirmed and the safety endpoint can approve Preparation without rechecking current resources.
+- SCRUM-128 requires emergency access, crowd movement, restrictions and equipment placement information. Current UI prompts and catalogue equipment location do not establish event-specific detail; owner acceptance or additional implementation remains required.
 
 SQL assertions: `supabase/tests/safety_officer.sql`.

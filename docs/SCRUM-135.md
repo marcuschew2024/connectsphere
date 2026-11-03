@@ -44,7 +44,7 @@ Apply supabase/migrations/20261030195932_scrum_135_status_transitions.sql before
 | Valid review still works | Assigned Coordinator forward steps, decision actor/time, one history record per step and exactly one Organiser notification; reasoned rejection from review |
 | Failure and race handling | Two concurrent approvals commit once; reassignment or cancellation after precheck is refused; pending clarification blocks; injected notification failure rolls back state/history; safe RPC failure mapping |
 
-Runnable checks: api/tests/test_event_transition.py, test_status_transition_acceptance.py, test_status_transition_failures.py, existing test_event_status.py/test_event_decisions.py and release-security tests; supabase/tests/status_transitions.sql; frontend/integration/event-lifecycle.spec.ts. Final execution results are recorded in docs/testing/scrum-135-verification.json.
+Runnable checks: api/tests/test_event_transition.py, test_status_transition_acceptance.py, test_status_transition_failures.py, existing test_event_status.py/test_event_decisions.py and release-security tests; supabase/tests/status_transitions.sql; frontend/integration/event-lifecycle.spec.ts. Final execution results are recorded in docs/archive/testing/scrum-135-verification.json.
 
 ## Reviewable existing test changes
 

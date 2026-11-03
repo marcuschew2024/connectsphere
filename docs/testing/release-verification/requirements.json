@@ -1,628 +1,60 @@
 {
-  "generated_at": "2026-10-30T19:29:58.245159+00:00",
+  "generated_at": "2026-11-03T05:43:37.333242+00:00",
   "all_requirements_accepted": false,
   "meaning": "Mapped checks prove only their stated intent. Human acceptance is separate.",
   "suites": {
     "backend": {
-      "passed": 1843
+      "passed": 2466
     },
     "frontend": {
-      "passed": 67
+      "passed": 675
     },
     "browser": {
-      "passed": 254
+      "passed": 342
     },
     "integrated": {
-      "passed": 2
+      "passed": 17
     }
   },
   "coverage": {
     "backend": {
       "statements": {
-        "covered": 3560,
-        "total": 3695,
-        "percent": 96.34641407307171
+        "covered": 4139,
+        "total": 4139,
+        "percent": 100.0
       },
       "branches": {
-        "covered": 1282,
-        "total": 1374,
-        "percent": 93.3042212518195
+        "covered": 1516,
+        "total": 1516,
+        "percent": 100.0
       },
-      "excluded_lines": 5,
-      "uncovered": {
-        "app/acting_user.py": {
-          "lines": [],
-          "branches": [
-            [
-              23,
-              28
-            ]
-          ]
-        },
-        "app/auth.py": {
-          "lines": [],
-          "branches": [
-            [
-              105,
-              126
-            ]
-          ]
-        },
-        "app/bookings.py": {
-          "lines": [
-            42,
-            47,
-            55,
-            56,
-            58,
-            60,
-            66,
-            68,
-            73,
-            76,
-            92,
-            93,
-            94,
-            107,
-            128,
-            132,
-            137,
-            144,
-            147,
-            159,
-            219,
-            228,
-            231,
-            245,
-            250,
-            262,
-            267,
-            281,
-            317,
-            318,
-            320,
-            328
-          ],
-          "branches": [
-            [
-              41,
-              42
-            ],
-            [
-              46,
-              47
-            ],
-            [
-              57,
-              58
-            ],
-            [
-              59,
-              60
-            ],
-            [
-              65,
-              66
-            ],
-            [
-              67,
-              68
-            ],
-            [
-              72,
-              73
-            ],
-            [
-              75,
-              76
-            ],
-            [
-              91,
-              92
-            ],
-            [
-              92,
-              93
-            ],
-            [
-              92,
-              94
-            ],
-            [
-              106,
-              107
-            ],
-            [
-              127,
-              128
-            ],
-            [
-              131,
-              132
-            ],
-            [
-              136,
-              137
-            ],
-            [
-              143,
-              144
-            ],
-            [
-              146,
-              147
-            ],
-            [
-              158,
-              159
-            ],
-            [
-              227,
-              228
-            ],
-            [
-              230,
-              231
-            ],
-            [
-              244,
-              245
-            ],
-            [
-              246,
-              250
-            ],
-            [
-              261,
-              262
-            ],
-            [
-              266,
-              267
-            ],
-            [
-              280,
-              281
-            ],
-            [
-              319,
-              320
-            ],
-            [
-              327,
-              328
-            ],
-            [
-              368,
-              370
-            ]
-          ]
-        },
-        "app/equipment.py": {
-          "lines": [
-            95,
-            124,
-            125,
-            151,
-            155,
-            159,
-            168,
-            169,
-            170,
-            189,
-            190,
-            214,
-            215,
-            217,
-            218
-          ],
-          "branches": [
-            [
-              94,
-              95
-            ],
-            [
-              150,
-              151
-            ],
-            [
-              154,
-              155
-            ],
-            [
-              158,
-              159
-            ],
-            [
-              167,
-              168
-            ]
-          ]
-        },
-        "app/event_repository.py": {
-          "lines": [
-            157,
-            170,
-            171,
-            172,
-            173
-          ],
-          "branches": [
-            [
-              156,
-              157
-            ]
-          ]
-        },
-        "app/events.py": {
-          "lines": [
-            160,
-            168,
-            175,
-            237,
-            244,
-            245,
-            246,
-            261,
-            316,
-            362,
-            379,
-            384,
-            386,
-            397,
-            433,
-            587,
-            594,
-            631,
-            640,
-            805,
-            811,
-            814,
-            816,
-            838,
-            842,
-            863,
-            921,
-            926,
-            937,
-            993,
-            998,
-            1000,
-            1001,
-            1004,
-            1008,
-            1011,
-            1014,
-            1046,
-            1049,
-            1050,
-            1087,
-            1090,
-            1095,
-            1100,
-            1101,
-            1108,
-            1109
-          ],
-          "branches": [
-            [
-              159,
-              160
-            ],
-            [
-              167,
-              168
-            ],
-            [
-              174,
-              175
-            ],
-            [
-              236,
-              237
-            ],
-            [
-              243,
-              244
-            ],
-            [
-              245,
-              243
-            ],
-            [
-              245,
-              246
-            ],
-            [
-              260,
-              261
-            ],
-            [
-              315,
-              316
-            ],
-            [
-              361,
-              362
-            ],
-            [
-              378,
-              379
-            ],
-            [
-              383,
-              384
-            ],
-            [
-              385,
-              386
-            ],
-            [
-              396,
-              397
-            ],
-            [
-              432,
-              433
-            ],
-            [
-              586,
-              587
-            ],
-            [
-              593,
-              594
-            ],
-            [
-              630,
-              631
-            ],
-            [
-              639,
-              640
-            ],
-            [
-              804,
-              805
-            ],
-            [
-              810,
-              811
-            ],
-            [
-              813,
-              814
-            ],
-            [
-              815,
-              816
-            ],
-            [
-              837,
-              838
-            ],
-            [
-              841,
-              842
-            ],
-            [
-              862,
-              863
-            ],
-            [
-              920,
-              921
-            ],
-            [
-              925,
-              926
-            ],
-            [
-              936,
-              937
-            ],
-            [
-              992,
-              993
-            ],
-            [
-              997,
-              998
-            ],
-            [
-              999,
-              1000
-            ],
-            [
-              1003,
-              1004
-            ],
-            [
-              1007,
-              1008
-            ],
-            [
-              1010,
-              1011
-            ],
-            [
-              1013,
-              1014
-            ],
-            [
-              1045,
-              1046
-            ],
-            [
-              1086,
-              1087
-            ],
-            [
-              1089,
-              1090
-            ],
-            [
-              1094,
-              1095
-            ],
-            [
-              1099,
-              1100
-            ]
-          ]
-        },
-        "app/registration_repository.py": {
-          "lines": [
-            48
-          ],
-          "branches": [
-            [
-              47,
-              48
-            ]
-          ]
-        },
-        "app/venue_search.py": {
-          "lines": [
-            111
-          ],
-          "branches": [
-            [
-              110,
-              111
-            ],
-            [
-              134,
-              153
-            ]
-          ]
-        },
-        "app/venue_suitability.py": {
-          "lines": [
-            196
-          ],
-          "branches": [
-            [
-              99,
-              94
-            ],
-            [
-              191,
-              195
-            ],
-            [
-              195,
-              196
-            ]
-          ]
-        },
-        "app/venue_unavailability_repository.py": {
-          "lines": [
-            14,
-            19,
-            20,
-            26,
-            27,
-            28,
-            29,
-            30,
-            31,
-            32,
-            49,
-            50,
-            51,
-            52,
-            56,
-            57,
-            58,
-            63,
-            64,
-            65,
-            66,
-            67,
-            68,
-            69,
-            73,
-            74,
-            80,
-            81,
-            82,
-            83,
-            84
-          ],
-          "branches": [
-            [
-              13,
-              14
-            ],
-            [
-              26,
-              27
-            ],
-            [
-              26,
-              28
-            ],
-            [
-              44,
-              46
-            ],
-            [
-              46,
-              48
-            ],
-            [
-              63,
-              64
-            ],
-            [
-              63,
-              65
-            ]
-          ]
-        },
-        "app/venues.py": {
-          "lines": [
-            88,
-            231
-          ],
-          "branches": [
-            [
-              87,
-              88
-            ],
-            [
-              230,
-              231
-            ]
-          ]
-        }
-      }
+      "excluded_lines": 6,
+      "uncovered": {}
     },
     "frontend_unit": {
       "lines": {
-        "total": 7031,
-        "covered": 193,
+        "total": 8044,
+        "covered": 7731,
         "skipped": 0,
-        "pct": 2.74
+        "pct": 96.1
       },
       "statements": {
-        "total": 7031,
-        "covered": 193,
+        "total": 8044,
+        "covered": 7731,
         "skipped": 0,
-        "pct": 2.74
+        "pct": 96.1
       },
       "functions": {
-        "total": 98,
-        "covered": 65,
+        "total": 460,
+        "covered": 382,
         "skipped": 0,
-        "pct": 66.32
+        "pct": 83.04
       },
       "branches": {
-        "total": 171,
-        "covered": 140,
+        "total": 2964,
+        "covered": 2664,
         "skipped": 0,
-        "pct": 81.87
+        "pct": 89.87
       },
       "branchesTrue": {
         "total": 0,
@@ -779,6 +211,19 @@
             {
               "class": "tests.test_role_accounts_acceptance",
               "name": "test_account_locks_after_real_consecutive_failures_then_recovers",
+              "status": "passed"
+            }
+          ]
+        },
+        {
+          "lane": "integrated",
+          "path": "frontend/integration/event-permissions.spec.ts",
+          "test": "INTEGRATED-05",
+          "status": "passed",
+          "cases": [
+            {
+              "class": "event-permissions.spec.ts",
+              "name": "INTEGRATED-05 non-management roles cannot open unrelated event details or mutate lifecycle",
               "status": "passed"
             }
           ]
@@ -952,10 +397,23 @@
               "status": "passed"
             }
           ]
+        },
+        {
+          "lane": "integrated",
+          "path": "frontend/integration/release-exits.spec.ts",
+          "test": "INTEGRATED-11",
+          "status": "passed",
+          "cases": [
+            {
+              "class": "release-exits.spec.ts",
+              "name": "INTEGRATED-11 clarification resubmits the same request and rejection preserves the reason",
+              "status": "passed"
+            }
+          ]
         }
       ],
       "gaps": [
-        "Clarification source conflict J2 and section-specific acceptance still require owner confirmation. Real-browser clarification/rejection branches are not in the integrated lane."
+        "INTEGRATED-11 proves clarification, same-request resubmission and persisted rejection in the real browser/API/database lane. Clarification source conflict J2 and section-specific acceptance still require owner confirmation."
       ],
       "sql": [],
       "mapped_checks_passed": true,
@@ -1052,6 +510,19 @@
             {
               "class": "tests.test_release_assignment_failures",
               "name": "test_assignment_rpc_refusals_preserve_safe_http_meaning[XX000-ServiceUnavailable]",
+              "status": "passed"
+            }
+          ]
+        },
+        {
+          "lane": "integrated",
+          "path": "frontend/integration/release-exits.spec.ts",
+          "test": "INTEGRATED-09",
+          "status": "passed",
+          "cases": [
+            {
+              "class": "release-exits.spec.ts",
+              "name": "INTEGRATED-09 Lead reassignment removes the old Coordinator's action access",
               "status": "passed"
             }
           ]
@@ -1181,10 +652,75 @@
               "status": "passed"
             }
           ]
+        },
+        {
+          "lane": "integrated",
+          "path": "frontend/integration/event-permissions.spec.ts",
+          "test": "INTEGRATED-05",
+          "status": "passed",
+          "cases": [
+            {
+              "class": "event-permissions.spec.ts",
+              "name": "INTEGRATED-05 non-management roles cannot open unrelated event details or mutate lifecycle",
+              "status": "passed"
+            }
+          ]
+        },
+        {
+          "lane": "backend",
+          "path": "api/tests/test_status_transition_acceptance.py",
+          "test": "test_every_nonassigned_role_is_denied_without_mutation_and_logged",
+          "status": "passed",
+          "cases": [
+            {
+              "class": "tests.test_status_transition_acceptance",
+              "name": "test_every_nonassigned_role_is_denied_without_mutation_and_logged",
+              "status": "passed"
+            }
+          ]
+        },
+        {
+          "lane": "integrated",
+          "path": "frontend/integration/release-exits.spec.ts",
+          "test": "INTEGRATED-06",
+          "status": "passed",
+          "cases": [
+            {
+              "class": "release-exits.spec.ts",
+              "name": "INTEGRATED-06 cancellation releases resources and the attendee follows the real notification",
+              "status": "passed"
+            }
+          ]
+        },
+        {
+          "lane": "integrated",
+          "path": "frontend/integration/release-exits.spec.ts",
+          "test": "INTEGRATED-07",
+          "status": "passed",
+          "cases": [
+            {
+              "class": "release-exits.spec.ts",
+              "name": "INTEGRATED-07 safety approval leads to completion, persisted closure and released resources",
+              "status": "passed"
+            }
+          ]
+        },
+        {
+          "lane": "integrated",
+          "path": "frontend/integration/release-exits.spec.ts",
+          "test": "INTEGRATED-09",
+          "status": "passed",
+          "cases": [
+            {
+              "class": "release-exits.spec.ts",
+              "name": "INTEGRATED-09 Lead reassignment removes the old Coordinator's action access",
+              "status": "passed"
+            }
+          ]
         }
       ],
       "gaps": [
-        "SCRUM-135 remains partial: the generic route still needs a complete human-designed forward-only role/state matrix for Submitted, Planning and Rejected states. SCRUM-69 now provides dedicated atomic cancellation and a read-only Cancelled state; those previous gaps are closed by the mapped database tests."
+        "The SCRUM-135 role/state matrix is implemented and real-database tested. SCRUM-161 adds browser evidence for read-only controls and unrelated-role denial. Related venue/technical staff retain existing planning read permissions; attendee public projection and no internal payload in denied mutation responses are separate assertions. Final policy acceptance remains human-owned."
       ],
       "sql": [],
       "mapped_checks_passed": true,
@@ -1199,7 +735,8 @@
         "SCRUM-46",
         "SCRUM-47",
         "SCRUM-48",
-        "SCRUM-138"
+        "SCRUM-138",
+        "SCRUM-168"
       ],
       "intent": "Planning edits preserve attribution and become read-only after confirmation. Important changes need reconsideration of existing resource arrangements.",
       "checks": [
@@ -1285,10 +822,80 @@
               "status": "passed"
             }
           ]
+        },
+        {
+          "lane": "integrated",
+          "path": "frontend/integration/release-exits.spec.ts",
+          "test": "INTEGRATED-10",
+          "status": "passed",
+          "cases": [
+            {
+              "class": "release-exits.spec.ts",
+              "name": "INTEGRATED-10 significant change persists through re-review and implementation without cancelling resources",
+              "status": "passed"
+            }
+          ]
+        },
+        {
+          "lane": "backend",
+          "path": "api/tests/test_change_request_apply_acceptance.py",
+          "test": "test_rescheduling_applies_the_new_date_and_flags_re_review",
+          "status": "passed",
+          "cases": [
+            {
+              "class": "tests.test_change_request_apply_acceptance",
+              "name": "test_rescheduling_applies_the_new_date_and_flags_re_review",
+              "status": "passed"
+            }
+          ]
+        },
+        {
+          "lane": "browser",
+          "path": "frontend/e2e/change-requests.spec.ts",
+          "test": "the propose-values panel gives the venue options their own full-width rows",
+          "status": "passed",
+          "cases": [
+            {
+              "class": "change-requests.spec.ts",
+              "name": "the propose-values panel gives the venue options their own full-width rows",
+              "status": "passed"
+            }
+          ]
+        },
+        {
+          "lane": "frontend",
+          "path": "frontend/src/app/events/[eventId]/panels-coverage.test.tsx",
+          "test": "keeps the venue options out of the grid that lays out the simple fields",
+          "status": "passed",
+          "cases": [
+            {
+              "class": "src/app/events/[eventId]/panels-coverage.test.tsx",
+              "name": "keeps the venue options out of the grid that lays out the simple fields",
+              "status": "passed"
+            }
+          ]
+        },
+        {
+          "lane": "backend",
+          "path": "api/tests/test_reschedule_returns_to_planning_acceptance.py",
+          "test": "test_rescheduling_a_confirmed_or_preparing_event_returns_it_to_planning",
+          "status": "passed",
+          "cases": [
+            {
+              "class": "tests.test_reschedule_returns_to_planning_acceptance",
+              "name": "test_rescheduling_a_confirmed_or_preparing_event_returns_it_to_planning[Confirmed]",
+              "status": "passed"
+            },
+            {
+              "class": "tests.test_reschedule_returns_to_planning_acceptance",
+              "name": "test_rescheduling_a_confirmed_or_preparing_event_returns_it_to_planning[Preparation]",
+              "status": "passed"
+            }
+          ]
         }
       ],
       "gaps": [
-        "SCRUM-138 now applies approved proposed fields atomically and flags affected arrangements for re-review without cancelling them. A structured re-approval workflow (SCRUM-47) and date/time rescheduling (SCRUM-48) remain outside that implemented slice."
+        "SCRUM-138/152/156/48/166 apply significant changes, preserve resources and return Confirmed/Preparation date changes to Planning. Other significant changes remain flag-only under D36/D43/D64; final policy acceptance remains human-owned."
       ],
       "sql": [],
       "mapped_checks_passed": true,
@@ -1301,9 +908,10 @@
       "stories": [
         "SCRUM-24",
         "SCRUM-25",
+        "SCRUM-27",
         "SCRUM-60"
       ],
-      "intent": "Venue details persist, duplicates and invalid capacities are rejected, and updates preserve booking records and audit.",
+      "intent": "Venue details persist, duplicates and invalid capacities are rejected, updates preserve booking records and audit, and an opened venue shows its full record.",
       "checks": [
         {
           "lane": "backend",
@@ -1343,17 +951,119 @@
               "status": "passed"
             }
           ]
+        },
+        {
+          "lane": "integrated",
+          "path": "frontend/integration/release-exits.spec.ts",
+          "test": "INTEGRATED-08",
+          "status": "passed",
+          "cases": [
+            {
+              "class": "release-exits.spec.ts",
+              "name": "INTEGRATED-08 venue unavailability notifies the Coordinator and a replacement preserves the event",
+              "status": "passed"
+            }
+          ]
+        },
+        {
+          "lane": "backend",
+          "path": "api/tests/test_release_venue_blocks_acceptance.py",
+          "test": "test_venue_block_lists_only_overlaps_notifies_and_preserves_unblock_audit",
+          "status": "passed",
+          "cases": [
+            {
+              "class": "tests.test_release_venue_blocks_acceptance",
+              "name": "test_venue_block_lists_only_overlaps_notifies_and_preserves_unblock_audit",
+              "status": "passed"
+            }
+          ]
+        },
+        {
+          "lane": "integrated",
+          "path": "frontend/integration/venue-flows.spec.ts",
+          "test": "INTEGRATED-13",
+          "status": "passed",
+          "cases": [
+            {
+              "class": "venue-flows.spec.ts",
+              "name": "INTEGRATED-13 Venue Staff creates edits and retires a complete venue record with layouts",
+              "status": "passed"
+            }
+          ]
+        },
+        {
+          "lane": "frontend",
+          "path": "frontend/src/app/venues/[venueId]/detail.test.tsx",
+          "test": "shows the complete catalogue record, not only name location and capacity",
+          "status": "passed",
+          "cases": [
+            {
+              "class": "src/app/venues/[venueId]/detail.test.tsx",
+              "name": "shows the complete catalogue record, not only name location and capacity",
+              "status": "passed"
+            }
+          ]
+        },
+        {
+          "lane": "frontend",
+          "path": "frontend/src/app/venues/[venueId]/detail.test.tsx",
+          "test": "lists the opening hours of every day, including the days the venue is closed",
+          "status": "passed",
+          "cases": [
+            {
+              "class": "src/app/venues/[venueId]/detail.test.tsx",
+              "name": "lists the opening hours of every day, including the days the venue is closed",
+              "status": "passed"
+            }
+          ]
+        },
+        {
+          "lane": "frontend",
+          "path": "frontend/src/app/venues/[venueId]/detail.test.tsx",
+          "test": "marks a venue that is closed right now, naming the reason and when it reopens",
+          "status": "passed",
+          "cases": [
+            {
+              "class": "src/app/venues/[venueId]/detail.test.tsx",
+              "name": "marks a venue that is closed right now, naming the reason and when it reopens",
+              "status": "passed"
+            }
+          ]
+        },
+        {
+          "lane": "frontend",
+          "path": "frontend/src/app/venues/[venueId]/detail.test.tsx",
+          "test": "offers a Coordinator no way to change the venue",
+          "status": "passed",
+          "cases": [
+            {
+              "class": "src/app/venues/[venueId]/detail.test.tsx",
+              "name": "offers a Coordinator no way to change the venue",
+              "status": "passed"
+            }
+          ]
+        },
+        {
+          "lane": "frontend",
+          "path": "frontend/src/lib/venue-status.test.ts",
+          "test": "reports a retired venue as retired even while a closure is running",
+          "status": "passed",
+          "cases": [
+            {
+              "class": "src/lib/venue-status.test.ts",
+              "name": "reports a retired venue as retired even while a closure is running",
+              "status": "passed"
+            }
+          ]
         }
       ],
-      "gaps": [
-        "SCRUM-60 now implements temporary venue unavailability. The real-browser/API/database replacement journey remains an evidence gap under W7-02."
-      ],
+      "gaps": [],
       "sql": [
         "supabase/tests/venues.sql",
         "supabase/tests/venue_updates.sql"
       ],
       "mapped_checks_passed": true,
-      "acceptance": "gap recorded"
+      "acceptance": "human acceptance pending"
     },
     {
       "id": "CORE-09",
@@ -1363,7 +1073,7 @@
         "SCRUM-30",
         "SCRUM-129"
       ],
-      "intent": "Internal users can retrieve range bookings; calendar cells distinguish booked/blocked/free and closed hours with half-open raw-time boundaries.",
+      "intent": "Internal users see occupied booking intervals and maintenance in the calendar; maintenance remains visible over existing confirmed occupation. Half-open occupied boundaries remain compatible.",
       "checks": [
         {
           "lane": "backend",
@@ -1403,14 +1113,41 @@
               "status": "passed"
             }
           ]
+        },
+        {
+          "lane": "backend",
+          "path": "api/tests/test_buffer_update_acceptance.py",
+          "test": "test_search_calendar_and_api_request_agree_after_buffer_change",
+          "status": "passed",
+          "cases": [
+            {
+              "class": "tests.test_buffer_update_acceptance",
+              "name": "test_search_calendar_and_api_request_agree_after_buffer_change",
+              "status": "passed"
+            }
+          ]
+        },
+        {
+          "lane": "integrated",
+          "path": "frontend/integration/release-exits.spec.ts",
+          "test": "INTEGRATED-R1",
+          "status": "passed",
+          "cases": [
+            {
+              "class": "release-exits.spec.ts",
+              "name": "INTEGRATED-R1 buffer edit flags existing conflicts while new bookings stay protected",
+              "status": "passed"
+            }
+          ]
         }
       ],
-      "gaps": [
-        "The calendar classifier uses published booking times; buffer-expanded calendar parity is not established. See W7-01."
+      "gaps": [],
+      "sql": [
+        "supabase/tests/venue_buffers_137.sql",
+        "supabase/tests/venue_buffer_concurrency.sh"
       ],
-      "sql": [],
       "mapped_checks_passed": true,
-      "acceptance": "gap recorded"
+      "acceptance": "human acceptance pending"
     },
     {
       "id": "CORE-10",
@@ -1489,13 +1226,136 @@
               "status": "passed"
             }
           ]
+        },
+        {
+          "lane": "integrated",
+          "path": "frontend/integration/venue-flows.spec.ts",
+          "test": "INTEGRATED-14",
+          "status": "passed",
+          "cases": [
+            {
+              "class": "venue-flows.spec.ts",
+              "name": "INTEGRATED-14 venue date capacity and facility filters exclude independently unsuitable results",
+              "status": "passed"
+            }
+          ]
+        },
+        {
+          "lane": "backend",
+          "path": "api/tests/test_buffer_update_acceptance.py",
+          "test": "test_search_calendar_and_api_request_agree_after_buffer_change",
+          "status": "passed",
+          "cases": [
+            {
+              "class": "tests.test_buffer_update_acceptance",
+              "name": "test_search_calendar_and_api_request_agree_after_buffer_change",
+              "status": "passed"
+            }
+          ]
+        },
+        {
+          "lane": "integrated",
+          "path": "frontend/integration/release-exits.spec.ts",
+          "test": "INTEGRATED-R1",
+          "status": "passed",
+          "cases": [
+            {
+              "class": "release-exits.spec.ts",
+              "name": "INTEGRATED-R1 buffer edit flags existing conflicts while new bookings stay protected",
+              "status": "passed"
+            }
+          ]
+        },
+        {
+          "lane": "backend",
+          "path": "api/tests/test_maintenance_buffers_acceptance.py",
+          "test": "test_search_and_new_booking_agree_on_maintenance_window",
+          "status": "passed",
+          "cases": [
+            {
+              "class": "tests.test_maintenance_buffers_acceptance",
+              "name": "test_search_and_new_booking_agree_on_maintenance_window[01:45-02:00-True]",
+              "status": "passed"
+            },
+            {
+              "class": "tests.test_maintenance_buffers_acceptance",
+              "name": "test_search_and_new_booking_agree_on_maintenance_window[04:00-04:30-True]",
+              "status": "passed"
+            },
+            {
+              "class": "tests.test_maintenance_buffers_acceptance",
+              "name": "test_search_and_new_booking_agree_on_maintenance_window[01:00-01:30-False]",
+              "status": "passed"
+            },
+            {
+              "class": "tests.test_maintenance_buffers_acceptance",
+              "name": "test_search_and_new_booking_agree_on_maintenance_window[04:45-05:00-False]",
+              "status": "passed"
+            },
+            {
+              "class": "tests.test_maintenance_buffers_acceptance",
+              "name": "test_search_and_new_booking_agree_on_maintenance_window[02:00-03:00-True]",
+              "status": "passed"
+            }
+          ]
+        },
+        {
+          "lane": "backend",
+          "path": "api/tests/test_maintenance_buffers_acceptance.py",
+          "test": "test_database_itself_refuses_buffer_only_maintenance",
+          "status": "passed",
+          "cases": [
+            {
+              "class": "tests.test_maintenance_buffers_acceptance",
+              "name": "test_database_itself_refuses_buffer_only_maintenance[Requested-01:45-02:00]",
+              "status": "passed"
+            },
+            {
+              "class": "tests.test_maintenance_buffers_acceptance",
+              "name": "test_database_itself_refuses_buffer_only_maintenance[Requested-04:00-04:30]",
+              "status": "passed"
+            },
+            {
+              "class": "tests.test_maintenance_buffers_acceptance",
+              "name": "test_database_itself_refuses_buffer_only_maintenance[Pending-01:45-02:00]",
+              "status": "passed"
+            },
+            {
+              "class": "tests.test_maintenance_buffers_acceptance",
+              "name": "test_database_itself_refuses_buffer_only_maintenance[Pending-04:00-04:30]",
+              "status": "passed"
+            },
+            {
+              "class": "tests.test_maintenance_buffers_acceptance",
+              "name": "test_database_itself_refuses_buffer_only_maintenance[Held-01:45-02:00]",
+              "status": "passed"
+            },
+            {
+              "class": "tests.test_maintenance_buffers_acceptance",
+              "name": "test_database_itself_refuses_buffer_only_maintenance[Held-04:00-04:30]",
+              "status": "passed"
+            },
+            {
+              "class": "tests.test_maintenance_buffers_acceptance",
+              "name": "test_database_itself_refuses_buffer_only_maintenance[Confirmed-01:45-02:00]",
+              "status": "passed"
+            },
+            {
+              "class": "tests.test_maintenance_buffers_acceptance",
+              "name": "test_database_itself_refuses_buffer_only_maintenance[Confirmed-04:00-04:30]",
+              "status": "passed"
+            }
+          ]
         }
       ],
       "gaps": [
-        "Search uses raw overlap lookup; complete buffer-aware search/calendar/booking consistency is not established."
+        "Availability is evaluated at read time; a later competing booking can still produce an honest conflict on submission. R1/R5 SQL concurrency checks cover enforcement, not a reservation guarantee from a search result."
       ],
       "sql": [
-        "supabase/tests/venues.sql"
+        "supabase/tests/venues.sql",
+        "supabase/tests/venue_buffers_137.sql",
+        "supabase/tests/venue_buffer_concurrency.sh",
+        "supabase/tests/maintenance_concurrency.sh"
       ],
       "mapped_checks_passed": true,
       "acceptance": "gap recorded"
@@ -1562,7 +1422,8 @@
       "owner": "Ernest",
       "stories": [
         "SCRUM-31",
-        "SCRUM-126"
+        "SCRUM-126",
+        "SCRUM-166"
       ],
       "intent": "An assigned Coordinator submits independent bookings for one event. Editing/cancelling one booking must preserve its sibling and parent; persistence failures must not report success.",
       "checks": [
@@ -1614,10 +1475,100 @@
               "status": "passed"
             }
           ]
+        },
+        {
+          "lane": "browser",
+          "path": "frontend/e2e/booking-edit-release.spec.ts",
+          "test": "Coordinator changes one Requested booking and the changes survive reopening",
+          "status": "passed",
+          "cases": [
+            {
+              "class": "booking-edit-release.spec.ts",
+              "name": "Coordinator changes one Requested booking and the changes survive reopening",
+              "status": "passed"
+            }
+          ]
+        },
+        {
+          "lane": "browser",
+          "path": "frontend/e2e/booking-edit-release.spec.ts",
+          "test": "direct edit URL is read-only",
+          "status": "passed",
+          "cases": [
+            {
+              "class": "booking-edit-release.spec.ts",
+              "name": "direct edit URL is read-only for Confirmed booking owned by 2",
+              "status": "passed"
+            },
+            {
+              "class": "booking-edit-release.spec.ts",
+              "name": "direct edit URL is read-only for Requested booking owned by 7",
+              "status": "passed"
+            }
+          ]
+        },
+        {
+          "lane": "backend",
+          "path": "api/tests/test_reschedule_returns_to_planning_acceptance.py",
+          "test": "test_confirmation_requires_the_bookings_to_cover_the_whole_event",
+          "status": "passed",
+          "cases": [
+            {
+              "class": "tests.test_reschedule_returns_to_planning_acceptance",
+              "name": "test_confirmation_requires_the_bookings_to_cover_the_whole_event[slots0-True]",
+              "status": "passed"
+            },
+            {
+              "class": "tests.test_reschedule_returns_to_planning_acceptance",
+              "name": "test_confirmation_requires_the_bookings_to_cover_the_whole_event[slots1-False]",
+              "status": "passed"
+            },
+            {
+              "class": "tests.test_reschedule_returns_to_planning_acceptance",
+              "name": "test_confirmation_requires_the_bookings_to_cover_the_whole_event[slots2-True]",
+              "status": "passed"
+            },
+            {
+              "class": "tests.test_reschedule_returns_to_planning_acceptance",
+              "name": "test_confirmation_requires_the_bookings_to_cover_the_whole_event[slots3-False]",
+              "status": "passed"
+            }
+          ]
+        },
+        {
+          "lane": "backend",
+          "path": "api/tests/test_reschedule_returns_to_planning_acceptance.py",
+          "test": "test_confirmation_requires_reservations_to_cover_the_event",
+          "status": "passed",
+          "cases": [
+            {
+              "class": "tests.test_reschedule_returns_to_planning_acceptance",
+              "name": "test_confirmation_requires_reservations_to_cover_the_event[window0-True]",
+              "status": "passed"
+            },
+            {
+              "class": "tests.test_reschedule_returns_to_planning_acceptance",
+              "name": "test_confirmation_requires_reservations_to_cover_the_event[window1-False]",
+              "status": "passed"
+            }
+          ]
+        },
+        {
+          "lane": "backend",
+          "path": "api/tests/test_reschedule_returns_to_planning_acceptance.py",
+          "test": "test_after_a_reschedule_the_old_booking_blocks_and_a_new_one_lets_it_confirm",
+          "status": "passed",
+          "cases": [
+            {
+              "class": "tests.test_reschedule_returns_to_planning_acceptance",
+              "name": "test_after_a_reschedule_the_old_booking_blocks_and_a_new_one_lets_it_confirm",
+              "status": "passed"
+            }
+          ]
         }
       ],
       "gaps": [
-        "Venue/equipment bookings can have timing independent of the event; cross-feature alignment policy is not fully enforced."
+        "SCRUM-166 now checks approved venue union coverage and equipment reservation timing at confirmation. Audit A1/A2 remain: expired holds block confirmation, and booking cancellation after confirmation does not invalidate readiness before safety approval."
       ],
       "sql": [
         "supabase/tests/venue_overlap.sql"
@@ -1685,6 +1636,19 @@
               "status": "passed"
             }
           ]
+        },
+        {
+          "lane": "integrated",
+          "path": "frontend/integration/venue-flows.spec.ts",
+          "test": "INTEGRATED-12",
+          "status": "passed",
+          "cases": [
+            {
+              "class": "venue-flows.spec.ts",
+              "name": "INTEGRATED-12 booking approval blocks the slot and notifies only the requesting Coordinator",
+              "status": "passed"
+            }
+          ]
         }
       ],
       "gaps": [],
@@ -1744,14 +1708,42 @@
               "status": "passed"
             }
           ]
+        },
+        {
+          "lane": "backend",
+          "path": "api/tests/test_buffer_update_acceptance.py",
+          "test": "test_search_calendar_and_api_request_agree_after_buffer_change",
+          "status": "passed",
+          "cases": [
+            {
+              "class": "tests.test_buffer_update_acceptance",
+              "name": "test_search_calendar_and_api_request_agree_after_buffer_change",
+              "status": "passed"
+            }
+          ]
+        },
+        {
+          "lane": "integrated",
+          "path": "frontend/integration/release-exits.spec.ts",
+          "test": "INTEGRATED-R1",
+          "status": "passed",
+          "cases": [
+            {
+              "class": "release-exits.spec.ts",
+              "name": "INTEGRATED-R1 buffer edit flags existing conflicts while new bookings stay protected",
+              "status": "passed"
+            }
+          ]
         }
       ],
       "gaps": [
-        "Concurrent approval of published-adjacent bookings with overlapping buffers needs independent SQL enforcement evidence."
+        "Audit A3 (3 November 2026): increasing buffers can introduce a conflict with pre-existing maintenance without identifying/notifying affected existing bookings. The buffer-change report currently compares bookings only."
       ],
       "sql": [
         "supabase/tests/venue_overlap.sql",
-        "supabase/tests/venue_holds.sql"
+        "supabase/tests/venue_holds.sql",
+        "supabase/tests/venue_buffers_137.sql",
+        "supabase/tests/venue_buffer_concurrency.sh"
       ],
       "mapped_checks_passed": true,
       "acceptance": "gap recorded"
@@ -1979,6 +1971,19 @@
               "status": "passed"
             }
           ]
+        },
+        {
+          "lane": "backend",
+          "path": "api/tests/test_release_equipment_failures_acceptance.py",
+          "test": "test_invalid_reservations_do_not_consume_real_stock",
+          "status": "passed",
+          "cases": [
+            {
+              "class": "tests.test_release_equipment_failures_acceptance",
+              "name": "test_invalid_reservations_do_not_consume_real_stock",
+              "status": "passed"
+            }
+          ]
         }
       ],
       "gaps": [],
@@ -1999,7 +2004,7 @@
         "SCRUM-44",
         "SCRUM-45"
       ],
-      "intent": "Attendees register once within capacity, retain their own receipt, and withdraw under the saved policy; competing final-place/withdrawal requests cannot duplicate capacity.",
+      "intent": "Attendees register once within capacity, retain their own receipt, and withdraw under the saved policy; competing final-place/withdrawal requests cannot duplicate capacity. Only the owning Organiser and current assigned Coordinator can read the event roster and event-wide registration totals.",
       "checks": [
         {
           "lane": "backend",
@@ -2072,10 +2077,85 @@
               "status": "passed"
             }
           ]
+        },
+        {
+          "lane": "backend",
+          "path": "api/tests/test_event_registration_roster_acceptance.py",
+          "test": "test_owner_and_current_coordinator_see_names_and_live_counts_without_private_data",
+          "status": "passed",
+          "cases": [
+            {
+              "class": "tests.test_event_registration_roster_acceptance",
+              "name": "test_owner_and_current_coordinator_see_names_and_live_counts_without_private_data",
+              "status": "passed"
+            }
+          ]
+        },
+        {
+          "lane": "backend",
+          "path": "api/tests/test_event_registration_roster_acceptance.py",
+          "test": "test_roster_denies_other_roles_foreign_owners_and_previous_coordinators",
+          "status": "passed",
+          "cases": [
+            {
+              "class": "tests.test_event_registration_roster_acceptance",
+              "name": "test_roster_denies_other_roles_foreign_owners_and_previous_coordinators",
+              "status": "passed"
+            }
+          ]
+        },
+        {
+          "lane": "backend",
+          "path": "api/tests/test_event_registration_roster_acceptance.py",
+          "test": "test_roster_pagination_and_counts_are_complete_and_event_scoped",
+          "status": "passed",
+          "cases": [
+            {
+              "class": "tests.test_event_registration_roster_acceptance",
+              "name": "test_roster_pagination_and_counts_are_complete_and_event_scoped",
+              "status": "passed"
+            }
+          ]
+        },
+        {
+          "lane": "browser",
+          "path": "frontend/e2e/event-registration-roster.spec.ts",
+          "test": "sees names, references and event-wide totals across pages and filters",
+          "status": "passed",
+          "cases": [
+            {
+              "class": "event-registration-roster.spec.ts",
+              "name": "Organiser sees names, references and event-wide totals across pages and filters",
+              "status": "passed"
+            },
+            {
+              "class": "event-registration-roster.spec.ts",
+              "name": "Coordinator sees names, references and event-wide totals across pages and filters",
+              "status": "passed"
+            }
+          ]
+        },
+        {
+          "lane": "backend",
+          "path": "api/tests/test_release_registration_errors.py",
+          "test": "test_failed_registration_operation_never_returns_success_or_private_details",
+          "status": "passed",
+          "cases": [
+            {
+              "class": "tests.test_release_registration_errors",
+              "name": "test_failed_registration_operation_never_returns_success_or_private_details[<lambda>-error0-BadRequest-Check the withdrawal conditions and deadline.]",
+              "status": "passed"
+            },
+            {
+              "class": "tests.test_release_registration_errors",
+              "name": "test_failed_registration_operation_never_returns_success_or_private_details[<lambda>-error1-ServiceUnavailable-Could not confirm the registration change. Refresh the event before retrying.]",
+              "status": "passed"
+            }
+          ]
         }
       ],
       "gaps": [
-        "SCRUM-45 organiser/coordinator registration roster remains unimplemented; aggregate counts do not establish appropriate individual registration visibility.",
+        "SCRUM-45 renders and counts Waitlisted, but real waiting-list records and promotion remain deferred SCRUM-80; the current schema only stores Registered and Withdrawn. Non-zero waitlisted presentation is controlled-browser evidence, not a live waitlist journey.",
         "TC-43-02 waiting-list promotion remains deferred SCRUM-80; do not mark it passed. Owner must reconcile that documented case with the agreed release slice.",
         "Registration closes when safety approval moves to Preparation; owner must verify the customer accepts that signup window."
       ],
@@ -2181,10 +2261,54 @@
               "status": "passed"
             }
           ]
+        },
+        {
+          "lane": "integrated",
+          "path": "frontend/integration/release-exits.spec.ts",
+          "test": "INTEGRATED-10",
+          "status": "passed",
+          "cases": [
+            {
+              "class": "release-exits.spec.ts",
+              "name": "INTEGRATED-10 significant change persists through re-review and implementation without cancelling resources",
+              "status": "passed"
+            }
+          ]
+        },
+        {
+          "lane": "backend",
+          "path": "api/tests/test_change_request_apply_acceptance.py",
+          "test": "test_rescheduling_applies_the_new_date_and_flags_re_review",
+          "status": "passed",
+          "cases": [
+            {
+              "class": "tests.test_change_request_apply_acceptance",
+              "name": "test_rescheduling_applies_the_new_date_and_flags_re_review",
+              "status": "passed"
+            }
+          ]
+        },
+        {
+          "lane": "backend",
+          "path": "api/tests/test_reschedule_returns_to_planning_acceptance.py",
+          "test": "test_rescheduling_a_confirmed_or_preparing_event_returns_it_to_planning",
+          "status": "passed",
+          "cases": [
+            {
+              "class": "tests.test_reschedule_returns_to_planning_acceptance",
+              "name": "test_rescheduling_a_confirmed_or_preparing_event_returns_it_to_planning[Confirmed]",
+              "status": "passed"
+            },
+            {
+              "class": "tests.test_reschedule_returns_to_planning_acceptance",
+              "name": "test_rescheduling_a_confirmed_or_preparing_event_returns_it_to_planning[Preparation]",
+              "status": "passed"
+            }
+          ]
         }
       ],
       "gaps": [
-        "SCRUM-138 now applies approved proposed fields atomically and flags affected arrangements for re-review without cancelling them. A structured re-approval workflow (SCRUM-47) and date/time rescheduling (SCRUM-48) remain outside that implemented slice."
+        "SCRUM-138/152/156/48/166 apply significant changes, preserve resources and return Confirmed/Preparation date changes to Planning. Other significant changes remain flag-only under D36/D43/D64; final policy acceptance remains human-owned."
       ],
       "sql": [],
       "mapped_checks_passed": true,
@@ -2196,7 +2320,9 @@
       "owner": "Marcus",
       "stories": [
         "SCRUM-49",
-        "SCRUM-51"
+        "SCRUM-51",
+        "SCRUM-164",
+        "SCRUM-167"
       ],
       "intent": "Private and role-pool notifications reach only their intended readers; key request/assignment/booking/registration outcomes are emitted.",
       "checks": [
@@ -2277,10 +2403,64 @@
               "status": "passed"
             }
           ]
+        },
+        {
+          "lane": "integrated",
+          "path": "frontend/integration/release-exits.spec.ts",
+          "test": "INTEGRATED-06",
+          "status": "passed",
+          "cases": [
+            {
+              "class": "release-exits.spec.ts",
+              "name": "INTEGRATED-06 cancellation releases resources and the attendee follows the real notification",
+              "status": "passed"
+            }
+          ]
+        },
+        {
+          "lane": "integrated",
+          "path": "frontend/integration/release-exits.spec.ts",
+          "test": "INTEGRATED-08",
+          "status": "passed",
+          "cases": [
+            {
+              "class": "release-exits.spec.ts",
+              "name": "INTEGRATED-08 venue unavailability notifies the Coordinator and a replacement preserves the event",
+              "status": "passed"
+            }
+          ]
+        },
+        {
+          "lane": "backend",
+          "path": "api/tests/test_event_confirmation_route.py",
+          "test": "test_confirm_notifies_organiser_not_the_acting_coordinator",
+          "status": "passed",
+          "cases": [
+            {
+              "class": "tests.test_event_confirmation_route",
+              "name": "test_confirm_notifies_organiser_not_the_acting_coordinator",
+              "status": "passed"
+            }
+          ]
+        },
+        {
+          "lane": "backend",
+          "path": "api/tests/test_venue_buffer_notification.py",
+          "test": "test_each_affected_coordinator_is_notified_once",
+          "status": "passed",
+          "cases": [
+            {
+              "class": "tests.test_venue_buffer_notification",
+              "name": "test_each_affected_coordinator_is_notified_once",
+              "status": "passed"
+            }
+          ]
         }
       ],
       "gaps": [
-        "Cancellation and applied-change recipients now have database acceptance evidence; venue-unavailability notification wiring has route tests. A complete trigger-by-recipient matrix, persisted hold-expiry notices and full-stack replacement-venue notifications remain unproven."
+        "Audit A4 (3 November 2026): confirmation writes status/history/notification separately; notification failure can return 503 after confirmation and retry is refused. A complete trigger-by-recipient and failure-recovery matrix remains outstanding.",
+        "Attendee venue-change notices are explicitly deferred by Marcus in D57/SCRUM-165; date/time and cancellation notices remain in scope. Reconcile SCRUM-51 description with that recorded scope decision.",
+        "Hold-expiry notice persistence limitations remain under W7-04; passing mocked sweep tests do not establish a real browser/API/database notification journey."
       ],
       "sql": [],
       "mapped_checks_passed": true,
@@ -2291,7 +2471,9 @@
       "name": "Venue setup and turnaround buffers",
       "owner": "Jessica",
       "stories": [
-        "SCRUM-129"
+        "SCRUM-129",
+        "SCRUM-137",
+        "SCRUM-167"
       ],
       "intent": "Venue setup/turnaround expand occupied windows; touching expanded boundaries remain non-conflicting; newly conflicting existing bookings are flagged.",
       "checks": [
@@ -2320,13 +2502,131 @@
               "status": "passed"
             }
           ]
+        },
+        {
+          "lane": "backend",
+          "path": "api/tests/test_buffer_update_acceptance.py",
+          "test": "test_search_calendar_and_api_request_agree_after_buffer_change",
+          "status": "passed",
+          "cases": [
+            {
+              "class": "tests.test_buffer_update_acceptance",
+              "name": "test_search_calendar_and_api_request_agree_after_buffer_change",
+              "status": "passed"
+            }
+          ]
+        },
+        {
+          "lane": "integrated",
+          "path": "frontend/integration/release-exits.spec.ts",
+          "test": "INTEGRATED-R1",
+          "status": "passed",
+          "cases": [
+            {
+              "class": "release-exits.spec.ts",
+              "name": "INTEGRATED-R1 buffer edit flags existing conflicts while new bookings stay protected",
+              "status": "passed"
+            }
+          ]
+        },
+        {
+          "lane": "backend",
+          "path": "api/tests/test_buffer_update_acceptance.py",
+          "test": "test_buffer_increase_saves_flags_and_preserves_existing_bookings",
+          "status": "passed",
+          "cases": [
+            {
+              "class": "tests.test_buffer_update_acceptance",
+              "name": "test_buffer_increase_saves_flags_and_preserves_existing_bookings[15-60]",
+              "status": "passed"
+            },
+            {
+              "class": "tests.test_buffer_update_acceptance",
+              "name": "test_buffer_increase_saves_flags_and_preserves_existing_bookings[45-30]",
+              "status": "passed"
+            }
+          ]
+        },
+        {
+          "lane": "backend",
+          "path": "api/tests/test_buffer_update_acceptance.py",
+          "test": "test_new_writes_use_latest_buffers_after_existing_pair_is_flagged",
+          "status": "passed",
+          "cases": [
+            {
+              "class": "tests.test_buffer_update_acceptance",
+              "name": "test_new_writes_use_latest_buffers_after_existing_pair_is_flagged[Confirmed]",
+              "status": "passed"
+            },
+            {
+              "class": "tests.test_buffer_update_acceptance",
+              "name": "test_new_writes_use_latest_buffers_after_existing_pair_is_flagged[Blocked]",
+              "status": "passed"
+            },
+            {
+              "class": "tests.test_buffer_update_acceptance",
+              "name": "test_new_writes_use_latest_buffers_after_existing_pair_is_flagged[Requested]",
+              "status": "passed"
+            },
+            {
+              "class": "tests.test_buffer_update_acceptance",
+              "name": "test_new_writes_use_latest_buffers_after_existing_pair_is_flagged[Pending]",
+              "status": "passed"
+            },
+            {
+              "class": "tests.test_buffer_update_acceptance",
+              "name": "test_new_writes_use_latest_buffers_after_existing_pair_is_flagged[Held]",
+              "status": "passed"
+            }
+          ]
+        },
+        {
+          "lane": "backend",
+          "path": "api/tests/test_buffer_update_acceptance.py",
+          "test": "test_conflict_resolution_cancellation_clears_report_but_preserves_history",
+          "status": "passed",
+          "cases": [
+            {
+              "class": "tests.test_buffer_update_acceptance",
+              "name": "test_conflict_resolution_cancellation_clears_report_but_preserves_history",
+              "status": "passed"
+            }
+          ]
+        },
+        {
+          "lane": "backend",
+          "path": "api/tests/test_buffer_update_acceptance.py",
+          "test": "test_conflicting_time_edit_rolls_back_and_cannot_forge_occupied_columns",
+          "status": "passed",
+          "cases": [
+            {
+              "class": "tests.test_buffer_update_acceptance",
+              "name": "test_conflicting_time_edit_rolls_back_and_cannot_forge_occupied_columns",
+              "status": "passed"
+            }
+          ]
+        },
+        {
+          "lane": "backend",
+          "path": "api/tests/test_venue_buffer_notification.py",
+          "test": "test_each_affected_coordinator_is_notified_once",
+          "status": "passed",
+          "cases": [
+            {
+              "class": "tests.test_venue_buffer_notification",
+              "name": "test_each_affected_coordinator_is_notified_once",
+              "status": "passed"
+            }
+          ]
         }
       ],
       "gaps": [
-        "Pure overlap maths is covered. Search/calendar raw-time behaviour and database exclusion ranges do not prove consistent buffer enforcement across create/edit/approval or competing writes."
+        "Audit A3 (3 November 2026): increasing buffers can introduce a conflict with pre-existing maintenance without identifying/notifying affected existing bookings. The buffer-change report currently compares bookings only."
       ],
       "sql": [
-        "supabase/tests/venue_buffers.sql"
+        "supabase/tests/venue_buffers.sql",
+        "supabase/tests/venue_buffers_137.sql",
+        "supabase/tests/venue_buffer_concurrency.sh"
       ],
       "mapped_checks_passed": true,
       "acceptance": "gap recorded"
@@ -2336,7 +2636,8 @@
       "name": "Venue becomes unavailable after booking",
       "owner": "Jessica",
       "stories": [
-        "SCRUM-60"
+        "SCRUM-60",
+        "SCRUM-169"
       ],
       "intent": "Venue Staff mark temporary unavailability with reason, retain affected events, notify Coordinators, and support replacement venue arrangements.",
       "checks": [
@@ -2378,12 +2679,202 @@
               "status": "passed"
             }
           ]
+        },
+        {
+          "lane": "integrated",
+          "path": "frontend/integration/release-exits.spec.ts",
+          "test": "INTEGRATED-08",
+          "status": "passed",
+          "cases": [
+            {
+              "class": "release-exits.spec.ts",
+              "name": "INTEGRATED-08 venue unavailability notifies the Coordinator and a replacement preserves the event",
+              "status": "passed"
+            }
+          ]
+        },
+        {
+          "lane": "backend",
+          "path": "api/tests/test_release_venue_blocks_acceptance.py",
+          "test": "test_venue_block_lists_only_overlaps_notifies_and_preserves_unblock_audit",
+          "status": "passed",
+          "cases": [
+            {
+              "class": "tests.test_release_venue_blocks_acceptance",
+              "name": "test_venue_block_lists_only_overlaps_notifies_and_preserves_unblock_audit",
+              "status": "passed"
+            }
+          ]
+        },
+        {
+          "lane": "backend",
+          "path": "api/tests/test_maintenance_buffers_acceptance.py",
+          "test": "test_search_and_new_booking_agree_on_maintenance_window",
+          "status": "passed",
+          "cases": [
+            {
+              "class": "tests.test_maintenance_buffers_acceptance",
+              "name": "test_search_and_new_booking_agree_on_maintenance_window[01:45-02:00-True]",
+              "status": "passed"
+            },
+            {
+              "class": "tests.test_maintenance_buffers_acceptance",
+              "name": "test_search_and_new_booking_agree_on_maintenance_window[04:00-04:30-True]",
+              "status": "passed"
+            },
+            {
+              "class": "tests.test_maintenance_buffers_acceptance",
+              "name": "test_search_and_new_booking_agree_on_maintenance_window[01:00-01:30-False]",
+              "status": "passed"
+            },
+            {
+              "class": "tests.test_maintenance_buffers_acceptance",
+              "name": "test_search_and_new_booking_agree_on_maintenance_window[04:45-05:00-False]",
+              "status": "passed"
+            },
+            {
+              "class": "tests.test_maintenance_buffers_acceptance",
+              "name": "test_search_and_new_booking_agree_on_maintenance_window[02:00-03:00-True]",
+              "status": "passed"
+            }
+          ]
+        },
+        {
+          "lane": "backend",
+          "path": "api/tests/test_maintenance_buffers_acceptance.py",
+          "test": "test_database_itself_refuses_buffer_only_maintenance",
+          "status": "passed",
+          "cases": [
+            {
+              "class": "tests.test_maintenance_buffers_acceptance",
+              "name": "test_database_itself_refuses_buffer_only_maintenance[Requested-01:45-02:00]",
+              "status": "passed"
+            },
+            {
+              "class": "tests.test_maintenance_buffers_acceptance",
+              "name": "test_database_itself_refuses_buffer_only_maintenance[Requested-04:00-04:30]",
+              "status": "passed"
+            },
+            {
+              "class": "tests.test_maintenance_buffers_acceptance",
+              "name": "test_database_itself_refuses_buffer_only_maintenance[Pending-01:45-02:00]",
+              "status": "passed"
+            },
+            {
+              "class": "tests.test_maintenance_buffers_acceptance",
+              "name": "test_database_itself_refuses_buffer_only_maintenance[Pending-04:00-04:30]",
+              "status": "passed"
+            },
+            {
+              "class": "tests.test_maintenance_buffers_acceptance",
+              "name": "test_database_itself_refuses_buffer_only_maintenance[Held-01:45-02:00]",
+              "status": "passed"
+            },
+            {
+              "class": "tests.test_maintenance_buffers_acceptance",
+              "name": "test_database_itself_refuses_buffer_only_maintenance[Held-04:00-04:30]",
+              "status": "passed"
+            },
+            {
+              "class": "tests.test_maintenance_buffers_acceptance",
+              "name": "test_database_itself_refuses_buffer_only_maintenance[Confirmed-01:45-02:00]",
+              "status": "passed"
+            },
+            {
+              "class": "tests.test_maintenance_buffers_acceptance",
+              "name": "test_database_itself_refuses_buffer_only_maintenance[Confirmed-04:00-04:30]",
+              "status": "passed"
+            }
+          ]
+        },
+        {
+          "lane": "backend",
+          "path": "api/tests/test_maintenance_buffers_acceptance.py",
+          "test": "test_new_block_flags_existing_booking_notifies_and_preserves_event",
+          "status": "passed",
+          "cases": [
+            {
+              "class": "tests.test_maintenance_buffers_acceptance",
+              "name": "test_new_block_flags_existing_booking_notifies_and_preserves_event[01:45-02:00]",
+              "status": "passed"
+            },
+            {
+              "class": "tests.test_maintenance_buffers_acceptance",
+              "name": "test_new_block_flags_existing_booking_notifies_and_preserves_event[04:00-04:30]",
+              "status": "passed"
+            }
+          ]
+        },
+        {
+          "lane": "backend",
+          "path": "api/tests/test_maintenance_buffers_acceptance.py",
+          "test": "test_block_touching_occupied_boundary_has_no_affected_ids_or_notices",
+          "status": "passed",
+          "cases": [
+            {
+              "class": "tests.test_maintenance_buffers_acceptance",
+              "name": "test_block_touching_occupied_boundary_has_no_affected_ids_or_notices[01:00-01:30]",
+              "status": "passed"
+            },
+            {
+              "class": "tests.test_maintenance_buffers_acceptance",
+              "name": "test_block_touching_occupied_boundary_has_no_affected_ids_or_notices[04:45-05:00]",
+              "status": "passed"
+            }
+          ]
+        },
+        {
+          "lane": "backend",
+          "path": "api/tests/test_maintenance_buffers_acceptance.py",
+          "test": "test_edit_into_buffer_only_maintenance_is_atomic",
+          "status": "passed",
+          "cases": [
+            {
+              "class": "tests.test_maintenance_buffers_acceptance",
+              "name": "test_edit_into_buffer_only_maintenance_is_atomic",
+              "status": "passed"
+            }
+          ]
+        },
+        {
+          "lane": "backend",
+          "path": "api/tests/test_maintenance_buffers_acceptance.py",
+          "test": "test_each_affected_event_is_named_in_coordinators_summary",
+          "status": "passed",
+          "cases": [
+            {
+              "class": "tests.test_maintenance_buffers_acceptance",
+              "name": "test_each_affected_event_is_named_in_coordinators_summary",
+              "status": "passed"
+            }
+          ]
+        },
+        {
+          "lane": "integrated",
+          "path": "frontend/integration/release-exits.spec.ts",
+          "test": "-only maintenance notifies and supports a replacement",
+          "status": "passed",
+          "cases": [
+            {
+              "class": "release-exits.spec.ts",
+              "name": "INTEGRATED-R5 setup-only maintenance notifies and supports a replacement",
+              "status": "passed"
+            },
+            {
+              "class": "release-exits.spec.ts",
+              "name": "INTEGRATED-R5 turnaround-only maintenance notifies and supports a replacement",
+              "status": "passed"
+            }
+          ]
         }
       ],
       "gaps": [
-        "SCRUM-60 is now implemented with blocks, affected-booking notices, search/calendar integration and a replacement link. The mapped API tests use controlled persistence and the browser test mocks HTTP; a real DB block-to-notification-to-replacement journey and competing-write/rollback evidence are still needed."
+        "Audit A3 (3 November 2026): increasing buffers can introduce a conflict with pre-existing maintenance without identifying/notifying affected existing bookings. The buffer-change report currently compares bookings only.",
+        "Block creation and coordinator notifications use separate writes (D66). Persistence-failure recovery remains a documented limitation; concurrency enforcement does not prove atomic notification delivery."
       ],
-      "sql": [],
+      "sql": [
+        "supabase/tests/maintenance_concurrency.sh"
+      ],
       "mapped_checks_passed": true,
       "acceptance": "gap recorded"
     },
@@ -2440,6 +2931,37 @@
               "status": "passed"
             }
           ]
+        },
+        {
+          "lane": "browser",
+          "path": "frontend/e2e/booking-edit-release.spec.ts",
+          "test": "Coordinator changes one Requested booking and the changes survive reopening",
+          "status": "passed",
+          "cases": [
+            {
+              "class": "booking-edit-release.spec.ts",
+              "name": "Coordinator changes one Requested booking and the changes survive reopening",
+              "status": "passed"
+            }
+          ]
+        },
+        {
+          "lane": "browser",
+          "path": "frontend/e2e/booking-edit-release.spec.ts",
+          "test": "direct edit URL is read-only",
+          "status": "passed",
+          "cases": [
+            {
+              "class": "booking-edit-release.spec.ts",
+              "name": "direct edit URL is read-only for Confirmed booking owned by 2",
+              "status": "passed"
+            },
+            {
+              "class": "booking-edit-release.spec.ts",
+              "name": "direct edit URL is read-only for Requested booking owned by 7",
+              "status": "passed"
+            }
+          ]
         }
       ],
       "gaps": [],
@@ -2484,13 +3006,54 @@
               "status": "passed"
             }
           ]
+        },
+        {
+          "lane": "backend",
+          "path": "api/tests/test_venue_hold_expiry.py",
+          "test": "test_the_deadline_is_inclusive",
+          "status": "passed",
+          "cases": [
+            {
+              "class": "tests.test_venue_hold_expiry",
+              "name": "test_the_deadline_is_inclusive",
+              "status": "passed"
+            }
+          ]
+        },
+        {
+          "lane": "backend",
+          "path": "api/tests/test_venue_hold_expiry.py",
+          "test": "test_the_sweep_releases_the_slot_and_notifies_the_current_coordinator",
+          "status": "passed",
+          "cases": [
+            {
+              "class": "tests.test_venue_hold_expiry",
+              "name": "test_the_sweep_releases_the_slot_and_notifies_the_current_coordinator",
+              "status": "passed"
+            }
+          ]
+        },
+        {
+          "lane": "backend",
+          "path": "api/tests/test_venue_hold_expiry.py",
+          "test": "test_a_failed_notice_does_not_abandon_the_remaining_releases",
+          "status": "passed",
+          "cases": [
+            {
+              "class": "tests.test_venue_hold_expiry",
+              "name": "test_a_failed_notice_does_not_abandon_the_remaining_releases",
+              "status": "passed"
+            }
+          ]
         }
       ],
       "gaps": [
-        "Expiry exists in the value object and expires_at storage, but no automatic release/notification worker or equivalent persisted expiry workflow is established. SQL raw status constraints still need expiry/concurrency parity review."
+        "Audit A1 (3 November 2026): an Expired historical hold is treated as pending by event confirmation, so even an approved replacement cannot unblock confirmation. Add an integrated expiry-to-replacement-to-confirmation regression after fixing the gate.",
+        "Expiry uses an opportunistic application sweep and a database trigger (D58), not a scheduler. Sweep notice tests use controlled dependencies; trigger-only releases and notification failures do not establish reliable persisted notice delivery."
       ],
       "sql": [
-        "supabase/tests/venue_holds.sql"
+        "supabase/tests/venue_holds.sql",
+        "supabase/tests/venue_hold_release.sql"
       ],
       "mapped_checks_passed": true,
       "acceptance": "gap recorded"
@@ -2544,10 +3107,24 @@
               "status": "passed"
             }
           ]
+        },
+        {
+          "lane": "integrated",
+          "path": "frontend/integration/release-exits.spec.ts",
+          "test": "INTEGRATED-09",
+          "status": "passed",
+          "cases": [
+            {
+              "class": "release-exits.spec.ts",
+              "name": "INTEGRATED-09 Lead reassignment removes the old Coordinator's action access",
+              "status": "passed"
+            }
+          ]
         }
       ],
       "gaps": [
-        "Week 7 original own-events wording and later SCRUM-54 view-all decision require final owner acceptance of D28; list visibility must not be presented as edit permission."
+        "Week 7 original own-events wording and later SCRUM-54 view-all decision require final owner acceptance of D28; list visibility must not be presented as edit permission.",
+        "PR #101 leaves Lead access to booking records unresolved. Direct booking read/change/cancel endpoints exclude the Lead; widening access requires an explicit owner decision and authorization review."
       ],
       "sql": [
         "supabase/tests/coordinator_assignment.sql"
@@ -2619,15 +3196,25 @@
           ]
         }
       ],
-      "gaps": [],
+      "gaps": [
+        "Audit A2 (3 November 2026): cancelling the only confirmed venue booking leaves the event Confirmed and the safety endpoint can approve Preparation without rechecking current resources.",
+        "SCRUM-128 requires emergency access, crowd movement, restrictions and equipment placement information. Current UI prompts and catalogue equipment location do not establish event-specific detail; owner acceptance or additional implementation remains required."
+      ],
       "sql": [
         "supabase/tests/safety_officer.sql"
       ],
       "mapped_checks_passed": true,
-      "acceptance": "human acceptance pending"
+      "acceptance": "gap recorded"
     }
   ],
-  "revision": "6c029691be44199afd0b551d9c264f1872c1d791",
-  "source_sha256": "afe37a8de4e34cf122f39e06c6f63ff999acb769cc292a3a553de7d86f36968d",
-  "working_tree_dirty": true
+  "revision": "9b7973b24e037b6bd96faf47742561594370ce36",
+  "source_sha256": "9d508e0dc247feba98d152afdefd532ad7236c47cc76d46e4cf05f9e0aef17a4",
+  "working_tree_dirty": true,
+  "evidence_provenance": {
+    "kind": "reassembled_existing_ci_results",
+    "run_id": 41573118557,
+    "tested_revision": "9b7973b24e037b6bd96faf47742561594370ce36",
+    "fresh_execution": false,
+    "details": "execution.json; documentation mappings changed, application/test code unchanged; final post-fix release gate pending"
+  }
 }
