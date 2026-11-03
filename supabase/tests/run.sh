@@ -250,3 +250,10 @@ for pass in 1 2; do
   psql -v ON_ERROR_STOP=1 -f /sql/migrations/20261103090000_scrum_166_reschedule_returns_to_planning.sql > /tmp/migration-output.txt
   echo "Reschedule returns to Planning migration pass $pass: PASS"
 done
+
+# SCRUM-169: maintenance must cover physical occupation, with replay-safe deployment.
+for pass in 1 2; do
+  psql -v ON_ERROR_STOP=1 -f /sql/migrations/20261102174539_scrum_169_maintenance_occupied_windows.sql > /tmp/migration-output.txt
+  echo "Maintenance occupied-window migration pass $pass: PASS"
+done
+sh /sql/tests/maintenance_concurrency.sh

@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState, type FormEvent } from "react";
+import { useEffect, useRef, useState, type FormEvent } from "react";
 import { ChevronDown } from "lucide-react";
 import { ApiError, apiRequest } from "@/lib/api";
 import type { CoordinatorEventRecord } from "@/lib/events";
@@ -57,6 +57,8 @@ export default function NewBookingPage() {
   const [startAt, setStartAt] = useState("");
   const [endAt, setEndAt] = useState("");
   const [error, setError] = useState("");
+  const [submissionCount, setSubmissionCount] = useState(0);
+  const submissionError = useRef<HTMLParagraphElement>(null);
   const [fields, setFields] = useState<Record<string, string>>({});
   const [saved, setSaved] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -136,6 +138,13 @@ export default function NewBookingPage() {
     return () => controller.abort();
   }, [selectedEventId, selectedVenueId]);
 
+  useEffect(() => {
+    if (error && submissionCount > 0) {
+      submissionError.current?.focus({ preventScroll: true });
+      submissionError.current?.scrollIntoView?.({ block: "nearest" });
+    }
+  }, [error, submissionCount]);
+
   function onEventChange(eventId: string) {
     setSelectedEventId(eventId);
     setSuitability(null);
@@ -163,6 +172,7 @@ export default function NewBookingPage() {
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    setSubmissionCount((count) => count + 1);
     setBusy(true);
     setError("");
     setFields({});
@@ -265,7 +275,7 @@ export default function NewBookingPage() {
           </section>
         ) : (
           <form onSubmit={submit} className="space-y-5 rounded-2xl border border-border bg-card p-5 shadow-sm sm:p-7">
-            {error && <p role="alert" className="rounded-md border border-destructive/30 bg-destructive/5 p-3 text-sm text-destructive">{error}</p>}
+            {error && submissionCount === 0 && <p role="alert" className="rounded-md border border-destructive/30 bg-destructive/5 p-3 text-sm text-destructive">{error}</p>}
             {events.length === 0 && (
               <p className="rounded-md border border-amber-500/30 bg-amber-500/5 p-3 text-sm text-amber-700 dark:text-amber-400">
                 No events are in Planning yet. A Coordinator must approve an event request before a venue can be booked for it.
@@ -344,8 +354,14 @@ export default function NewBookingPage() {
               {accessibilityOtherEnabled && <OtherValuesInput id="other-accessibility-features" label="Other accessibility features" value={accessibilityOther} onChange={setAccessibilityOther} placeholder="Enter one or more features separated by commas" />}
             </fieldset>
 
+            {error && submissionCount > 0 && (
+              <p id="booking-submit-error" ref={submissionError} role="alert" tabIndex={-1}
+                className="scroll-m-4 rounded-md border border-destructive/30 bg-destructive/5 p-3 text-sm text-destructive outline-none focus-visible:ring-2 focus-visible:ring-ring">
+                {error}
+              </p>
+            )}
             <div className="flex flex-wrap gap-3">
-              <button type="submit" disabled={busy} className="rounded-md bg-primary px-5 py-3 text-sm font-semibold text-primary-foreground disabled:opacity-50">{busy ? "Submitting..." : "Submit booking request"}</button>
+              <button type="submit" disabled={busy} aria-describedby={error && submissionCount > 0 ? "booking-submit-error" : undefined} className="rounded-md bg-primary px-5 py-3 text-sm font-semibold text-primary-foreground disabled:opacity-50">{busy ? "Submitting..." : "Submit booking request"}</button>
               <Link href="/venues" className="rounded-md border border-border px-5 py-3 text-sm">Cancel</Link>
             </div>
           </form>

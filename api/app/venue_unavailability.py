@@ -2,6 +2,8 @@
 
 from datetime import datetime
 
+from .venue_overlap import BookingInterval
+
 REASONS = {
     "Maintenance",
     "Renovation",
@@ -11,6 +13,16 @@ REASONS = {
     "Internal activity",
 }
 ACTIVE_BOOKING_STATUSES = {"Requested", "Pending", "Held", "Confirmed"}
+
+
+def occupied_window(start_at: str, end_at: str, venue: dict) -> tuple[str, str]:
+    """The proposed event's physical occupation; maintenance itself has no buffers."""
+    interval = BookingInterval.from_record({
+        "venue_id": venue["id"], "start_at": start_at, "end_at": end_at,
+        "status": "Requested",
+    }, int(venue.get("setup_time_minutes") or 0),
+        int(venue.get("turnaround_time_minutes") or 0))
+    return interval.occupied_start.isoformat(), interval.occupied_end.isoformat()
 
 
 def parse_timestamp(value: object, field: str) -> tuple[str | None, str | None]:

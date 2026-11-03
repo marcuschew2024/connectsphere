@@ -54,8 +54,8 @@ export function hourWindow(hours: OpeningHours): { startHour: number; endHour: n
 
 /**
  * Classify one 1-hour cell of the week grid.
- * Precedence: outside operating hours -> unavailable; else a confirmed booking wins over a
- * pending one; else available.
+ * Precedence: outside hours -> unavailable; maintenance -> blocked; confirmed ->
+ * confirmed; live tentative -> tentative; otherwise available.
  */
 export function classifyCell(
   dayIndex: number,
@@ -75,17 +75,17 @@ export function classifyCell(
   if (cellStartMin < openMin || cellEndMin > closeMin) return "unavailable"; // outside hours
 
   let tentative = false;
-  let blocked = false;
+  let confirmed = false;
   for (const b of bookings) {
     const bStartMin = (Date.parse(b.occupied_start ?? b.start_at) - weekStart) / 60000;
     const bEndMin = (Date.parse(b.occupied_end ?? b.end_at) - weekStart) / 60000;
     const overlaps = bStartMin < cellEndMin && cellStartMin < bEndMin; // half-open
     if (!overlaps) continue;
-    if (b.status === "Confirmed") return "confirmed"; // confirmed wins outright
-    if (b.status === "Blocked") blocked = true;
+    if (b.status === "Blocked") return "blocked"; // an outage remains visible over bookings
+    if (b.status === "Confirmed") confirmed = true;
     else if (b.status === "Requested" || b.status === "Pending" || b.status === "Held") tentative = true;
   }
-  if (blocked) return "blocked";
+  if (confirmed) return "confirmed";
   return tentative ? "tentative" : "available";
 }
 

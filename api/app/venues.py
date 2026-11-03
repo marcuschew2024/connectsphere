@@ -251,18 +251,22 @@ def block_venue(venue_id):
         raise Conflict("The venue is already blocked during this time period.")
     block = create_unavailability(venue_id, fields, user["id"])
     bookings = find_affected_bookings(venue_id, fields["start_at"], fields["end_at"])
-    notified = set()
+    affected_by_coordinator = {}
     for booking in bookings:
         event = booking.get("event") or {}
         recipient_id = event.get("coordinator_id") or booking.get("requested_by")
-        if recipient_id in notified or not recipient_id:
+        if not recipient_id:
             continue
-        notified.add(recipient_id)
+        affected_by_coordinator.setdefault(recipient_id, {})[booking["event_id"]] = (
+            event.get("title", "this event")
+        )
+    for recipient_id, affected_events in affected_by_coordinator.items():
+        titles = ", ".join(f'"{title}"' for title in affected_events.values())
         create_notification(
             recipient_id,
-            booking["event_id"],
+            next(iter(affected_events)),
             "venue_unavailable",
-            f'The venue arrangement for "{event.get("title", "this event")}" '
+            f'The venue arrangement for {titles} '
             f"is affected by a {fields['reason'].lower()} block from {fields['start_at']} "
             f"to {fields['end_at']}. Search for and request an alternative venue.",
         )
