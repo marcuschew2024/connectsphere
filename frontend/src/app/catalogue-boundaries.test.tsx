@@ -167,6 +167,23 @@ it("a save with no buffer conflicts shows no conflict report", async () => {
   await screen.findByRole("status");
   expect(screen.queryByRole("region", { name: /now conflict/i })).toBeNull();
 });
+// SCRUM-172 / audit A3: a buffer change that pushes a booking into maintenance is reported too.
+it("raising a buffer into maintenance reports the overlap without claiming anything changed", async () => {
+  const conflict = {
+    booking_id: "booking-a", event_id: "event-a", event_title: "Science Fair", status: "Confirmed",
+    start_at: "2099-10-20T04:00:00Z", end_at: "2099-10-20T06:00:00Z",
+    occupied_start: "2099-10-20T04:00:00Z", occupied_end: "2099-10-20T06:45:00Z",
+    reason: "Booking occupies ... overlapping 1 maintenance block(s).",
+    maintenance_blocks: [{ id: "m1", start_at: "2099-10-20T06:00:00Z", end_at: "2099-10-20T08:00:00Z", reason: "Repairs", note: null }],
+  };
+  api.mockResolvedValue({ venue: venueRecord, maintenance_conflicts: [conflict] });
+  render(<VenueForm venue={venueRecord} />);
+  fireEvent.submit(screen.getByRole("button", { name: "Save changes" }).closest("form")!);
+  const panel = await screen.findByRole("region", { name: /overlap maintenance/i });
+  expect(panel.textContent).toContain("Science Fair");
+  expect(panel.textContent).toContain("Overlaps maintenance");
+  expect(panel.textContent).toContain("Nothing has been changed or cancelled");
+});
 it("a single conflict with unnamed events still reads as one reviewable clash", async () => {
   const slot = { booking_id: "booking-b", event_id: null, event_title: null, status: "Requested", start_at: "2099-10-20T04:00:00Z", end_at: "2099-10-20T06:00:00Z", occupied_start: "2099-10-20T03:30:00Z", occupied_end: "2099-10-20T06:45:00Z" };
   api.mockResolvedValue({ venue: venueRecord, buffer_conflicts: [{ ...slot, booking_id: "booking-a", event_title: null, reason: "because", conflicts_with: [slot] }] });

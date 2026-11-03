@@ -15,7 +15,8 @@ the two from disagreeing. See Decision Log D60.
 """
 
 from .booking_repository import list_active_bookings_for_venue
-from .venue_overlap import BookingInterval, OverlapEngine
+from .venue_overlap import BookingInterval, OverlapEngine, _as_utc
+from .venue_unavailability_repository import list_unavailability
 
 
 def _slot(record: dict, setup_minutes: int, turnaround_minutes: int) -> dict:
@@ -71,3 +72,61 @@ def buffers_changed(before: dict, after: dict) -> bool:
         int(before.get(field) or 0) != int(after.get(field) or 0)
         for field in ("setup_time_minutes", "turnaround_time_minutes")
     )
+
+
+def _maintenance_slot(block: dict) -> dict:
+    """Shape one active maintenance block for the conflict report."""
+    return {
+        "id": block.get("id"),
+        "start_at": block.get("start_at"),
+        "end_at": block.get("end_at"),
+        "reason": block.get("reason"),
+        "note": block.get("note"),
+    }
+
+
+def maintenance_conflict_report(venue: dict) -> list[dict]:
+    """Bookings a venue's buffer change pushed into an active maintenance block (audit A3).
+
+    R5/SCRUM-169 keeps occupied windows consistent when a booking or block is *created*. A
+    buffer change instead edits existing bookings' occupied windows in place (SCRUM-129/137),
+    so raising a buffer can slide a booking that merely touched a maintenance block into
+    overlapping it. The booking-vs-booking report above never looks at maintenance, so that
+    clash went unreported. Those bookings are identified and flagged (Week 7 #1: identify,
+    don't remove) - nothing here mutates, cancels or rejects anything.
+
+    Only NEW overlaps are reported: a booking that already overlapped the block on its raw
+    published times is not a consequence of the buffer change. Maintenance blocks occupy their
+    exact window (no buffers of their own), so the booking's buffered occupied interval is
+    compared against the block's raw window.
+    """
+    setup_minutes = max(0, int(venue.get("setup_time_minutes") or 0))
+    turnaround_minutes = max(0, int(venue.get("turnaround_time_minutes") or 0))
+    if not setup_minutes and not turnaround_minutes:
+        return []
+    blocks = list_unavailability(str(venue["id"]))
+    if not blocks:
+        return []
+    windows = [(block, _as_utc(block["start_at"]), _as_utc(block["end_at"])) for block in blocks]
+    findings: list[dict] = []
+    for record in list_active_bookings_for_venue(str(venue["id"])):
+        raw = BookingInterval.from_record(record, 0, 0)
+        # An expired tentative hold no longer occupies the room (SCRUM-79).
+        if raw.status in OverlapEngine.TENTATIVE_STATUSES and raw.is_expired():
+            continue
+        buffered = BookingInterval.from_record(record, setup_minutes, turnaround_minutes)
+        clashing = [
+            block for block, b_start, b_end in windows
+            if not raw.overlaps_published(b_start, b_end) and buffered.overlaps(b_start, b_end)
+        ]
+        if clashing:
+            findings.append({
+                **_slot(record, setup_minutes, turnaround_minutes),
+                "reason": (
+                    f"Booking occupies {buffered.occupied_start.isoformat()} to "
+                    f"{buffered.occupied_end.isoformat()} with buffers, overlapping "
+                    f"{len(clashing)} maintenance block(s)."
+                ),
+                "maintenance_blocks": [_maintenance_slot(block) for block in clashing],
+            })
+    return findings

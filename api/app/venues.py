@@ -15,7 +15,11 @@ from .auth import get_authenticated_user
 from .booking_repository import list_venue_bookings_in_range
 from .event_repository import create_notification, get_event_by_id
 from .rbac import require_role
-from .venue_buffer_conflicts import buffer_conflict_report, buffers_changed
+from .venue_buffer_conflicts import (
+    buffer_conflict_report,
+    buffers_changed,
+    maintenance_conflict_report,
+)
 from .venue_hold_expiry import release_expired_holds
 from .venue_repository import (
     create_venue,
@@ -112,6 +116,32 @@ def _notify_affected_coordinators(venue: dict, report: list[dict]) -> None:
         )
 
 
+def _notify_maintenance_conflicts(venue: dict, report: list[dict]) -> None:
+    """Notify each coordinator whose booking a buffer change pushed into maintenance (audit A3).
+
+    Mirrors _notify_affected_coordinators, but the clash is with scheduled maintenance rather
+    than another booking, so the message says so. One deduped notice per affected coordinator.
+    Never mutates a booking.
+    """
+    notified: set = set()
+    for entry in report:
+        event_id = entry.get("event_id")
+        if not event_id:
+            continue
+        coordinator_id = (get_event_by_id(event_id) or {}).get("coordinator_id")
+        if not coordinator_id or coordinator_id in notified:
+            continue
+        notified.add(coordinator_id)
+        create_notification(
+            coordinator_id,
+            event_id,
+            "venue_maintenance_conflict",
+            f'A setup/turnaround change at "{venue.get("name", "a venue")}" now makes the '
+            f'booking for "{entry.get("event_title", "your event")}" overlap scheduled '
+            f"maintenance. Review the booking and change or cancel it if needed.",
+        )
+
+
 @venues.put("/<uuid:venue_id>")
 def edit_venue(venue_id):
     user = _require_user("Venue Staff")
@@ -143,6 +173,12 @@ def edit_venue(venue_id):
         # SCRUM-167: Venue Staff see the report; the coordinators who own the now-conflicting
         # bookings are the ones who must act, so notify them too (mirrors block_venue).
         _notify_affected_coordinators(saved, report)
+        # SCRUM-172 (audit A3): the same buffer raise can push a booking into an active
+        # maintenance block, which the booking-vs-booking report never checks. Flag those and
+        # notify their coordinators too, on the same identify-don't-remove footing.
+        maintenance = maintenance_conflict_report(saved)
+        body["maintenance_conflicts"] = maintenance
+        _notify_maintenance_conflicts(saved, maintenance)
     return jsonify(body), 200
 
 

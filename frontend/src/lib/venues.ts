@@ -50,6 +50,25 @@ export type BufferConflict = BufferConflictSlot & {
   conflicts_with: BufferConflictSlot[];
 };
 
+// SCRUM-172 / audit A3: a buffer change can also push a booking into an active maintenance block.
+export type MaintenanceBlock = {
+  id: string | null;
+  start_at: string;
+  end_at: string;
+  reason?: string | null;
+  note?: string | null;
+};
+
+export type MaintenanceConflict = BufferConflictSlot & {
+  reason: string;
+  maintenance_blocks: MaintenanceBlock[];
+};
+
+/** Heading for the maintenance-conflict report. */
+export function maintenanceConflictCountLabel(count: number): string {
+  return `${count} ${count === 1 ? "booking" : "bookings"} now overlap maintenance`;
+}
+
 /** Heading for the conflict report, e.g. "2 existing bookings now conflict". */
 export function conflictCountLabel(count: number): string {
   return `${count} existing ${count === 1 ? "booking" : "bookings"} now conflict`;

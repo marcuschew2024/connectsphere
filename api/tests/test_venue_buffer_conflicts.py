@@ -9,7 +9,12 @@ from datetime import UTC, datetime, timedelta
 
 import pytest
 
-from app.venue_buffer_conflicts import buffer_conflict_report, buffers_changed, summarise
+from app.venue_buffer_conflicts import (
+    buffer_conflict_report,
+    buffers_changed,
+    maintenance_conflict_report,
+    summarise,
+)
 from app.venue_overlap import OverlapEngine
 
 from .conftest import ORIGIN, select_user
@@ -142,6 +147,92 @@ def test_the_pure_engine_is_the_detector(bookings):
     assert len(findings) == len(buffer_conflict_report(venue(turnaround=45)))
 
 
+# --- SCRUM-172 / audit A3: a buffer change can push a booking into maintenance -----------
+
+
+def block(block_id, start_offset_hours, end_offset_hours, *, reason="Repairs"):
+    start = START + timedelta(hours=start_offset_hours)
+    end = START + timedelta(hours=end_offset_hours)
+    return {
+        "id": block_id, "venue_id": VENUE_ID, "status": "Active", "reason": reason, "note": None,
+        "start_at": start.isoformat(), "end_at": end.isoformat(),
+    }
+
+
+@pytest.fixture
+def blocks(monkeypatch):
+    rows = []
+    monkeypatch.setattr(
+        "app.venue_buffer_conflicts.list_unavailability", lambda venue_id, *a, **k: rows,
+    )
+    return rows
+
+
+def test_increasing_setup_pushes_a_booking_into_a_preceding_maintenance_block(bookings, blocks):
+    """The audit's example: maintenance ends at the booking's start; adding setup overlaps it."""
+    bookings.append(slot("a", 0, title="Science Fair"))  # booked 10:00-12:00
+    blocks.append(block("m1", -2, 0))  # maintenance 08:00-10:00, merely touching at 10:00
+
+    assert maintenance_conflict_report(venue()) == [], "no buffers, no maintenance conflict"
+
+    report = maintenance_conflict_report(venue(setup=30))  # occupied now starts 09:30
+
+    assert len(report) == 1
+    assert report[0]["event_title"] == "Science Fair"
+    assert [b["id"] for b in report[0]["maintenance_blocks"]] == ["m1"]
+    assert "maintenance block(s)" in report[0]["reason"]
+
+
+def test_increasing_turnaround_pushes_a_booking_into_a_following_maintenance_block(
+    bookings, blocks
+):
+    bookings.append(slot("a", 0))  # booked 10:00-12:00
+    blocks.append(block("m1", 2, 4))  # maintenance 12:00-14:00, touching at 12:00
+
+    report = maintenance_conflict_report(venue(turnaround=30))  # occupied now ends 12:30
+
+    assert len(report) == 1
+    assert [b["id"] for b in report[0]["maintenance_blocks"]] == ["m1"]
+
+
+def test_an_exact_touching_boundary_is_not_a_maintenance_conflict(bookings, blocks):
+    """Half-open windows: the buffered occupied edge meeting the block edge does not overlap."""
+    bookings.append(slot("a", 0))  # booked 10:00-12:00
+    blocks.append(block("m1", -2, -0.5))  # 08:00-09:30; setup of 30 min lands occupied at 09:30
+
+    assert maintenance_conflict_report(venue(setup=30)) == []
+
+
+def test_a_booking_already_inside_maintenance_is_not_blamed_on_the_buffer_change(
+    bookings, blocks
+):
+    """Only new overlaps belong here; a raw-time overlap is a pre-existing problem."""
+    bookings.append(slot("a", 0))  # booked 10:00-12:00
+    blocks.append(block("m1", 1, 3))  # 11:00-13:00 already overlaps the raw booking
+
+    assert maintenance_conflict_report(venue(setup=30, turnaround=30)) == []
+
+
+def test_reducing_buffers_clears_the_maintenance_conflict_and_writes_nothing(bookings, blocks):
+    bookings.append(slot("a", 0))
+    blocks.append(block("m1", -2, 0))
+    before_bookings = [dict(row) for row in bookings]
+    before_blocks = [dict(row) for row in blocks]
+
+    assert maintenance_conflict_report(venue()) == []  # buffers back to zero: no conflict
+    assert bookings == before_bookings and blocks == before_blocks  # identify, never mutate
+
+
+def test_an_expired_hold_is_not_pushed_into_maintenance(bookings, blocks):
+    """An expired tentative hold no longer occupies the room, so it cannot clash (SCRUM-79)."""
+    expired = {**slot("a", 0, status="Held"),
+               "expires_at": datetime(2020, 1, 1, tzinfo=UTC).isoformat()}  # lapsed before now
+    bookings.append(expired)
+    blocks.append(block("m1", -2, 0))
+
+    assert maintenance_conflict_report(venue(setup=30)) == []
+
+
 # --- the routes ---------------------------------------------------------------
 
 
@@ -219,6 +310,11 @@ def editing_api(app, monkeypatch, bookings):
         "app.venues.get_event_by_id", lambda event_id: {"id": event_id, "coordinator_id": 2}
     )
     monkeypatch.setattr("app.venues.create_notification", lambda *a, **k: None)
+    # SCRUM-172: the save also scans active maintenance blocks; default to none so the existing
+    # AC3 assertions stay focused on booking-vs-booking conflicts.
+    monkeypatch.setattr(
+        "app.venue_buffer_conflicts.list_unavailability", lambda venue_id, *a, **k: [],
+    )
     client = app.test_client()
     select_user(client, 3)
     return client
@@ -241,6 +337,35 @@ def test_raising_a_buffer_reports_the_bookings_it_broke(editing_api, bookings):
     assert all(row["status"] in {"Confirmed", "Held"} for row in bookings), (
         "AC3: no booking is removed or rewritten to fit the new buffers"
     )
+
+
+def test_raising_a_buffer_into_maintenance_reports_it_and_notifies_the_coordinator(
+    editing_api, bookings, monkeypatch
+):
+    """SCRUM-172 / audit A3: the raise slides a booking into an active maintenance block, so it
+    is surfaced in maintenance_conflicts and the booking's coordinator is notified."""
+    bookings.append(slot("a", 0, title="Science Fair"))  # booked 10:00-12:00
+    monkeypatch.setattr(
+        "app.venue_buffer_conflicts.list_unavailability",
+        lambda venue_id, *a, **k: [block("m1", 2, 3)],  # maintenance 12:00-13:00, touching at 12:00
+    )
+    sent = []
+    monkeypatch.setattr("app.venues.create_notification", lambda *args: sent.append(args))
+
+    response = editing_api.put(
+        f"/venues/{VENUE_ID}",
+        json=editable_fields(turnaround_time_minutes=45),  # occupied now ends 12:45
+        headers=ORIGIN,
+    )
+
+    assert response.status_code == 200
+    maintenance = response.json["maintenance_conflicts"]
+    assert len(maintenance) == 1
+    assert maintenance[0]["event_title"] == "Science Fair"
+    assert [b["id"] for b in maintenance[0]["maintenance_blocks"]] == ["m1"]
+    # The booking's current coordinator (2) gets a maintenance-specific notice.
+    assert [args for args in sent if args[2] == "venue_maintenance_conflict"], sent
+    assert all(row["status"] == "Confirmed" for row in bookings), "identify, never mutate"
 
 
 def test_a_save_that_leaves_the_buffers_alone_reports_nothing(editing_api, bookings, monkeypatch):
