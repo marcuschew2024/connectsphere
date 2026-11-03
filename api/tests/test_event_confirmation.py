@@ -83,6 +83,34 @@ def test_only_cancelled_bookings_still_requires_an_approved_venue():
     assert gate.outstanding == ["No venue has been booked and approved yet."]
 
 
+# --- Expired holds are lapsed history, not a block (SCRUM-170 / audit A1) ---
+
+def test_expired_hold_does_not_block_when_a_replacement_is_approved():
+    # A1 core: an old expired hold must not keep an otherwise-ready event from
+    # confirming once a replacement venue is approved.
+    gate = EventConfirmation.from_bookings([
+        {"status": "Expired"}, {"status": "Confirmed"},
+    ])
+    assert gate.can_confirm is True
+    assert gate.outstanding == []
+
+
+def test_only_expired_bookings_still_requires_an_approved_venue():
+    # Expired is settled, but the event still needs an approved venue: an event
+    # whose only hold expired cannot confirm.
+    gate = EventConfirmation(["Expired"])
+    assert gate.can_confirm is False
+    assert gate.outstanding == ["No venue has been booked and approved yet."]
+
+
+def test_live_held_hold_still_blocks_confirmation():
+    # The companion guard to A1: a still-live Held hold is pending, not settled,
+    # so it must keep blocking even though an expired one no longer does.
+    gate = EventConfirmation(["Confirmed", "Held"])
+    assert gate.can_confirm is False
+    assert any("awaiting approval" in reason for reason in gate.outstanding)
+
+
 # --- AC1 technical-arrangements seam (equipment, SCRUM-37, plugs in here) ---
 
 def test_unresolved_technical_arrangements_block_confirmation():
