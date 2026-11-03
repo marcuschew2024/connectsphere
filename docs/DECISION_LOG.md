@@ -29,7 +29,7 @@ reviewer) can understand *why* the system is built the way it is, not just *what
   frontend unit tests, and Playwright workflows for create/edit/resubmit/booking.
 - **Trade-off:** an additional schema column and one-time migration replace heuristic
   classification and avoid repeated misclassification.
-- **Owner:** SCRUM-158 implementer / project owner to assign before merge.
+- **Owner:** Jessica Ang (SCRUM-158).
 
 ## AI usage policy
 
@@ -63,7 +63,7 @@ An at-a-glance summary of where AI was and was not used sits in the
 - **Constraints / guardrails.** Only Venue Staff may create or unblock periods. Database triggers prevent active bookings entering active blocks and prevent overlapping active blocks from being created. Existing venue booking rows and status transitions are not rewritten by the block operation.
 - **Verification.** Backend pure-rule and route tests cover validation, overlap notifications, permissions, listing, and unblock; Playwright covers the Staff UI.
 - **Trade-off.** The separate table adds an additional availability data source, but avoids destructive changes to confirmed booking history and lets blocks overlap independent maintenance reasons.
-- **Owner.** SCRUM-60 human team owner (to be named before merge).
+- **Owner.** Jessica Ang (SCRUM-60).
 
 ### D1 — DB-independent value objects as the domain spine
 - **Context.** Core business rules (decisions, gates, suitability, overlap) must be
@@ -2109,14 +2109,13 @@ auto-assign in D9) are recorded explicitly rather than left implicit.
   approach; the repository owner explicitly authorized push and merge on 3 November 2026.
   This does not claim an independent review beyond that authorization.
 
-### Pending Release 1 acceptance decisions — 3 November 2026
+### Release 1 acceptance decisions — resolved 3 November 2026
 
-These entries record the unresolved choices requested during release documentation
-cleanup. They are not approved deferrals, customer acceptance, or permission changes;
-the user's answer and accountable owner's review remain pending. Verification refers
-to current behavior, not acceptance of that behavior. See `docs/testing/release-closeout.md`.
+These entries were raised during release documentation cleanup and are now resolved by
+the Product Owner (Marcus Chew) for Release 1, with the accountable reviewer noted per
+item. See `docs/testing/release-closeout.md`.
 
-- **P1 — Lead bookings:** PR #101 leaves Lead booking read/change/cancel unresolved; proposed disposition is to defer expanding direct booking endpoints and retain current denial (separate from event-overview access); constraint: no new authorization without review; verified by endpoint role guards; trade-off: Lead cannot directly inspect/manage these bookings; accountable review: Ernest with Marcus; **pending confirmation**.
-- **P2 — Safety information:** SCRUM-128 asks for event-specific safety information that prompts/catalogue location do not establish; retain as an open release acceptance item rather than deferring a mandatory Week 7 requirement; verified against safety panels and AC; trade-off: release sign-off remains open until evidence or implementation resolves it; accountable review: Marcus with Jerome; **pending confirmation, not waived**.
-- **P3 — Advisory capacity:** SCRUM-29 advisory wording conflicts with booking's capacity rejection; proposed disposition is to defer changing the guard while reconciling the AC; constraint: no removal of protection without review; verified at booking validation; trade-off: some advisory selections cannot be submitted; accountable review: Jessica with Marcus; **pending confirmation**.
-- **P4 — Registration window:** registration currently requires Confirmed and closes at Preparation; proposed disposition is to defer changing that window until explicit acceptance or reviewed implementation; verified in registration rules; trade-off: safety approval closes signup before event start; accountable review: Jerome with Marcus; **pending confirmation**.
+- **P1 — Lead bookings (CONFIRMED — defer).** PR #101 left Lead booking read/change/cancel unresolved. Decision: retain the current denial; the Event Coordinator Lead oversees and reassigns events (and reads event overviews) but does not get direct booking read/change/cancel endpoints in R1. Constraint: no new authorization without review. Accountable reviewer: Ernest with Marcus (PO). Confirmed 2026-11-03.
+- **P2 — Safety information (CONFIRMED — meets AC by interpretation).** SCRUM-128 asks the safety review to *present* attendance, capacity, layout, emergency access, accessibility, equipment placement, crowd movement and known restrictions "for the Safety Officer to assess". Decision: the SCRUM-145 panels present all resourced, event-specific data (attendance, capacity, layout, accessibility and the event's own venues/equipment); emergency access, crowd movement and known venue restrictions are presented as on-site assessment prompts because R1 intentionally does not model them as structured venue data. Accepted as satisfying "present … to assess", not waived; capturing them as structured fields is a post-R1 enhancement. Accountable reviewer: Marcus (PO) with Jerome. Confirmed 2026-11-03.
+- **P3 — Advisory capacity (RESOLVED in code — SCRUM-174).** SCRUM-29's MoSCoW-Must AC states suitability flags "are advisory — they do not by themselves block a booking request; the Coordinator decides", and the Customer Brief asks only to "surface these relationships" (over-capacity being a significant change routed to re-request + notification, S1 Q7/Q11). The booking request/change previously hard-rejected `attendance > capacity`, contradicting that. Fix: the hard capacity reject is removed from the booking request and change paths; over-capacity is surfaced as a suitability advisory at venue selection and as each booking's `capacity_warning` (SCRUM-152), and the Coordinator decides. Double-booking overlaps remain hard-blocked (S1 Q1/Q17); attendee-registration capacity remains a hard limit. Accountable reviewer: Jessica with Marcus (PO). Resolved 2026-11-03.
+- **P4 — Registration window (CONFIRMED — compliant, no change).** SCRUM-40's Must AC is "Registration only for Confirmed events, while open, and while capacity remains." Registration opens while the event is Confirmed and closes when safety approval advances it to Preparation — i.e. exactly "only for Confirmed events". Preparation is the pre-event setup phase; no requirement keeps registration open into it or until the event starts. Decision: accepted as compliant, not a gap. Accountable reviewer: Jerome with Marcus (PO). Confirmed 2026-11-03.

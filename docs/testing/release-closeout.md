@@ -37,17 +37,18 @@ separate read confirmed both Cancelled statuses and **zero entries** in
 `problematic_venue_bookings`. This resolves the historical demo-data pair; it does
 not resolve the separate A2 safety-gate finding below or establish release acceptance.
 
-## Acceptance decisions awaiting confirmation
+## Acceptance decisions — resolved 3 November 2026
 
-These are proposed dispositions, not claims of customer or owner approval. See the
-pending-review entries at the end of the Decision Log.
+These four items were resolved by the Product Owner (Marcus Chew) for Release 1, each
+with the accountable reviewer noted. See the matching P1–P4 entries ("Release 1
+acceptance decisions — resolved 3 November 2026") at the end of the Decision Log.
 
-| Area | Current behavior and proposed disposition | Accountable review |
+| Area | Resolution | Accountable review |
 | --- | --- | --- |
-| Lead booking access | Direct booking endpoints exclude Lead read/change/cancel. Defer expansion; retain existing access until an explicit decision. Event overview access is separate. | Ernest with Marcus |
-| Safety information | Prompts/catalogue location do not prove event-specific emergency access, crowd movement, restrictions or equipment placement. Keep acceptance open; do not waive mandatory Week 7 safety requirements. | Marcus with Jerome |
-| Advisory capacity | Booking rejects attendance above capacity despite advisory wording in SCRUM-29. Retain the guard while reconciling the AC; do not claim acceptance from existing code alone. | Jessica with Marcus |
-| Registration window | Registration is available only in Confirmed and closes at Preparation. Retain current behavior pending explicit acceptance or a separately reviewed change. | Jerome with Marcus |
+| Lead booking access | **Confirmed — defer.** Retain the current denial: the Event Coordinator Lead oversees/reassigns events and reads event overviews but does not get direct booking read/change/cancel endpoints in R1. No new authorization without review. | Ernest with Marcus (PO) |
+| Safety information | **Confirmed — meets AC by interpretation.** The SCRUM-145 panels present all resourced, event-specific data; emergency access, crowd movement and known venue restrictions appear as on-site assessment prompts because R1 does not model them as structured venue data. Accepted as satisfying "present … to assess", not waived; structured capture is a post-R1 enhancement. | Marcus (PO) with Jerome |
+| Advisory capacity | **Resolved in code — SCRUM-174.** The hard `attendance > capacity` reject is removed from the booking request/change paths; over-capacity is surfaced as a suitability advisory and each booking's `capacity_warning` (SCRUM-152), and the Coordinator decides, matching SCRUM-29's advisory AC. Double-booking overlaps and attendee-registration capacity remain hard limits. | Jessica with Marcus (PO) |
+| Registration window | **Confirmed — compliant, no change.** Registration opens while the event is Confirmed and closes when safety approval advances it to Preparation — exactly SCRUM-40's "only for Confirmed events". No requirement keeps it open into Preparation. Accepted as compliant. | Jerome with Marcus (PO) |
 
 ## Evidence refresh
 
