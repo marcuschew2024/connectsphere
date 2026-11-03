@@ -9,7 +9,10 @@ Safety Officer demo user (id 6) to the app_users rows rather than editing the co
 """
 
 
+from datetime import datetime, timedelta
+
 import pytest
+from werkzeug.exceptions import ServiceUnavailable
 
 from .conftest import ORIGIN, select_user
 from .test_events import _seed_planning_event
@@ -214,6 +217,52 @@ def test_request_changes_still_works_without_a_valid_arrangement(
     assert response.status_code == 200
     assert response.json["event"]["status"] == "Planning"
     assert event_database[1].history[-1]["action"] == "safety_changes_requested"
+
+
+# --- SCRUM-175: the re-gate must be the SAME gate as confirm_event (incl. SCRUM-166 span) ---
+
+# A booking covering only the event's start hour (not its full start-end span) must not pass
+# safety approval: the re-gate now passes event_end, so the full-coverage check runs.
+def test_approval_refused_when_bookings_do_not_cover_the_full_event_span(
+    app, event_database, database, monkeypatch
+):
+    client = _as_safety_officer(app, database)
+    event = _seed_planning_event(event_database, status="Confirmed")  # 3h span (start .. start+3h)
+    start = datetime.fromisoformat(event["event_datetime"])
+    monkeypatch.setattr(
+        "app.events.list_bookings_for_event",
+        lambda event_id: [{
+            "status": "Confirmed",
+            "start_at": event["event_datetime"],
+            "end_at": (start + timedelta(hours=1)).isoformat(),  # covers only the first hour
+        }],
+    )
+
+    response = client.post(
+        f"/events/{event['id']}/safety-check", json={"decision": "approve"}, headers=ORIGIN
+    )
+
+    assert response.status_code == 409
+    assert event["status"] == "Planning"  # refused and returned to Planning
+    assert "returned to Planning" in response.json["error"]
+
+
+# SCRUM-175 / A4 parity: a failed audit-history write must not 500 an event that already moved.
+def test_approval_survives_a_failed_history_write(app, event_database, database, monkeypatch):
+    client = _as_safety_officer(app, database)
+    event = _seed_planning_event(event_database, status="Confirmed")
+    monkeypatch.setattr(
+        "app.events.add_status_history",
+        lambda *a, **k: (_ for _ in ()).throw(ServiceUnavailable("history down")),
+    )
+
+    response = client.post(
+        f"/events/{event['id']}/safety-check", json={"decision": "approve"}, headers=ORIGIN
+    )
+
+    assert response.status_code == 200
+    assert response.json["event"]["status"] == "Preparation"
+    assert event["status"] == "Preparation"  # persisted state agrees with the response
 
 
 # A Safety Officer can read a Confirmed event to review it, without being related to it.
