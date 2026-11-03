@@ -9,10 +9,28 @@ Safety Officer demo user (id 6) to the app_users rows rather than editing the co
 """
 
 
+import pytest
+
 from .conftest import ORIGIN, select_user
 from .test_events import _seed_planning_event
 
 pytest_plugins = ("tests.test_events",)
+
+
+@pytest.fixture(autouse=True)
+def _valid_arrangements(monkeypatch):
+    """SCRUM-171 / audit A2: approving a safety check now re-runs the confirmation gate.
+
+    Default every test to a valid arrangement - one Confirmed venue and no outstanding
+    equipment - so an approval still reaches Preparation. The A2 tests below override this
+    to model an arrangement that lapsed after confirmation (e.g. the only venue cancelled).
+    The shared event DB fixture does not model venue_bookings, so the gate's reads are
+    monkeypatched here exactly as the confirm-route tests do.
+    """
+    monkeypatch.setattr(
+        "app.events.list_bookings_for_event", lambda event_id: [{"status": "Confirmed"}]
+    )
+    monkeypatch.setattr("app.events.list_confirmation_requests", lambda event_id: [])
 
 
 def _as_safety_officer(app, database):
@@ -130,6 +148,72 @@ def test_safety_check_rejected_when_event_not_confirmed(app, event_database, dat
 
     assert response.status_code == 409
     assert event["status"] == "Planning"
+
+
+# --- SCRUM-171 / audit A2: approval re-validates the event's current arrangements ---
+
+# The only Confirmed venue was cancelled after confirmation. Approval must be refused and
+# the event returned to Planning so the Coordinator can re-arrange and re-confirm. The
+# cancelled booking is left intact (Week 7 #6): nothing here un-books it.
+def test_approval_refused_and_returned_to_planning_when_no_valid_venue_remains(
+    app, event_database, database, monkeypatch
+):
+    monkeypatch.setattr(
+        "app.events.list_bookings_for_event", lambda event_id: [{"status": "Cancelled"}]
+    )
+    client = _as_safety_officer(app, database)
+    event = _seed_planning_event(event_database, status="Confirmed")
+
+    response = client.post(
+        f"/events/{event['id']}/safety-check", json={"decision": "approve"}, headers=ORIGIN
+    )
+
+    assert response.status_code == 409
+    assert "returned to Planning" in response.json["error"]
+    assert event["status"] == "Planning"  # the stale Confirmed state was reset
+    entry = event_database[1].history[-1]
+    assert entry["old_status"] == "Confirmed"
+    assert entry["new_status"] == "Planning"
+    assert entry["action"] == "safety_arrangements_invalidated"
+
+
+# Cancelling one of several venues still leaves a valid approved venue: approval proceeds.
+def test_approval_proceeds_when_a_valid_venue_still_remains(
+    app, event_database, database, monkeypatch
+):
+    monkeypatch.setattr(
+        "app.events.list_bookings_for_event",
+        lambda event_id: [{"status": "Confirmed"}, {"status": "Cancelled"}],
+    )
+    client = _as_safety_officer(app, database)
+    event = _seed_planning_event(event_database, status="Confirmed")
+
+    response = client.post(
+        f"/events/{event['id']}/safety-check", json={"decision": "approve"}, headers=ORIGIN
+    )
+
+    assert response.status_code == 200
+    assert response.json["event"]["status"] == "Preparation"
+
+
+# A send-back decision never runs the gate - request_changes already returns to Planning,
+# so a lapsed arrangement does not change its outcome (only an approval is re-validated).
+def test_request_changes_still_works_without_a_valid_arrangement(
+    app, event_database, database, monkeypatch
+):
+    monkeypatch.setattr("app.events.list_bookings_for_event", lambda event_id: [])
+    client = _as_safety_officer(app, database)
+    event = _seed_planning_event(event_database, status="Confirmed")
+
+    response = client.post(
+        f"/events/{event['id']}/safety-check",
+        json={"decision": "request_changes", "reason": "Block the rear corridor."},
+        headers=ORIGIN,
+    )
+
+    assert response.status_code == 200
+    assert response.json["event"]["status"] == "Planning"
+    assert event_database[1].history[-1]["action"] == "safety_changes_requested"
 
 
 # A Safety Officer can read a Confirmed event to review it, without being related to it.
