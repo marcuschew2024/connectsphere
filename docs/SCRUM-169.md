@@ -146,3 +146,20 @@ Verified on top of merged R1 (`4b32c6b`) and current rescheduling code, using th
 **Remaining release gates:** human review of D66, remote CI/merge for R5, application
 release and hosted R5 migration/smoke verification. R1 PR #103 is already pushed and merged
 with green CI; this record does not claim R5 has been pushed, merged or deployed.
+
+### Manual-test feedback: booking submission errors
+
+The Coordinator's booking form previously rendered refusal/validation errors at its top,
+out of view when submitting from the bottom. Submission errors now appear directly above
+the submit button and receive keyboard focus/scroll into view, including a repeated
+identical validation failure. Option-loading errors remain at the top. Field values,
+validation rules, API behavior and existing accessible control names are preserved.
+
+A dedicated Playwright check covers desktop and mobile viewports, client validation and
+maintenance API refusals, retries, focus, viewport visibility and retained input. All four
+cases failed the viewport assertion on the original build. This is a presentation change;
+it does not alter D66's maintenance policy or database migration.
+
+Verification for this feedback: **68 booking component tests** and **20 booking browser
+checks** passed (including all four visibility cases); production build and ESLint passed.
+The refreshed local frontend is served on port 3107, using the existing isolated database.
