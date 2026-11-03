@@ -688,6 +688,32 @@ def safety_check_event(event_id):
         raise BadRequest(str(error)) from error
 
     old_status = event["status"]
+    # SCRUM-171 / audit A2: a required arrangement can lapse after confirmation - e.g. the
+    # only Confirmed venue booking is cancelled. Week 7 #6 keeps the event and its other
+    # bookings intact and does not auto-revert its status, so a stale Confirmed event would
+    # otherwise pass straight into Preparation. Re-run the same confirmation gate before an
+    # approval proceeds; if it no longer holds, refuse and return the event to Planning so
+    # the Coordinator can re-arrange and re-confirm (mirrors SCRUM-166). request_changes and
+    # reject already return to Planning, so they do not need the re-check.
+    if decision.approved:
+        gate = EventConfirmation.from_arrangements(
+            list_bookings_for_event(event_id), list_confirmation_requests(event_id),
+            event_datetime=event.get("event_datetime"),
+        )
+        if not gate.can_confirm:
+            update_event_status(event_id, "Planning", user["id"])
+            add_status_history(
+                event_id, old_status, "Planning", user["id"],
+                action="safety_arrangements_invalidated",
+                note="Arrangements changed after confirmation; returned to Planning. "
+                + " ".join(gate.outstanding),
+            )
+            raise Conflict(
+                "This event's arrangements are no longer valid, so the safety check "
+                "cannot approve it. It has been returned to Planning for re-confirmation. "
+                + " ".join(gate.outstanding)
+            )
+
     updated = update_event_status(event_id, decision.status, user["id"])
     add_status_history(
         event_id, old_status, decision.status, user["id"],

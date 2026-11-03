@@ -14,6 +14,8 @@ const ACTION_LABELS: Record<string, string> = {
   coordinator_reassigned: "Coordinator Reassigned",
   // SCRUM-166: a reschedule sent a Confirmed / Preparation event back to Planning.
   rescheduled_returned_to_planning: "Rescheduled — Returned to Planning",
+  // SCRUM-171: a safety approval found the arrangements no longer valid and returned to Planning.
+  safety_arrangements_invalidated: "Safety Check — Arrangements Invalidated, Returned to Planning",
 };
 
 /** A known label, or the stored action turned into words (never raw snake_case). */

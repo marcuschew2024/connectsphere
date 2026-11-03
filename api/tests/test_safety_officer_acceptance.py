@@ -10,6 +10,34 @@ from postgrest import SyncPostgrestClient
 from app import create_app
 
 from .conftest import ORIGIN, select_user
+from .test_venue_acceptance import unique_venue
+
+
+@pytest.fixture
+def approved_venue_booking(live_safety):
+    """SCRUM-171 / audit A2: the safety approval now re-runs the confirmation gate, so a
+    genuinely Confirmed event must have a Confirmed venue booking covering its time
+    (events here run at 2099-10-20 06:00Z)."""
+    _, db, _, _, _ = live_safety
+    venue_ids = []
+
+    def create_booking(event):
+        venue = db.table("venues").insert({**unique_venue(), "created_by": 3}).execute().data[0]
+        venue_ids.append(venue["id"])
+        return db.table("venue_bookings").insert({
+            "venue_id": venue["id"], "event_id": event["id"], "requested_by": 2,
+            "start_at": "2099-10-20T06:00:00+00:00", "end_at": "2099-10-20T08:00:00+00:00",
+            "expected_attendance": 20, "layout": "Classroom", "status": "Confirmed",
+        }).execute().data[0]
+
+    try:
+        yield create_booking
+    finally:
+        # Delete only this fixture's resources, children first, even after a failed assertion.
+        if venue_ids:
+            db.table("venue_bookings").delete().in_("venue_id", venue_ids).execute()
+            db.table("venues").delete().in_("id", venue_ids).execute()
+
 
 pytestmark = pytest.mark.skipif(
     not os.environ.get("POSTGREST_TEST_URL"), reason="Disposable database is not running",
@@ -22,7 +50,8 @@ def live_safety(monkeypatch):
     assert url in {"http://127.0.0.1:55433", "http://localhost:55433"}
     with SyncPostgrestClient(url) as db:
         for name in ("users", "event_repository", "rbac", "auth",
-                     "booking_repository", "venue_repository", "equipment_repository"):
+                     "booking_repository", "venue_repository", "equipment_repository",
+                     "equipment_request_repository"):
             monkeypatch.setattr(importlib.import_module(f"app.{name}"),
                                 "get_supabase_client", lambda: db)
         app = create_app({
@@ -59,9 +88,12 @@ def live_safety(monkeypatch):
                 db.table("events").update({"status": "Cancelled"}).in_("id", created).execute()
 
 
-def test_seeded_identity_can_find_review_and_approve_with_attribution(live_safety):
+def test_seeded_identity_can_find_review_and_approve_with_attribution(
+    live_safety, approved_venue_booking,
+):
     _, db, client, safety, event = live_safety
     confirmed = event()
+    approved_venue_booking(confirmed)  # A2: approval re-checks the confirmation gate.
     private = event("Draft")
     planning = event("Planning")
     queue = client.get("/events/safety-review", headers=ORIGIN)
@@ -84,6 +116,42 @@ def test_seeded_identity_can_find_review_and_approve_with_attribution(live_safet
     assert history[-1]["action"] == "safety_approved" and history[-1]["changed_at"]
     queue = client.get("/events/safety-review", headers=ORIGIN).json
     assert confirmed["id"] not in {row["id"] for row in queue["events"]}
+
+
+@pytest.mark.parametrize("has_remaining_venue", [False, True])
+def test_safety_submission_rechecks_persisted_bookings(
+    live_safety, approved_venue_booking, has_remaining_venue,
+):
+    """A cancellation after review opens must be evaluated from current database state."""
+    _, db, client, safety, event = live_safety
+    confirmed = event()
+    cancelled = approved_venue_booking(confirmed)
+    remaining = approved_venue_booking(confirmed) if has_remaining_venue else None
+    assert client.get(f"/events/{confirmed['id']}", headers=ORIGIN).status_code == 200
+    db.table("venue_bookings").update({"status": "Cancelled"}).eq(
+        "id", cancelled["id"],
+    ).execute()
+
+    response = client.post(f"/events/{confirmed['id']}/safety-check",
+                           json={"decision": "approve"}, headers=ORIGIN)
+
+    assert response.status_code == (200 if has_remaining_venue else 409), response.json
+    stored = db.table("events").select("*").eq("id", confirmed["id"]).execute().data[0]
+    assert stored["status"] == ("Preparation" if has_remaining_venue else "Planning")
+    history = db.table("event_status_history").select("*").eq(
+        "event_id", confirmed["id"],
+    ).execute().data
+    assert history[-1]["action"] == (
+        "safety_approved" if has_remaining_venue else "safety_arrangements_invalidated"
+    )
+    assert history[-1]["changed_by"] == safety["id"]
+    assert db.table("venue_bookings").select("status").eq(
+        "id", cancelled["id"],
+    ).execute().data[0]["status"] == "Cancelled"
+    if remaining:
+        assert db.table("venue_bookings").select("status").eq(
+            "id", remaining["id"],
+        ).execute().data[0]["status"] == "Confirmed"
 
 
 @pytest.mark.parametrize("decision", ["request_changes", "reject"])
