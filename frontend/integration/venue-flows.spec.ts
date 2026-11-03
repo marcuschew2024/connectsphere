@@ -249,13 +249,26 @@ test("INTEGRATED-13 Venue Staff creates edits and retires a complete venue recor
   await expect(card.getByText("Classroom", { exact: true })).toBeVisible();
   await expect(card.getByText("Theatre", { exact: true })).toHaveCount(0);
   await staff.page.goto(`/venues/${room.id}`);
+  // SCRUM-27: the venue opened from a card shows its full record, read from the API.
+  const record = staff.page.getByRole("region", { name: "Venue record" });
+  for (const text of [location, "80 people", "Active", "Classroom", "Wi-Fi · Whiteboard", "Ramp",
+    "15 minutes before the event", "30 minutes after the event", "Asia/Singapore"]) {
+    await expect(record).toContainText(text);
+  }
+  await expect(record.getByText("Theatre", { exact: true })).toHaveCount(0);
+  await record.getByText("Opening hours", { exact: true }).click();
+  await expect(record.getByText("10:00 – 18:00")).toBeVisible();
+  await expect(record.getByText("09:00 – 18:00")).toHaveCount(4);
+  await expect(record.getByText("Closed", { exact: true })).toHaveCount(2);
   await staff.page.getByText("Retire venue", { exact: true }).click();
   await staff.page.getByRole("button", { name: "Continue to retirement" }).click();
   await staff.page.getByRole("button", { name: "Confirm retirement" }).click();
   const retired = staff.page.getByRole("status").filter({ hasText: "Venue retired" });
   await expect(retired).toContainText(staff.name);
+  await expect(record).toContainText("Retired");
   await staff.page.reload();
   await expect(retired).toContainText(staff.name);
+  await expect(record).toContainText("Retired");
   const storedRetired = (await call(staff, "GET", `/venues/${room.id}`)).venue;
   expect(storedRetired).toMatchObject({
     name, location, capacity: 80, supported_layouts: ["Classroom"], is_retired: true, retired_by: staff.id,

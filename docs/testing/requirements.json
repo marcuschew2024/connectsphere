@@ -363,9 +363,10 @@
       "stories": [
         "SCRUM-24",
         "SCRUM-25",
+        "SCRUM-27",
         "SCRUM-60"
       ],
-      "intent": "Venue details persist, duplicates and invalid capacities are rejected, and updates preserve booking records and audit.",
+      "intent": "Venue details persist, duplicates and invalid capacities are rejected, updates preserve booking records and audit, and an opened venue shows its full record.",
       "checks": [
         {
           "lane": "backend",
@@ -396,6 +397,31 @@
           "lane": "integrated",
           "path": "frontend/integration/venue-flows.spec.ts",
           "test": "INTEGRATED-13"
+        },
+        {
+          "lane": "frontend",
+          "path": "frontend/src/app/venues/[venueId]/detail.test.tsx",
+          "test": "shows the complete catalogue record, not only name location and capacity"
+        },
+        {
+          "lane": "frontend",
+          "path": "frontend/src/app/venues/[venueId]/detail.test.tsx",
+          "test": "lists the opening hours of every day, including the days the venue is closed"
+        },
+        {
+          "lane": "frontend",
+          "path": "frontend/src/app/venues/[venueId]/detail.test.tsx",
+          "test": "marks a venue that is closed right now, naming the reason and when it reopens"
+        },
+        {
+          "lane": "frontend",
+          "path": "frontend/src/app/venues/[venueId]/detail.test.tsx",
+          "test": "offers a Coordinator no way to change the venue"
+        },
+        {
+          "lane": "frontend",
+          "path": "frontend/src/lib/venue-status.test.ts",
+          "test": "reports a retired venue as retired even while a closure is running"
         }
       ],
       "gaps": [],
