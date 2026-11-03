@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import { ApiError, apiRequest } from "@/lib/api";
-import { conflictCountLabel, conflictEventLabel, defaultOpeningHours, VENUE_ACCESSIBILITY_FEATURES, VENUE_DAYS, VENUE_FACILITIES, VENUE_LAYOUTS, type BufferConflict, type OpeningHours, type Venue } from "@/lib/venues";
+import { conflictCountLabel, conflictEventLabel, defaultOpeningHours, maintenanceConflictCountLabel, VENUE_ACCESSIBILITY_FEATURES, VENUE_DAYS, VENUE_FACILITIES, VENUE_LAYOUTS, type BufferConflict, type MaintenanceConflict, type OpeningHours, type Venue } from "@/lib/venues";
 import OtherValuesInput from "@/components/other-values-input";
 
 const INPUT = "w-full rounded-md border border-input bg-background px-3 py-2.5 text-sm text-foreground focus:border-ring focus:outline-none focus:ring-2 focus:ring-ring/30";
@@ -29,6 +29,8 @@ export default function VenueForm({ venue }: { venue?: Venue }) {
   const [saved, setSaved] = useState<Venue | null>(null);
   // SCRUM-129 AC3: bookings this save made conflicting. They are reported, never changed.
   const [conflicts, setConflicts] = useState<BufferConflict[]>([]);
+  // SCRUM-172 / audit A3: bookings the save pushed into an active maintenance block.
+  const [maintenanceConflicts, setMaintenanceConflicts] = useState<MaintenanceConflict[]>([]);
   const [formKey, setFormKey] = useState(0);
   const errorSummary = useRef<HTMLDivElement>(null);
   const successHeading = useRef<HTMLHeadingElement>(null);
@@ -49,7 +51,7 @@ export default function VenueForm({ venue }: { venue?: Venue }) {
       ];
     };
     try {
-      const result = await apiRequest<{ venue: Venue; buffer_conflicts?: BufferConflict[] }>(editing ? `/venues/${venue.id}` : "/venues", {
+      const result = await apiRequest<{ venue: Venue; buffer_conflicts?: BufferConflict[]; maintenance_conflicts?: MaintenanceConflict[] }>(editing ? `/venues/${venue.id}` : "/venues", {
         method: editing ? "PUT" : "POST",
         body: JSON.stringify({
           ...(editing ? { revision: venue.revision } : { name: form.get("name"), location: form.get("location") }), capacity: Number(form.get("capacity")),
@@ -63,6 +65,7 @@ export default function VenueForm({ venue }: { venue?: Venue }) {
       });
       setSaved(result.venue);
       setConflicts(result.buffer_conflicts ?? []);
+      setMaintenanceConflicts(result.maintenance_conflicts ?? []);
     } catch (error) {
       setError(error instanceof ApiError ? error.message : "Could not confirm the venue was saved. Check the catalogue before retrying.");
       if (error instanceof ApiError) setFields(error.fields);
@@ -86,6 +89,17 @@ export default function VenueForm({ venue }: { venue?: Venue }) {
           <p className="font-semibold text-foreground">{conflictEventLabel(conflict.event_title, "Untitled event")} <span className="font-normal text-muted-foreground">· {conflict.status}</span></p>
           <p className="mt-1 text-muted-foreground">Occupies {new Date(conflict.occupied_start).toLocaleString()} – {new Date(conflict.occupied_end).toLocaleString()} (booked {new Date(conflict.start_at).toLocaleTimeString()} – {new Date(conflict.end_at).toLocaleTimeString()})</p>
           <p className="mt-1 text-muted-foreground">Clashes with {conflict.conflicts_with.map((other) => conflictEventLabel(other.event_title, "another booking")).join(", ")}</p>
+        </li>)}
+      </ul>
+    </section>}
+    {maintenanceConflicts.length > 0 && <section aria-labelledby="maintenance-conflicts-heading" className="mt-6 rounded-xl border border-destructive/30 bg-destructive/5 p-4">
+      <h3 id="maintenance-conflicts-heading" className="text-sm font-semibold text-destructive">{maintenanceConflictCountLabel(maintenanceConflicts.length)}</h3>
+      <p className="mt-1 text-xs text-muted-foreground">The new setup and turnaround times make these bookings overlap scheduled maintenance. Nothing has been changed or cancelled — review them and decide what happens to each.</p>
+      <ul className="mt-3 space-y-3">
+        {maintenanceConflicts.map((conflict) => <li key={conflict.booking_id} className="rounded-lg border border-border bg-background p-3 text-xs">
+          <p className="font-semibold text-foreground">{conflictEventLabel(conflict.event_title, "Untitled event")} <span className="font-normal text-muted-foreground">· {conflict.status}</span></p>
+          <p className="mt-1 text-muted-foreground">Occupies {new Date(conflict.occupied_start).toLocaleString()} – {new Date(conflict.occupied_end).toLocaleString()} (booked {new Date(conflict.start_at).toLocaleTimeString()} – {new Date(conflict.end_at).toLocaleTimeString()})</p>
+          <p className="mt-1 text-muted-foreground">Overlaps maintenance {conflict.maintenance_blocks.map((block) => `${new Date(block.start_at).toLocaleString()} – ${new Date(block.end_at).toLocaleString()}`).join(", ")}</p>
         </li>)}
       </ul>
     </section>}
