@@ -625,16 +625,28 @@ def confirm_event(event_id):
         raise Conflict("This event cannot be confirmed yet. " + " ".join(gate.outstanding))
 
     old_status = event["status"]
+    # SCRUM-173 (audit A4): the status change is the authoritative write. Its audit-history
+    # row and the Organiser notification are recorded best-effort - a failure in either must
+    # not return an error for an event that is already Confirmed, because a retry cannot fix
+    # it (the event is no longer in Planning) and would risk a duplicate. This mirrors the
+    # documented best-effort audit write in edit_event. The two are wrapped independently so
+    # a lost history row does not also cost the notification, and vice versa.
     updated = update_event_status(event_id, "Confirmed", user["id"])
-    add_status_history(event_id, old_status, "Confirmed", user["id"])
+    try:
+        add_status_history(event_id, old_status, "Confirmed", user["id"])
+    except HTTPException:
+        current_app.logger.exception("confirm_event status-history write failed (non-fatal)")
     # SCRUM-164 (audit R7): confirmation is a named notification trigger in core
     # feature #20. Notify the Organiser their event is confirmed. Only the Organiser:
     # confirming is Coordinator-only and the Lead cannot confirm, so the acting
     # Coordinator is always the one who clicked and already knows.
-    create_notification(
-        event["organiser_id"], event_id, "event_confirmed",
-        f'Your event "{event.get("title") or "Untitled event"}" has been confirmed.',
-    )
+    try:
+        create_notification(
+            event["organiser_id"], event_id, "event_confirmed",
+            f'Your event "{event.get("title") or "Untitled event"}" has been confirmed.',
+        )
+    except HTTPException:
+        current_app.logger.exception("confirm_event organiser notification failed (non-fatal)")
     updated["status"] = canonical_event_status(updated.get("status"))
     return jsonify({"event": updated}), 200
 
