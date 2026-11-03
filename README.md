@@ -5,6 +5,9 @@ project: an Event Organiser raises an event request, which flows through coordin
 review, venue and equipment booking, attendee registration, and confirmation, with
 role-appropriate access throughout.
 
+See the [documentation guide](docs/README.md) for release findings, test evidence,
+story records and historical reviews.
+
 ## Repository & instructor access
 
 - Repository: https://github.com/marcuschew2024/connectsphere

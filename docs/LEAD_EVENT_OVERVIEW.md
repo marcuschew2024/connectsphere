@@ -20,7 +20,7 @@ The page retains existing assignment/reassignment labels and actions. Existing c
 
 Delegated scope is the overview/navigation and acceptance criteria above. Constraints are the existing Lead-only API, assignment rules, ownership/status restrictions, semantic design tokens and protected test labels. The original SCRUM-130 owner is Ernest Wong; the requesting project owner owns acceptance of this UI follow-up. Human review should confirm the grouping, date meanings, filters and behaviour after reassignment. This does not claim their independent review or alter Jira ownership/status.
 
-Verification is recorded in docs/testing/lead-overview-verification.json. Existing local manual-test records are preserved; integrated checks add ordinary sample events. No shared database is changed. Hosted CI and human review remain required before merge.
+Verification is recorded in docs/archive/testing/lead-overview-verification.json. Existing local manual-test records are preserved; integrated checks add ordinary sample events. No shared database is changed. Hosted CI and human review remain required before merge.
 
 Manual check: sign in as coordinator-lead@connectsphere.test, open Event overview, search an event reference, assign it, then confirm its Coordinator appears under Assigned events. Reload and search again. Clear filters, choose a Coordinator and status, then page through results. Past events should remain readable but should not offer reassignment.
 

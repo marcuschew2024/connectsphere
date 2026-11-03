@@ -1,8 +1,48 @@
-<testsuites id="" name="" tests="2" failures="0" skipped="0" errors="0" time="10.118289">
-<testsuite name="event-lifecycle.spec.ts" timestamp="2026-10-30T19:23:34.047Z" hostname="integrated-chromium" tests="2" failures="0" skipped="0" time="8.513" errors="0">
-<testcase name="INTEGRATED-01 same event crosses seven password-authenticated roles and persists after reload" classname="event-lifecycle.spec.ts" time="5.784">
+<testsuites id="" name="" tests="17" failures="0" skipped="0" errors="0" time="69.42174">
+<testsuite name="event-lifecycle.spec.ts" timestamp="2026-11-03T03:37:27.845Z" hostname="integrated-chromium" tests="2" failures="0" skipped="0" time="13.332" errors="0">
+<testcase name="INTEGRATED-01 same event crosses seven password-authenticated roles and persists after reload" classname="event-lifecycle.spec.ts" time="9.67">
 </testcase>
-<testcase name="INTEGRATED-02 real conflict and cross-owner refusals preserve the event and bookings" classname="event-lifecycle.spec.ts" time="2.729">
+<testcase name="INTEGRATED-02 real conflict and cross-owner refusals preserve the event and bookings" classname="event-lifecycle.spec.ts" time="3.662">
+</testcase>
+</testsuite>
+<testsuite name="event-permissions.spec.ts" timestamp="2026-11-03T03:37:27.845Z" hostname="integrated-chromium" tests="1" failures="0" skipped="0" time="2.74" errors="0">
+<testcase name="INTEGRATED-05 non-management roles cannot open unrelated event details or mutate lifecycle" classname="event-permissions.spec.ts" time="2.74">
+</testcase>
+</testsuite>
+<testsuite name="organiser-requests.spec.ts" timestamp="2026-11-03T03:37:27.845Z" hostname="integrated-chromium" tests="1" failures="0" skipped="0" time="2.904" errors="0">
+<testcase name="INTEGRATED-03 Organiser rediscovers an unassigned submission after signing back in; other accounts cannot see it" classname="organiser-requests.spec.ts" time="2.904">
+</testcase>
+</testsuite>
+<testsuite name="record-references.spec.ts" timestamp="2026-11-03T03:37:27.845Z" hostname="integrated-chromium" tests="1" failures="0" skipped="0" time="1.138" errors="0">
+<testcase name="INTEGRATED-04 readable references survive reload and retain UUID routes" classname="record-references.spec.ts" time="1.138">
+</testcase>
+</testsuite>
+<testsuite name="release-exits.spec.ts" timestamp="2026-11-03T03:37:27.845Z" hostname="integrated-chromium" tests="9" failures="0" skipped="0" time="34.964" errors="0">
+<testcase name="INTEGRATED-R5 setup-only maintenance notifies and supports a replacement" classname="release-exits.spec.ts" time="4.053">
+</testcase>
+<testcase name="INTEGRATED-R5 turnaround-only maintenance notifies and supports a replacement" classname="release-exits.spec.ts" time="4.084">
+</testcase>
+<testcase name="INTEGRATED-06 cancellation releases resources and the attendee follows the real notification" classname="release-exits.spec.ts" time="4.514">
+</testcase>
+<testcase name="INTEGRATED-07 safety approval leads to completion, persisted closure and released resources" classname="release-exits.spec.ts" time="4.508">
+</testcase>
+<testcase name="INTEGRATED-08 venue unavailability notifies the Coordinator and a replacement preserves the event" classname="release-exits.spec.ts" time="3.115">
+</testcase>
+<testcase name="INTEGRATED-09 Lead reassignment removes the old Coordinator&apos;s action access" classname="release-exits.spec.ts" time="4.162">
+</testcase>
+<testcase name="INTEGRATED-10 significant change persists through re-review and implementation without cancelling resources" classname="release-exits.spec.ts" time="4.364">
+</testcase>
+<testcase name="INTEGRATED-11 clarification resubmits the same request and rejection preserves the reason" classname="release-exits.spec.ts" time="2.919">
+</testcase>
+<testcase name="INTEGRATED-R1 buffer edit flags existing conflicts while new bookings stay protected" classname="release-exits.spec.ts" time="3.245">
+</testcase>
+</testsuite>
+<testsuite name="venue-flows.spec.ts" timestamp="2026-11-03T03:37:27.845Z" hostname="integrated-chromium" tests="3" failures="0" skipped="0" time="11.897" errors="0">
+<testcase name="INTEGRATED-12 booking approval blocks the slot and notifies only the requesting Coordinator" classname="venue-flows.spec.ts" time="5.715">
+</testcase>
+<testcase name="INTEGRATED-13 Venue Staff creates edits and retires a complete venue record with layouts" classname="venue-flows.spec.ts" time="3.872">
+</testcase>
+<testcase name="INTEGRATED-14 venue date capacity and facility filters exclude independently unsuitable results" classname="venue-flows.spec.ts" time="2.31">
 </testcase>
 </testsuite>
 </testsuites>

@@ -1,0 +1,59 @@
+> Historical Sprint 4 snapshot. Its ticks and freeze date are not current release acceptance.
+> Use the [current evidence checklist](../../testing/release-verification/requirements.md) and [release closeout](../../testing/release-closeout.md).
+
+# E2E Traceability Matrix (Sprint 4 closeout)
+
+Maps each Release-1 core feature + its key conflict/failure scenarios to the Playwright
+e2e spec that exercises it. E2e "coverage" is **traceability completeness**, not a percentage:
+every row should reach ✅ before code freeze. This file is our test-evidence artifact
+(submission folder 3) — **it is not a new Definition of Done**, it records the e2e proof
+for work that is already built/being fixed.
+
+**How to use:** when you add or extend a spec for your row, update its **Status** (and spec
+file) in the *same PR as the fix*. Owner does a final sweep at freeze — any row not ✅ is a gap.
+
+**Status legend:** ✅ spec exists & asserts the behaviour · 🔶 spec exists, needs the scenario added / depth check · ❌ no spec yet
+**Freeze target:** Sat 31 Oct 23:59 · **Matrix owner:** Marcus
+
+**Evidence layers:** specs under `frontend/e2e/` exercise browser behaviour with
+controlled API responses. They do not prove database persistence, notification
+creation or server-side conflict enforcement. `INTEGRATED-*` scenarios under
+`frontend/integration/` use production UI, real password sessions, Flask and a
+disposable database. A ✅ records the named scenario's assertions, not complete
+product coverage. SCRUM-163 supplements PR #94's browser checks with real venue
+journeys; see [scope and verification](../../SCRUM-163.md).
+
+| # | Feature | Key scenario (incl. conflict/failure) | e2e spec | Status | Owner |
+|---|---------|----------------------------------------|----------|--------|-------|
+| 1 | Auth / RBAC | Login + role switch | `login-entry.spec.ts` | ✅ | — |
+| 1 | Auth / RBAC | **Attendee/Venue/Tech cannot change lifecycle; denied/status responses expose no internal fields; attendee reads are public** (SCRUM-135/161) | `event-permissions.spec.ts`; real `INTEGRATED-05`; API membership/projection tests | ✅ | Jerome |
+| 2 | Event request creation | Organiser creates + submits | `events.spec.ts` | ✅ | — |
+| 3 | Draft requests | Save + resume + submit draft | `drafts.spec.ts` | ✅ | — |
+| 4 | Review & approval | Coordinator approve / reject (+ reason required on reject) | `event-decision.spec.ts` | ✅ | Marcus |
+| 4 | Review & approval | Request clarification / amendment | `events.spec.ts` (return for clarification) | ✅ | Marcus |
+| 5 | Coordinator assignment | Submission enters the Lead's unassigned queue (SCRUM-130 replaced auto-assign) | `coordinator-assignment.spec.ts` (TC-130-01/02) | ✅ | Ernest |
+| 5 | Coordinator assignment | Lead reassign from queue; closed events cannot be moved | `coordinator-assignment.spec.ts` (TC-130-03) | ✅ | Ernest |
+| 6 | Event status mgmt | Lifecycle Planning→Confirmed→Completed view | `event-status.spec.ts` | ✅ | — |
+| 7 | Event info mgmt | Edit during Planning | `event-decision.spec.ts` (coordinator Planning edit) | ✅ | Marcus |
+| 7 | Event info mgmt | **Impactful change flagged vs ordinary edit** (SCRUM-58) | `change-request-apply.spec.ts` (significant vs ordinary) | ✅ | Marcus |
+| 8 | Venue catalogue | Add / update / retire + full record + layouts | `venues.spec.ts`, `venue-edit.spec.ts`, `venue-retire.spec.ts`; real `INTEGRATED-13` in `venue-flows.spec.ts` | ✅ | Jessica |
+| 9 | Venue availability calendar | Availability + blocked periods | `venue-calendar.spec.ts` | ✅ | — |
+| 10 | Venue search & filter | Filter by date/capacity/facility/etc | `venues.spec.ts`; real `INTEGRATED-14` in `venue-flows.spec.ts` | ✅ | Jessica |
+| 11 | **Venue suitability** | **Unsuitable on facility/accessibility/layout, not just capacity** (SCRUM-116/117) | `venue-suitability.spec.ts` | ✅ | Jessica |
+| 12 | Venue booking request | Coordinator requests venue from Planning event | `bookings.spec.ts` | ✅ | — |
+| 13 | Venue booking approval | **Approve blocks the slot + notifies coordinator** (SCRUM-118/119) | `bookings.spec.ts`; real `INTEGRATED-12` in `venue-flows.spec.ts` | ✅ | Jessica / Marcus |
+| 14 | Booking conflict detection | **Overlapping / buffered double-book hard-blocked** (SCRUM-137) | `bookings.spec.ts`; real `INTEGRATED-12` plus `supabase/tests/venue_calendar_buffers.sql` (sequential overlap and touching boundaries) | ✅ | Jessica |
+| 15 | Equipment request mgmt | Record + review/update request | `equipment-requests.spec.ts`, `equipment-request-status.spec.ts` | ✅ | — |
+| 16 | Equipment availability | **Unavailable/damaged excluded from available** (SCRUM-63); reserved units on stock later damaged stop counting (SCRUM-153) | `equipment.spec.ts`, `unusable-equipment.spec.ts` | ✅ | Ernest |
+| 17 | Equipment reservation | Reserve reduces availability; **confirm blocked while equipment pending** (SCRUM-136) | `event-confirm.spec.ts`, `event-confirm-equipment.spec.ts` | ✅ | Ernest |
+| 18 | Attendee registration | Register / withdraw / view own status | `attendee-registration.spec.ts` + 3 | ✅ | — |
+| 18 | Attendee registration | **Organiser/Coordinator view event registrations** (SCRUM-45) | `event-registration-roster.spec.ts`; integrated lifecycle | ✅ roster; SCRUM-80 waitlist deferred | Jerome |
+| 19 | Event change requests | Raise change post-submit/confirm | `change-requests.spec.ts` | ✅ | — |
+| 19 | Event change requests | **Significant change re-opens venue/equipment review + notifies** (SCRUM-47/62); attendance above a booked venue's capacity is flagged (SCRUM-152) | `change-request-apply.spec.ts`, `venue-too-small.spec.ts` | ✅ | Ernest |
+| 19 | Event change requests | **A date change that orphans an approved booking blocks confirmation** (SCRUM-159, NFR-d consistency) | `event-confirm.spec.ts` | ✅ | Marcus |
+| 19 | Event change requests | **Reschedule: Organiser requests a new date/time; approval applies it, flags re-review, notifies attendees** (SCRUM-48, US-10.3, S1 Q28) | `change-requests.spec.ts`, `change-request-apply.spec.ts` | ✅ | Marcus |
+| 20 | Notifications | **Fires on submit/decision/assignment/booking/registration/change/cancel** (SCRUM-51) | `notifications.spec.ts` (decision + pool feeds), `change-request-apply.spec.ts` (change re-review), `event-cancel.spec.ts` (attendees notified), `notification-links.spec.ts` (every recipient's link opens; attendee sees cancellation — SCRUM-155) | ✅ | Marcus |
+| — | Safety check | Gates preparation until passed | `event-safety-check.spec.ts`, `safety-officer.spec.ts` | ✅ | — |
+| — | Confirm / complete | Confirm + complete/close event | `event-confirm.spec.ts`, `event-complete.spec.ts` | ✅ | — |
+
+> 🔶 rows: open the named spec and confirm it actually asserts the scenario (not just the happy path) before ticking ✅. ❌ rows: no spec yet — write it as part of the fix.
