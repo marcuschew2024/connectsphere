@@ -383,3 +383,41 @@ def test_a_save_that_leaves_the_buffers_alone_reports_nothing(editing_api, booki
 
     assert response.status_code == 200
     assert "buffer_conflicts" not in response.json
+
+
+def test_maintenance_notices_reach_each_current_coordinator_once(
+    editing_api, monkeypatch,
+):
+    """Unassigned/orphaned entries stay visible; shared coordinators get one useful notice."""
+    report = [
+        {"booking_id": "orphan", "event_id": None},
+        {"booking_id": "deleted", "event_id": "deleted-event"},
+        {"booking_id": "unassigned", "event_id": "unassigned-event"},
+        {"booking_id": "first", "event_id": "event-a", "event_title": "Science Fair"},
+        {"booking_id": "second", "event_id": "event-b", "event_title": "Debate Final"},
+        {"booking_id": "third", "event_id": "event-c", "event_title": "Music Night"},
+    ]
+    events = {
+        "deleted-event": None,
+        "unassigned-event": {"coordinator_id": None},
+        "event-a": {"coordinator_id": 2},
+        "event-b": {"coordinator_id": 2},
+        "event-c": {"coordinator_id": 7},
+    }
+    monkeypatch.setattr("app.venues.maintenance_conflict_report", lambda _: report)
+    monkeypatch.setattr("app.venues.get_event_by_id", events.__getitem__)
+    sent = []
+    monkeypatch.setattr("app.venues.create_notification", lambda *args: sent.append(args))
+
+    response = editing_api.put(
+        f"/venues/{VENUE_ID}", json=editable_fields(turnaround_time_minutes=45), headers=ORIGIN,
+    )
+
+    assert response.status_code == 200
+    assert response.json["maintenance_conflicts"] == report
+    assert [args[:3] for args in sent] == [
+        (2, "event-a", "venue_maintenance_conflict"),
+        (7, "event-c", "venue_maintenance_conflict"),
+    ]
+    assert "Science Fair" in sent[0][3] and "Music Night" in sent[1][3]
+    assert all("maintenance" in args[3] for args in sent)

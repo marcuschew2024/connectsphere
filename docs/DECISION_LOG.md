@@ -2050,6 +2050,25 @@ auto-assign in D9) are recorded explicitly rather than left implicit.
   maintenance/calendar policy; release owner applies the migration after review. This is
   an implementation proposal with test evidence, not a claim that human review occurred.
 
+### SCRUM-172 — report buffer-created maintenance conflicts (3 November 2026)
+
+- **Context:** PR #111 implements audit A3: a buffer-only refresh preserves a booking
+  but can move its occupied window into active maintenance without informing its owner.
+- **Decision:** supplement the buffer-save response with `maintenance_conflicts`, showing
+  occupied-window overlaps absent from the raw booking interval. Notify each affected
+  current coordinator once using `venue_maintenance_conflict`. This records the existing
+  PR contract; the CI repair adds tests only.
+- **Constraints:** half-open boundaries; active maintenance and occupying bookings only;
+  expired holds excluded; preserve bookings for manual resolution. Do not lower coverage.
+- **Verification:** original overlap/report tests plus notification recipient/deduplication
+  and count-label tests; final execution results belong in docs/SCRUM-172.md.
+- **Trade-off:** this report describes buffer-dependent conflicts rather than calculating
+  a before/after delta, and preserves the existing separate save/report/notification
+  operations. It does not claim transactional notification delivery.
+- **Owner / review:** Jessica owns venue behavior under D66; Marcus Chew (PR author) is
+  the proposed accountable reviewer for the CI repair. Jira is unassigned. Reporting
+  contract and notification review remain required before merge; approval is not claimed.
+
 ### Pending Release 1 acceptance decisions — 3 November 2026
 
 These entries record the unresolved choices requested during release documentation
