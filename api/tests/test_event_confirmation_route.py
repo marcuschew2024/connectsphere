@@ -10,6 +10,7 @@ not model the venue_bookings table.
 from datetime import datetime, timedelta
 
 import pytest
+from werkzeug.exceptions import ServiceUnavailable
 
 from .conftest import ORIGIN, select_user
 from .test_events import _seed_planning_event
@@ -181,3 +182,48 @@ def test_confirm_notifies_organiser_not_the_acting_coordinator(app, event_databa
     assert confirmed[0]["recipient_id"] == event["organiser_id"]  # Organiser (1)
     assert confirmed[0]["recipient_id"] != 2  # not the acting Coordinator
     assert event["title"] in confirmed[0]["message"]
+
+
+# --- SCRUM-173 / audit A4: the response must agree with the persisted status ---
+
+# The status change is authoritative; a failed audit-history write is non-fatal, so the
+# caller still sees the 200 that matches the now-Confirmed event (no 503-then-stuck retry).
+def test_confirm_succeeds_even_if_the_status_history_write_fails(
+    app, event_database, bookings, monkeypatch
+):
+    bookings(["Confirmed"])
+    monkeypatch.setattr(
+        "app.events.add_status_history",
+        lambda *a, **k: (_ for _ in ()).throw(ServiceUnavailable("history down")),
+    )
+    client = app.test_client()
+    select_user(client, 2)
+    event = _seed_planning_event(event_database, status="Planning")
+
+    response = client.post(f"/events/{event['id']}/confirm", headers=ORIGIN)
+
+    assert response.status_code == 200
+    assert response.json["event"]["status"] == "Confirmed"
+    assert event["status"] == "Confirmed"  # persisted state agrees with the response
+
+
+# A failed Organiser notification is non-fatal too, and does not cost the history row
+# (the two writes are wrapped independently).
+def test_confirm_succeeds_and_still_records_history_if_the_notification_fails(
+    app, event_database, bookings, monkeypatch
+):
+    bookings(["Confirmed"])
+    monkeypatch.setattr(
+        "app.events.create_notification",
+        lambda *a, **k: (_ for _ in ()).throw(ServiceUnavailable("notify down")),
+    )
+    client = app.test_client()
+    select_user(client, 2)
+    event = _seed_planning_event(event_database, status="Planning")
+
+    response = client.post(f"/events/{event['id']}/confirm", headers=ORIGIN)
+
+    assert response.status_code == 200
+    assert response.json["event"]["status"] == "Confirmed"
+    history = [h for h in event_database[1].history if h["new_status"] == "Confirmed"]
+    assert len(history) == 1  # the history row survived the notification failure
