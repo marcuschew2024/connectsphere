@@ -2050,6 +2050,26 @@ auto-assign in D9) are recorded explicitly rather than left implicit.
   maintenance/calendar policy; release owner applies the migration after review. This is
   an implementation proposal with test evidence, not a claim that human review occurred.
 
+### SCRUM-173 — confirmation success after the authoritative write (3 November 2026)
+
+- **Context:** audit A4 found confirmation returning 503 after already saving Confirmed,
+  leaving the caller's retry blocked by the Planning-only confirmation gate.
+- **Decision:** follow the approach recorded in Jira SCRUM-173: status persistence remains
+  authoritative. Attempt audit history and Organiser notification independently; log
+  repository HTTP failures in those secondary writes without changing the successful
+  response. This records PR #112's existing implementation, not a new behavior change.
+- **Constraints:** preserve role and confirmation gates, status-write failures, existing
+  repository boundaries, and the existing best-effort audit pattern. No migration.
+- **Verification:** failure-injection tests require Confirmed/200 despite secondary
+  failures and preserved history on notification failure. Original push and PR CI runs
+  `41614488037` / `41614525176` passed; updated merge candidates must pass CI again.
+- **Trade-off:** lost secondary writes are logged but are not atomically rolled back,
+  automatically retried, or guaranteed to recover. This is explicitly best-effort
+  history/notification delivery, not transactional write atomicity.
+- **Owner / review:** Marcus Chew (PR author) owns this chosen trade-off. Jira records the
+  approach; the repository owner explicitly authorized push and merge on 3 November 2026.
+  This does not claim an independent review beyond that authorization.
+
 ### Pending Release 1 acceptance decisions — 3 November 2026
 
 These entries record the unresolved choices requested during release documentation
