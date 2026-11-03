@@ -69,7 +69,6 @@ def _conflict(status, venue_id="venue-1"):
     (payload(expected_attendance=0), 400, "positive whole-number"),
     (payload(expected_attendance=True), 400, "positive whole-number"),
     (payload(expected_attendance="80"), 400, "positive whole-number"),
-    (payload(expected_attendance=301), 400, "capacity of 300"),
     (payload(layout=""), 400, "layout of 1 to 100"),
     (payload(layout="x" * 101), 400, "layout of 1 to 100"),
     (payload(layout=3), 400, "layout of 1 to 100"),
@@ -91,6 +90,18 @@ def test_attendance_boundaries_are_accepted(booking_api, attendance):  # noqa: F
                            headers=ORIGIN)
     assert response.status_code == 201
     assert created[0]["expected_attendance"] == attendance
+
+
+def test_over_capacity_is_accepted_as_advisory_not_blocked(booking_api):  # noqa: F811
+    # SCRUM-174 / audit P3: capacity is advisory (SCRUM-29 AC; Customer Brief "surface these
+    # relationships"), not a hard block. Over-capacity (301 for a 300-capacity venue) is
+    # surfaced as a suitability flag and each booking's capacity_warning (SCRUM-152); the
+    # request still goes through and the Coordinator decides.
+    client, created, _, _ = booking_api
+    response = client.post("/venues/bookings", json=payload(expected_attendance=301),
+                           headers=ORIGIN)
+    assert response.status_code == 201
+    assert created[0]["expected_attendance"] == 301
 
 
 # --- Single-day rule (D40): a booking stays within one Singapore day, server-side ---
@@ -191,7 +202,6 @@ def changing(app, monkeypatch):
     ({"start_at": _soon(80), "end_at": _soon(79)}, "end time must be after"),
     ({"start_at": _past(0), "end_at": _past(2)}, "cannot start in the past"),
     ({"expected_attendance": 0}, "positive whole-number"),
-    ({"expected_attendance": 101}, "capacity of 100"),
     ({"layout": " "}, "layout of 1 to 100"),
     ({"special_requirements": "x" * 2001}, "2000 characters"),
 ])
@@ -201,6 +211,16 @@ def test_invalid_changes_are_refused_and_nothing_is_saved(changing, body, messag
     assert response.status_code == 400
     assert message in response.json["error"]
     assert saved == []
+
+
+def test_over_capacity_change_is_accepted_as_advisory(changing):  # noqa: F811
+    # SCRUM-174 / audit P3: changing a booking so attendance exceeds the venue capacity is
+    # advisory (SCRUM-29), surfaced as the booking's capacity_warning (SCRUM-152), not blocked.
+    client, saved = changing
+    response = client.patch("/venues/bookings/booking-a", json={"expected_attendance": 101},
+                            headers=ORIGIN)
+    assert response.status_code == 200
+    assert saved[0]["expected_attendance"] == 101
 
 
 def test_unchanged_details_are_kept_when_only_some_fields_change(changing):

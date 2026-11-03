@@ -77,10 +77,11 @@ def _validated_booking_fields(data, event: dict, existing: dict | None = None) -
     )
     if type(attendance) is not int or not 1 <= attendance <= 2_147_483_647:
         raise BadRequest("Enter a positive whole-number attendance.")
-    if attendance > venue["capacity"]:
-        raise BadRequest(
-            f"Expected attendance cannot exceed this venue's capacity of {venue['capacity']}."
-        )
+    # SCRUM-174 / audit P3: venue capacity is advisory, not a hard block. SCRUM-29's AC says
+    # suitability flags "do not by themselves block a booking request; the Coordinator decides",
+    # and the Customer Brief asks only to "surface these relationships". Over-capacity is
+    # surfaced as a suitability advisory at venue selection and as each booking's
+    # capacity_warning (SCRUM-152); only double-booking overlaps hard-block (S1 Q1/Q17).
     layout = data.get("layout", source.get("layout"))
     if not isinstance(layout, str) or not layout.strip() or len(layout.strip()) > 100:
         raise BadRequest("Choose a layout of 1 to 100 characters.")
@@ -181,10 +182,7 @@ def submit_booking():
     attendance = data.get("expected_attendance", event.get("expected_attendance"))
     if type(attendance) is not int or not 1 <= attendance <= 2_147_483_647:
         raise BadRequest("Enter a positive whole-number attendance.")
-    if attendance > venue["capacity"]:
-        raise BadRequest(
-            f"Expected attendance cannot exceed this venue's capacity of {venue['capacity']}."
-        )
+    # SCRUM-174 / audit P3: capacity is advisory, not a hard block (see _validated_booking_fields).
     layout = data.get("layout")
     if not isinstance(layout, str) or not layout.strip() or len(layout.strip()) > 100:
         raise BadRequest("Choose a layout of 1 to 100 characters.")
@@ -379,16 +377,23 @@ def decide_booking(booking_id):
                 exp_dt = datetime.fromisoformat(custom_expires.replace("Z", "+00:00"))
             except (ValueError, TypeError):
                 raise BadRequest("Invalid expiry timestamp.") from None
+            # SCRUM-176: a naive (no-timezone) timestamp parses fine but cannot be compared
+            # against the aware `now`/`start_dt` below - reject it as a clean 400 rather than
+            # letting the comparison raise an uncaught TypeError (500).
+            if exp_dt.tzinfo is None or exp_dt.utcoffset() is None:
+                raise BadRequest("Expiry time must include a time zone.")
             if exp_dt <= now:
                 raise BadRequest("Expiry time must be in the future.")
             if exp_dt >= start_dt:
                 raise BadRequest("Expiry time must be before the event starts.")
             expires_at_iso = exp_dt.isoformat()
         else:
-            # Default: 48h from now, capped at 1h before booking starts
+            # Default: 48h from now, capped at 1h before booking starts.
             default_exp = min(now + timedelta(hours=48), start_dt - timedelta(hours=1))
             if default_exp <= now:
-                default_exp = now + timedelta(minutes=30)
+                # SCRUM-176: imminent booking - fall back to a point strictly BEFORE the event
+                # start (never now+30min, which could land after start and outlive the event).
+                default_exp = min(now + timedelta(minutes=30), start_dt - timedelta(minutes=1))
             expires_at_iso = default_exp.isoformat()
 
     # Confirmed decisions hard-block only published-slot conflicts. A stale tentative
