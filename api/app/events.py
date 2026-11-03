@@ -696,18 +696,29 @@ def safety_check_event(event_id):
     # the Coordinator can re-arrange and re-confirm (mirrors SCRUM-166). request_changes and
     # reject already return to Planning, so they do not need the re-check.
     if decision.approved:
+        # SCRUM-175: pass event_end too, so this is genuinely the SAME gate confirm_event
+        # runs - without it the span/full-coverage and equipment-end-window checks (SCRUM-166)
+        # are silently skipped and a stale, under-covered event could pass into Preparation.
         gate = EventConfirmation.from_arrangements(
             list_bookings_for_event(event_id), list_confirmation_requests(event_id),
             event_datetime=event.get("event_datetime"),
+            event_end=event.get("event_end_datetime"),
         )
         if not gate.can_confirm:
             update_event_status(event_id, "Planning", user["id"])
-            add_status_history(
-                event_id, old_status, "Planning", user["id"],
-                action="safety_arrangements_invalidated",
-                note="Arrangements changed after confirmation; returned to Planning. "
-                + " ".join(gate.outstanding),
-            )
+            # Best-effort audit row (SCRUM-175 / A4 parity): the revert already happened; a
+            # lost history row must not turn this into a 500 for an event already in Planning.
+            try:
+                add_status_history(
+                    event_id, old_status, "Planning", user["id"],
+                    action="safety_arrangements_invalidated",
+                    note="Arrangements changed after confirmation; returned to Planning. "
+                    + " ".join(gate.outstanding),
+                )
+            except HTTPException:
+                current_app.logger.exception(
+                    "safety_check_event revert status-history write failed (non-fatal)"
+                )
             raise Conflict(
                 "This event's arrangements are no longer valid, so the safety check "
                 "cannot approve it. It has been returned to Planning for re-confirmation. "
@@ -715,10 +726,16 @@ def safety_check_event(event_id):
             )
 
     updated = update_event_status(event_id, decision.status, user["id"])
-    add_status_history(
-        event_id, old_status, decision.status, user["id"],
-        action=_SAFETY_ACTIONS[decision.action], note=decision.reason,
-    )
+    # SCRUM-175 (A4 parity, SCRUM-173): the status change is authoritative; its audit-history
+    # row is best-effort so a history-write failure does not 500 an event that already moved
+    # (a retry would hit the "Only a confirmed event..." 409 and could never recover it).
+    try:
+        add_status_history(
+            event_id, old_status, decision.status, user["id"],
+            action=_SAFETY_ACTIONS[decision.action], note=decision.reason,
+        )
+    except HTTPException:
+        current_app.logger.exception("safety_check_event status-history write failed (non-fatal)")
     updated["status"] = canonical_event_status(updated.get("status"))
     return jsonify({"event": updated}), 200
 
