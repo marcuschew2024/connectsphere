@@ -10,6 +10,19 @@ from postgrest import SyncPostgrestClient
 from app import create_app
 
 from .conftest import ORIGIN, select_user
+from .test_venue_acceptance import unique_venue
+
+
+def _approved_venue_booking(db, event):
+    """SCRUM-171 / audit A2: the safety approval now re-runs the confirmation gate, so a
+    genuinely Confirmed event must have a Confirmed venue booking covering its time
+    (events here run at 2099-10-20 06:00Z)."""
+    venue = db.table("venues").insert({**unique_venue(), "created_by": 3}).execute().data[0]
+    return db.table("venue_bookings").insert({
+        "venue_id": venue["id"], "event_id": event["id"], "requested_by": 2,
+        "start_at": "2099-10-20T06:00:00+00:00", "end_at": "2099-10-20T08:00:00+00:00",
+        "expected_attendance": 20, "layout": "Classroom", "status": "Confirmed",
+    }).execute().data[0]
 
 pytestmark = pytest.mark.skipif(
     not os.environ.get("POSTGREST_TEST_URL"), reason="Disposable database is not running",
@@ -62,6 +75,7 @@ def live_safety(monkeypatch):
 def test_seeded_identity_can_find_review_and_approve_with_attribution(live_safety):
     _, db, client, safety, event = live_safety
     confirmed = event()
+    _approved_venue_booking(db, confirmed)  # A2: approval re-checks the confirmation gate.
     private = event("Draft")
     planning = event("Planning")
     queue = client.get("/events/safety-review", headers=ORIGIN)
