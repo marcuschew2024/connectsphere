@@ -192,3 +192,10 @@ it("offers a Coordinator no way to change the venue", async () => {
   expect(screen.queryByText("Retire venue", { selector: "summary" })).toBeNull();
   expect(screen.queryByRole("button", { name: "Block venue" })).toBeNull();
 });
+it.each([false, true])("ignores a late closure lookup %s after leaving the venue", async rejects => {
+  const pending = deferred<object>(); interceptClosures(() => pending.promise);
+  state.role = "Coordinator"; const view = render(<Page />);
+  await screen.findByRole("heading", { name: "Hall" }); view.unmount();
+  await act(async () => { if (rejects) pending.reject(new Error("late")); else pending.resolve({ blocks: [closure] }); });
+  expect(screen.queryByText("Current and upcoming closures")).toBeNull();
+});
