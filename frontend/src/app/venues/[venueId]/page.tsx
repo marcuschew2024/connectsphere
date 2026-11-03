@@ -8,7 +8,10 @@ import { ApiError, apiRequest } from "@/lib/api";
 import { useActingRole } from "@/lib/use-acting-role";
 import { AppShell } from "@/components/app-shell";
 import { weekStartMs, type CalendarBooking } from "@/lib/availability";
-import type { Venue } from "@/lib/venues";
+import {
+  VENUE_DAYS, activeClosure, venueMoment, venueStatus,
+  type Venue, type VenueBlock,
+} from "@/lib/venues";
 import VenueAvailabilityCalendar from "./venue-availability-calendar";
 import VenueRetirePanel from "./venue-retire-panel";
 
@@ -29,13 +32,9 @@ const BLOCK_REASONS = [
   "Internal activity",
 ] as const;
 
-type VenueBlock = {
-  id: string;
-  start_at: string;
-  end_at: string;
-  reason: string;
-  note?: string | null;
-};
+// SCRUM-27: a Coordinator assessing a venue books ahead, so the status and the closure
+// list cover the next quarter rather than only the week the calendar happens to show.
+const CLOSURE_HORIZON_DAYS = 90;
 
 async function loadVenueData(venueId: string, weekStart: number, controller?: AbortController) {
   const from = new Date(weekStart).toISOString();
@@ -76,6 +75,8 @@ export default function VenueDetailPage() {
   const [loading, setLoading] = useState(true);
   const [keptBookings, setKeptBookings] = useState<number | null>(null);
   const [suitability, setSuitability] = useState<Suitability | null>(null);
+  const [closures, setClosures] = useState<VenueBlock[]>([]);
+  const [currentClosure, setCurrentClosure] = useState<VenueBlock | null>(null);
 
   const dateParam = searchParams.get("date");
   const initialWeekStart = (() => {
@@ -124,6 +125,25 @@ export default function VenueDetailPage() {
       controller.abort();
     };
   }, [params.venueId, currentWeekStart]);
+  // SCRUM-27: closures for the status line and the read-only list, independent of the
+  // calendar week. A failure here leaves the record readable rather than blanking it.
+  useEffect(() => {
+    const controller = new AbortController();
+    const now = Date.now();
+    const to = new Date(now + CLOSURE_HORIZON_DAYS * DAY_MS).toISOString();
+    apiRequest<{ blocks: VenueBlock[] }>(
+      `/venues/${params.venueId}/unavailability?from=${new Date(now).toISOString()}&to=${to}`,
+      { signal: controller.signal },
+    )
+      .then((result) => {
+        if (controller.signal.aborted) return;
+        setClosures(result.blocks);
+        setCurrentClosure(activeClosure(result.blocks, Date.now()));
+      })
+      .catch(() => { if (!controller.signal.aborted) setClosures([]); });
+    return () => controller.abort();
+  }, [params.venueId]);
+
   useEffect(() => {
     if (!eventId) return;
     const controller = new AbortController();
@@ -202,6 +222,55 @@ export default function VenueDetailPage() {
               </ul>
             </section>
           )}
+
+          {/* SCRUM-27: the full catalogue record, so the venue opened from a card can be
+              read in one place alongside its availability. */}
+          <section aria-labelledby="venue-record-heading" className="rounded-2xl border border-border bg-card p-5 shadow-sm">
+            <h2 id="venue-record-heading" className="font-semibold">Venue record</h2>
+            <dl className="mt-4 grid gap-4 text-sm sm:grid-cols-2">
+              {[
+                ["Location", venue.location],
+                ["Capacity", `${venue.capacity} people`],
+                ["Status", venueStatus(venue, currentClosure)],
+                ["Layouts", venue.supported_layouts.join(" · ")],
+                ["Facilities", venue.facilities.join(" · ") || "None listed"],
+                ["Accessibility", venue.accessibility.join(" · ") || "None listed"],
+                ["Setup buffer", venue.setup_time_minutes ? `${venue.setup_time_minutes} minutes before the event` : "None"],
+                ["Turnaround buffer", venue.turnaround_time_minutes ? `${venue.turnaround_time_minutes} minutes after the event` : "None"],
+                ["Time zone", venue.timezone],
+              ].map(([term, description]) => (
+                <div key={term}>
+                  <dt className="text-xs font-medium uppercase tracking-wide text-muted-foreground">{term}</dt>
+                  <dd className="mt-1 break-words text-foreground">{description}</dd>
+                </div>
+              ))}
+            </dl>
+            {closures.length > 0 && actingRole !== "Venue Staff" && (
+              <div className="mt-5 border-t border-border pt-4">
+                <h3 className="text-sm font-semibold">Current and upcoming closures</h3>
+                <ul className="mt-3 space-y-2 text-sm text-muted-foreground">
+                  {closures.map((closure) => (
+                    <li key={closure.id}>
+                      <strong className="font-medium text-foreground">{closure.reason}</strong>
+                      {" · "}{venueMoment(closure.start_at)} – {venueMoment(closure.end_at)}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+
+            <details className="mt-5 border-t border-border pt-4">
+              <summary className="cursor-pointer text-sm font-medium text-primary">Opening hours</summary>
+              <dl className="mt-3 space-y-2 text-xs text-muted-foreground">
+                {VENUE_DAYS.map((day) => (
+                  <div key={day} className="flex justify-between gap-3">
+                    <dt className="capitalize">{day}</dt>
+                    <dd>{venue.operating_hours[day] ? `${venue.operating_hours[day]!.opens} – ${venue.operating_hours[day]!.closes}` : "Closed"}</dd>
+                  </div>
+                ))}
+              </dl>
+            </details>
+          </section>
 
           {/* SCRUM-26: retirement banner and the Venue Staff retire action. */}
           {venue.is_retired ? (

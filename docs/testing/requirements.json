@@ -306,7 +306,8 @@
         "SCRUM-46",
         "SCRUM-47",
         "SCRUM-48",
-        "SCRUM-138"
+        "SCRUM-138",
+        "SCRUM-168"
       ],
       "intent": "Planning edits preserve attribution and become read-only after confirmation. Important changes need reconsideration of existing resource arrangements.",
       "checks": [
@@ -349,6 +350,16 @@
           "lane": "backend",
           "path": "api/tests/test_change_request_apply_acceptance.py",
           "test": "test_rescheduling_applies_the_new_date_and_flags_re_review"
+        },
+        {
+          "lane": "browser",
+          "path": "frontend/e2e/change-requests.spec.ts",
+          "test": "the propose-values panel gives the venue options their own full-width rows"
+        },
+        {
+          "lane": "frontend",
+          "path": "frontend/src/app/events/[eventId]/panels-coverage.test.tsx",
+          "test": "keeps the venue options out of the grid that lays out the simple fields"
         }
       ],
       "gaps": [
@@ -363,9 +374,10 @@
       "stories": [
         "SCRUM-24",
         "SCRUM-25",
+        "SCRUM-27",
         "SCRUM-60"
       ],
-      "intent": "Venue details persist, duplicates and invalid capacities are rejected, and updates preserve booking records and audit.",
+      "intent": "Venue details persist, duplicates and invalid capacities are rejected, updates preserve booking records and audit, and an opened venue shows its full record.",
       "checks": [
         {
           "lane": "backend",
@@ -396,6 +408,31 @@
           "lane": "integrated",
           "path": "frontend/integration/venue-flows.spec.ts",
           "test": "INTEGRATED-13"
+        },
+        {
+          "lane": "frontend",
+          "path": "frontend/src/app/venues/[venueId]/detail.test.tsx",
+          "test": "shows the complete catalogue record, not only name location and capacity"
+        },
+        {
+          "lane": "frontend",
+          "path": "frontend/src/app/venues/[venueId]/detail.test.tsx",
+          "test": "lists the opening hours of every day, including the days the venue is closed"
+        },
+        {
+          "lane": "frontend",
+          "path": "frontend/src/app/venues/[venueId]/detail.test.tsx",
+          "test": "marks a venue that is closed right now, naming the reason and when it reopens"
+        },
+        {
+          "lane": "frontend",
+          "path": "frontend/src/app/venues/[venueId]/detail.test.tsx",
+          "test": "offers a Coordinator no way to change the venue"
+        },
+        {
+          "lane": "frontend",
+          "path": "frontend/src/lib/venue-status.test.ts",
+          "test": "reports a retired venue as retired even while a closure is running"
         }
       ],
       "gaps": [],

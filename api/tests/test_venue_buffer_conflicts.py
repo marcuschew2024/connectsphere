@@ -213,6 +213,12 @@ def editing_api(app, monkeypatch, bookings):
     saved = {**details(), "id": VENUE_ID, "revision": 2,
              "setup_time_minutes": 0, "turnaround_time_minutes": 45}
     monkeypatch.setattr("app.venues.update_venue", lambda *args: saved)
+    # SCRUM-167: the save now notifies the affected coordinators; stub the lookup and send
+    # so the report assertions stay focused on AC3 and no DB call escapes the test.
+    monkeypatch.setattr(
+        "app.venues.get_event_by_id", lambda event_id: {"id": event_id, "coordinator_id": 2}
+    )
+    monkeypatch.setattr("app.venues.create_notification", lambda *a, **k: None)
     client = app.test_client()
     select_user(client, 3)
     return client

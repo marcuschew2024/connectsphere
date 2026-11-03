@@ -63,3 +63,31 @@ export function conflictEventLabel(title: string | null | undefined, fallback: s
 export function defaultOpeningHours(): OpeningHours {
   return Object.fromEntries(VENUE_DAYS.map((day, index) => [day, index < 5 ? { opens: "09:00", closes: "18:00" } : null])) as OpeningHours;
 }
+
+// SCRUM-27: a venue's closures and the status a Coordinator reads before booking.
+export type VenueBlock = {
+  id: string;
+  start_at: string;
+  end_at: string;
+  reason: string;
+  note?: string | null;
+};
+
+export function venueMoment(value: string) {
+  return new Date(value).toLocaleString("en-SG", {
+    timeZone: "Asia/Singapore", dateStyle: "medium", timeStyle: "short",
+  });
+}
+
+/** The closure running at `now`, if any. Half-open: a closure ending now is over. */
+export function activeClosure(closures: VenueBlock[], now: number): VenueBlock | null {
+  return closures.find(
+    (closure) => Date.parse(closure.start_at) <= now && Date.parse(closure.end_at) > now,
+  ) ?? null;
+}
+
+/** Retired wins over blocked: a retired venue takes no bookings whatever its calendar says. */
+export function venueStatus(venue: Venue, current: VenueBlock | null) {
+  if (venue.is_retired) return "Retired";
+  return current ? `Blocked — ${current.reason} until ${venueMoment(current.end_at)}` : "Active";
+}
