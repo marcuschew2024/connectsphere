@@ -199,11 +199,15 @@ test("INTEGRATED-08 venue unavailability notifies the Coordinator and a replacem
 test("INTEGRATED-09 Lead reassignment removes the old Coordinator's action access", async ({ as }) => {
   const { lead, coordinator, event } = await setup(as);
   const next = await as("coordinator.b", "Coordinator");
+  const nextName = (await call(next, "GET", "/session")).user.display_name;
   await lead.page.goto("/events/supervised"); await lead.page.getByLabel("Search events", { exact: true }).fill(event.reference);
   const card = lead.page.getByRole("listitem").filter({ has: lead.page.locator(`a[href="/events/${event.id}"]`) });
   await card.getByLabel(`Reassign ${event.title} to`, { exact: true }).selectOption(String(next.id));
   await card.getByRole("button", { name: `Reassign ${event.title}`, exact: true }).click();
   await expect(card).toContainText("Coordinator B");
+  // The select already contains Coordinator B before saving. Wait for the persisted
+  // assignment label before testing the old Coordinator's loss of access.
+  await expect(card.getByText(`Assigned to ${nextName}`, { exact: true })).toBeVisible();
   await coordinator.page.goto(`/events/${event.id}`);
   await expect(coordinator.page.getByText("You do not have access to this event.", { exact: true })).toBeVisible();
   await call(coordinator, "PATCH", `/events/${event.id}`, { title: "Forged change" }, 403);
