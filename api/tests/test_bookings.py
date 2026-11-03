@@ -128,7 +128,12 @@ def test_end_before_start_is_rejected(booking_api):
     assert created == []
 
 
-def test_attendance_over_venue_capacity_is_rejected(booking_api, monkeypatch):
+def test_attendance_over_venue_capacity_is_advisory_not_blocked(booking_api, monkeypatch):
+    # SCRUM-174 / audit P3: over-capacity is advisory, not a hard block. SCRUM-29's AC says
+    # suitability flags "do not by themselves block a booking request; the Coordinator decides",
+    # and the Customer Brief only asks to "surface these relationships". The over-capacity is
+    # surfaced as a suitability advisory and each booking's capacity_warning (SCRUM-152); the
+    # request is accepted. Only double-booking overlaps hard-block (S1 Q1/Q17).
     client, created, _, _ = booking_api
     monkeypatch.setattr(
         "app.bookings.get_venue", lambda venue_id: {"id": venue_id, "capacity": 50}
@@ -138,9 +143,8 @@ def test_attendance_over_venue_capacity_is_rejected(booking_api, monkeypatch):
         "/venues/bookings", json=payload(expected_attendance=51), headers=ORIGIN
     )
 
-    assert response.status_code == 400
-    assert "capacity" in response.json["error"]
-    assert created == []
+    assert response.status_code == 201, response.json
+    assert len(created) == 1 and created[0]["expected_attendance"] == 51
 
 
 def test_confirmed_or_blocked_overlap_is_rejected(booking_api, monkeypatch):

@@ -77,10 +77,11 @@ def _validated_booking_fields(data, event: dict, existing: dict | None = None) -
     )
     if type(attendance) is not int or not 1 <= attendance <= 2_147_483_647:
         raise BadRequest("Enter a positive whole-number attendance.")
-    if attendance > venue["capacity"]:
-        raise BadRequest(
-            f"Expected attendance cannot exceed this venue's capacity of {venue['capacity']}."
-        )
+    # SCRUM-174 / audit P3: venue capacity is advisory, not a hard block. SCRUM-29's AC says
+    # suitability flags "do not by themselves block a booking request; the Coordinator decides",
+    # and the Customer Brief asks only to "surface these relationships". Over-capacity is
+    # surfaced as a suitability advisory at venue selection and as each booking's
+    # capacity_warning (SCRUM-152); only double-booking overlaps hard-block (S1 Q1/Q17).
     layout = data.get("layout", source.get("layout"))
     if not isinstance(layout, str) or not layout.strip() or len(layout.strip()) > 100:
         raise BadRequest("Choose a layout of 1 to 100 characters.")
@@ -181,10 +182,7 @@ def submit_booking():
     attendance = data.get("expected_attendance", event.get("expected_attendance"))
     if type(attendance) is not int or not 1 <= attendance <= 2_147_483_647:
         raise BadRequest("Enter a positive whole-number attendance.")
-    if attendance > venue["capacity"]:
-        raise BadRequest(
-            f"Expected attendance cannot exceed this venue's capacity of {venue['capacity']}."
-        )
+    # SCRUM-174 / audit P3: capacity is advisory, not a hard block (see _validated_booking_fields).
     layout = data.get("layout")
     if not isinstance(layout, str) or not layout.strip() or len(layout.strip()) > 100:
         raise BadRequest("Choose a layout of 1 to 100 characters.")
