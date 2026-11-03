@@ -379,16 +379,23 @@ def decide_booking(booking_id):
                 exp_dt = datetime.fromisoformat(custom_expires.replace("Z", "+00:00"))
             except (ValueError, TypeError):
                 raise BadRequest("Invalid expiry timestamp.") from None
+            # SCRUM-176: a naive (no-timezone) timestamp parses fine but cannot be compared
+            # against the aware `now`/`start_dt` below - reject it as a clean 400 rather than
+            # letting the comparison raise an uncaught TypeError (500).
+            if exp_dt.tzinfo is None or exp_dt.utcoffset() is None:
+                raise BadRequest("Expiry time must include a time zone.")
             if exp_dt <= now:
                 raise BadRequest("Expiry time must be in the future.")
             if exp_dt >= start_dt:
                 raise BadRequest("Expiry time must be before the event starts.")
             expires_at_iso = exp_dt.isoformat()
         else:
-            # Default: 48h from now, capped at 1h before booking starts
+            # Default: 48h from now, capped at 1h before booking starts.
             default_exp = min(now + timedelta(hours=48), start_dt - timedelta(hours=1))
             if default_exp <= now:
-                default_exp = now + timedelta(minutes=30)
+                # SCRUM-176: imminent booking - fall back to a point strictly BEFORE the event
+                # start (never now+30min, which could land after start and outlive the event).
+                default_exp = min(now + timedelta(minutes=30), start_dt - timedelta(minutes=1))
             expires_at_iso = default_exp.isoformat()
 
     # Confirmed decisions hard-block only published-slot conflicts. A stale tentative
