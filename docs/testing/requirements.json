@@ -306,7 +306,8 @@
         "SCRUM-46",
         "SCRUM-47",
         "SCRUM-48",
-        "SCRUM-138"
+        "SCRUM-138",
+        "SCRUM-168"
       ],
       "intent": "Planning edits preserve attribution and become read-only after confirmation. Important changes need reconsideration of existing resource arrangements.",
       "checks": [
@@ -349,6 +350,16 @@
           "lane": "backend",
           "path": "api/tests/test_change_request_apply_acceptance.py",
           "test": "test_rescheduling_applies_the_new_date_and_flags_re_review"
+        },
+        {
+          "lane": "browser",
+          "path": "frontend/e2e/change-requests.spec.ts",
+          "test": "the propose-values panel gives the venue options their own full-width rows"
+        },
+        {
+          "lane": "frontend",
+          "path": "frontend/src/app/events/[eventId]/panels-coverage.test.tsx",
+          "test": "keeps the venue options out of the grid that lays out the simple fields"
         }
       ],
       "gaps": [

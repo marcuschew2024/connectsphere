@@ -173,3 +173,45 @@ test("the event stays visible when change requests cannot be loaded", async ({ p
   await expect(page.getByText("Existing change requests could not be loaded.")).toBeVisible();
   await expect(page.getByText("No change requests have been raised.")).toHaveCount(0);
 });
+
+// SCRUM-168: the propose-values panel rendered EventVenueOptions as one cell of its
+// two-column field grid, so the checkbox groups were squeezed into half a row and the
+// simple inputs flowed around them. These assertions are geometric because the defect
+// was geometric — a class-name assertion would pass against the broken layout too.
+async function boxOf(locator: { boundingBox: () => Promise<{ x: number; y: number; width: number; height: number } | null> }) {
+  const box = await locator.boundingBox();
+  if (!box) throw new Error("Element is not laid out");
+  return box;
+}
+
+test("the propose-values panel gives the venue options their own full-width rows", async ({ page }) => {
+  await openEvent(page, "Organiser");
+  await page.route(`${API_ORIGIN}/events/${EVENT_ID}/change-requests`, (route) =>
+    route.fulfill({ json: { change_requests: [] } }));
+
+  await page.goto(`/events/${EVENT_ID}`);
+  await page.locator("summary", { hasText: "Propose new values" }).click();
+
+  const title = await boxOf(page.locator("#change-title"));
+  const date = await boxOf(page.locator("#change-event_datetime"));
+  const attendance = await boxOf(page.locator("#change-expected_attendance"));
+  const registration = await boxOf(page.locator("#change-registration_requirements"));
+  const layouts = await boxOf(page.getByRole("group", { name: "Layouts" }));
+  const facilities = await boxOf(page.getByRole("group", { name: "Facilities" }));
+  const accessibility = await boxOf(page.getByRole("group", { name: "Accessibility features" }));
+
+  // The event's name and its registration rules span the panel; date and attendance pair up.
+  expect(title.width).toBeGreaterThan(date.width * 1.8);
+  expect(registration.width).toBeGreaterThan(date.width * 1.8);
+  expect(Math.abs(date.y - attendance.y)).toBeLessThan(2);
+  expect(date.x).toBeLessThan(attendance.x);
+  expect(date.y).toBeGreaterThan(title.y);
+
+  // Every simple field comes first, then one venue group per row, each the panel's width.
+  expect(layouts.y).toBeGreaterThan(registration.y);
+  expect(facilities.y).toBeGreaterThanOrEqual(layouts.y + layouts.height);
+  expect(accessibility.y).toBeGreaterThanOrEqual(facilities.y + facilities.height);
+  expect(layouts.width).toBeGreaterThan(title.width * 0.9);
+  expect(facilities.width).toBeGreaterThan(title.width * 0.9);
+  expect(accessibility.width).toBeGreaterThan(title.width * 0.9);
+});
