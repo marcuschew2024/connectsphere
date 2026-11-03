@@ -107,3 +107,14 @@ it.each(["Held", "Expired", "Rejected"])("offers no actions on a %s booking", as
   expect(screen.queryByRole("link", { name: "Change" })).toBeNull();
   expect(screen.queryByRole("button", { name: "Cancel" })).toBeNull();
 });
+// SCRUM-168: the venue options belong to the panel, not to one cell of the field grid.
+// Nested in that grid they were half a row wide and their checkbox groups collapsed.
+it("keeps the venue options out of the grid that lays out the simple fields", async () => {
+  render(<Changes event={event} requests={[]} isCoordinator={false} onChanged={changed} />);
+  fireEvent.click(screen.getByText("Propose new values (optional)"));
+  const fieldGrid = (await screen.findByLabelText("New title")).closest("div")!.parentElement!;
+  expect(fieldGrid.contains(screen.getByLabelText("New expected attendance"))).toBe(true);
+  for (const group of ["Layouts", "Facilities", "Accessibility features"]) {
+    expect(fieldGrid.contains(screen.getByRole("group", { name: group }))).toBe(false);
+  }
+});

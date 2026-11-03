@@ -62,10 +62,13 @@ function OptionGroup({ label, options, name, selected, onChange, other, onOtherC
   );
 }
 
-export default function EventVenueOptions({ venueRequirements, facilityRequirements, accessibilityRequirements }: {
+// SCRUM-168: `stacked` gives each group its own full-width row. The change-request panel
+// asks for it; the request, edit and resubmit forms keep the paired default.
+export default function EventVenueOptions({ venueRequirements, facilityRequirements, accessibilityRequirements, stacked = false }: {
   venueRequirements?: string | null;
   facilityRequirements?: string | null;
   accessibilityRequirements?: string | null;
+  stacked?: boolean;
 }) {
   const venueValues = parse(venueRequirements);
   const [facilities, setFacilities] = useState(parse(facilityRequirements).concat(venueValues.filter((value) => VENUE_FACILITIES.some((option) => option.toLowerCase() === value.toLowerCase()) || isLegacyFacilityOther(value))));
@@ -82,7 +85,7 @@ export default function EventVenueOptions({ venueRequirements, facilityRequireme
   const [accessibilityOther, setAccessibilityOther] = useState(otherValues(accessibility, VENUE_ACCESSIBILITY_FEATURES).join(", "));
 
   return (
-    <div className="grid gap-5 sm:grid-cols-2">
+    <div className={`grid gap-5 ${stacked ? "" : "sm:grid-cols-2"}`}>
       <OptionGroup label="Layouts" options={VENUE_LAYOUTS} name="" selected={layouts} onChange={setLayouts} other={layoutOther} onOtherChange={setLayoutOther} />
       <input type="hidden" name="venue_requirements" value={[
         ...layouts.filter((value) => value !== "__other__"),
@@ -90,7 +93,9 @@ export default function EventVenueOptions({ venueRequirements, facilityRequireme
       ].join(", ")} />
       <OptionGroup label="Facilities" options={VENUE_FACILITIES} name="" selected={facilities} onChange={setFacilities} other={facilityOther} onOtherChange={setFacilityOther} />
       <input type="hidden" name="facility_requirements" value={[...facilities.filter((value) => VENUE_FACILITIES.some((option) => option.toLowerCase() === value.toLowerCase()) && value !== "__other__"), ...parse(facilityOther)].join(", ")} />
-      <div className="sm:col-span-2">
+      {/* An item spanning two columns creates an implicit second column, which would
+          pair Layouts and Facilities up again — so a stacked grid spans nothing. */}
+      <div className={stacked ? "" : "sm:col-span-2"}>
         <OptionGroup label="Accessibility features" options={VENUE_ACCESSIBILITY_FEATURES} name="accessibility_requirements" selected={accessibility} onChange={setAccessibility} other={accessibilityOther} onOtherChange={setAccessibilityOther} />
       </div>
     </div>

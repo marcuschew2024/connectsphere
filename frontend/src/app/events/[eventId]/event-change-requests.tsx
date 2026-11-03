@@ -17,6 +17,10 @@ import { ChangeRequestStatusBadge, type EventChangeRequest, type EventRecord } f
 import { Button } from "@/components/ui/button";
 import EventVenueOptions from "@/components/event-venue-options";
 
+// SCRUM-168: the event's name and its registration rules read better across the panel
+// than squeezed beside a date; the remaining fields pair up two to a row.
+const FULL_WIDTH_FIELDS: readonly string[] = ["title", "registration_requirements"];
+
 export default function EventChangeRequests({
   event,
   requests,
@@ -133,11 +137,10 @@ export default function EventChangeRequests({
             {proposing && <>
             <p className="mt-2 text-xs text-muted-foreground">Fill in only what should change. Approved values are applied to the event. For a new date or time, describe it above.</p>
             <div className="mt-3 grid gap-3 sm:grid-cols-2">
-              <EventVenueOptions venueRequirements={event.venue_requirements} facilityRequirements={event.facility_requirements} accessibilityRequirements={event.accessibility_requirements} />
               {CHANGE_FIELDS.filter(({ name }) => !["venue_requirements", "facility_requirements", "accessibility_requirements"].includes(name)).map((field) => {
                 const { name, label } = field;
                 const kind = "kind" in field ? field.kind : "text";
-                return <div key={name} className="space-y-1">
+                return <div key={name} className={`space-y-1 ${FULL_WIDTH_FIELDS.includes(name) ? "sm:col-span-2" : ""}`}>
                 <label htmlFor={`change-${name}`} className="block text-xs font-medium">New {label.toLowerCase()}</label>
                 <input
                   id={`change-${name}`}
@@ -153,6 +156,11 @@ export default function EventChangeRequests({
                 {fieldErrors[name] && <p id={`change-${name}-error`} className="text-xs text-destructive">{fieldErrors[name]}</p>}
               </div>;
               })}
+            </div>
+            {/* SCRUM-168: the venue options are their own full-width block. Nested in the
+                field grid above they were squeezed into one column and misaligned. */}
+            <div className="mt-5">
+              <EventVenueOptions stacked venueRequirements={event.venue_requirements} facilityRequirements={event.facility_requirements} accessibilityRequirements={event.accessibility_requirements} />
             </div>
             </>}
           </details>
