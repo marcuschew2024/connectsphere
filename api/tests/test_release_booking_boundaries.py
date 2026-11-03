@@ -22,6 +22,8 @@ from .test_venues import details
         ("not-a-date", "Invalid expiry"),
         ("2000-01-01T00:00:00Z", "in the future"),
         ("2099-10-20T06:00:00Z", "before the event"),
+        # SCRUM-176: a timezone-naive timestamp is a clean 400, not a 500.
+        ("2099-10-20T05:30:00", "time zone"),
     ],
 )
 def test_invalid_hold_expiry_leaves_booking_and_notifications_unchanged(request, expiry, message):
@@ -50,6 +52,27 @@ def test_default_hold_for_an_imminent_booking_expires_before_it_starts(request, 
     assert expiry == now + timedelta(minutes=30)
     assert expiry < datetime.fromisoformat(booking["start_at"])
     assert [n["notification_type"] for n in db.notifications] == ["booking_held"]
+
+
+def test_default_hold_under_30_minutes_out_expires_strictly_before_start(request, monkeypatch):
+    # SCRUM-176: when the booking starts in under 30 minutes, the default expiry must land
+    # strictly before the event start, not now+30min (which would outlive the event).
+    now = datetime(2099, 10, 20, 5, 50, tzinfo=UTC)  # booking starts 06:00 -> 10 min away
+
+    class Clock(datetime):
+        @classmethod
+        def now(cls, tz=None):
+            return now.astimezone(tz)
+
+    monkeypatch.setattr("app.bookings.datetime", Clock)
+    db, staff = request.getfixturevalue("decision_db"), request.getfixturevalue("staff_client")
+    booking = seed(db)
+    response = decide(staff, booking["id"], "hold")
+    assert response.status_code == 200
+    expiry = datetime.fromisoformat(response.json["booking"]["expires_at"])
+    start = datetime.fromisoformat(booking["start_at"].replace("Z", "+00:00"))
+    assert expiry == start - timedelta(minutes=1)  # strictly before start, not now+30min (06:20)
+    assert expiry < start
 
 
 def test_rejection_without_an_alternative_still_notifies_the_requester(request):
