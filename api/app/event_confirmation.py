@@ -10,8 +10,8 @@ Gate (Week 7 change #3, multi-venue). An event may be confirmed only when:
   * at least one venue booking is Confirmed - a fully-resourced event must have
     an approved venue (PO decision: zero bookings cannot be confirmed), AND
   * no venue booking is still awaiting approval - any status that is not a
-    settled Confirmed/Rejected/Cancelled (Requested, Pending, or an unrecognised value)
-    blocks, AND
+    settled Confirmed/Rejected/Cancelled/Expired (Requested, Pending, a live Held,
+    or an unrecognised value) blocks, AND
   * no approved booking's slot has drifted from the event's date/time
     (SCRUM-159: a reschedule must not leave an orphaned booking - NFR-d), AND
   * when the event has an end time, its approved bookings together cover the event
@@ -20,7 +20,9 @@ Gate (Week 7 change #3, multi-venue). An event may be confirmed only when:
   * the technical arrangements are resolved, and every Reserved request's reservation
     window covers the event's time (SCRUM-166).
 
-Rejected and cancelled bookings are settled history and do not block. The
+Rejected, cancelled and expired bookings are settled history and do not block
+(an expired hold is a lapsed request, not a live one - SCRUM-170/audit A1). A
+still-live Held hold is pending and does block. The
 `from_arrangements` requires every equipment request to be Reserved; the
 repository derives readiness from its current reservations. Non-essential items
 (programme, registration setup) are intentionally not part of the gate - AC2
@@ -58,7 +60,9 @@ class EventConfirmation:
     """Decides whether an event's arrangements allow it to be confirmed."""
 
     # A booking in one of these states is settled - no further action is pending.
-    _SETTLED = {"Confirmed", "Rejected", "Cancelled"}
+    # Expired holds are lapsed history (SCRUM-170/audit A1): a live Held hold is
+    # still pending and is intentionally not settled.
+    _SETTLED = {"Confirmed", "Rejected", "Cancelled", "Expired"}
 
     def __init__(
         self,
